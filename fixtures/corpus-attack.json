@@ -1,0 +1,1484 @@
+{
+  "case": "corpus-attack",
+  "title": "Controlled adverse corpus",
+  "description": "80 synthetic adverse requests across SQLi, XSS, traversal, command signatures, scanners and four known bypass classes. Shares signature families with T1/T2/T5; not an independent holdout or a real-world accuracy estimate.",
+  "samples": [
+    {
+      "id": "CA-001",
+      "description": "Numeric tautology in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q='%20OR%201%3D1--",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-002",
+      "description": "Numeric tautology in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"filter\":\"' OR 1=1--\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-003",
+      "description": "String tautology in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q='%20OR%20'a'%3D'a",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-004",
+      "description": "String tautology in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"filter\":\"' OR 'a'='a\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-005",
+      "description": "UNION SELECT in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20UNION%20SELECT%20username%2Cpassword%20FROM%20users",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-006",
+      "description": "UNION SELECT in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"filter\":\"1 UNION SELECT username,password FROM users\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-007",
+      "description": "UNION ALL SELECT in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20UNION%20ALL%20SELECT%201%2C2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-008",
+      "description": "UNION ALL SELECT in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"filter\":\"1 UNION ALL SELECT 1,2\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-009",
+      "description": "Quote and comment in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=admin'--",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-010",
+      "description": "Quote and comment in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"filter\":\"admin'--\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-011",
+      "description": "Stacked statement (inert lab input) in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%3B%20DROP%20TABLE%20fake_users",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-012",
+      "description": "Stacked statement (inert lab input) in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"filter\":\"1; DROP TABLE fake_users\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-013",
+      "description": "Delay function signature (never executed) in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20AND%20SLEEP(2)",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-014",
+      "description": "Delay function signature (never executed) in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"filter\":\"1 AND SLEEP(2)\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-015",
+      "description": "System catalog name in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=information_schema.tables",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-016",
+      "description": "System catalog name in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"filter\":\"information_schema.tables\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-017",
+      "description": "ORDER BY column probe in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1'%20ORDER%20BY%203",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-018",
+      "description": "ORDER BY column probe in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"filter\":\"1' ORDER BY 3\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-019",
+      "description": "Database version variable in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%40%40version",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-020",
+      "description": "Database version variable in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"filter\":\"@@version\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-021",
+      "description": "Numeric tautology in form",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "q='%20OR%201%3D1--"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-022",
+      "description": "String tautology in form",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "q='%20OR%20'a'%3D'a"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-023",
+      "description": "UNION SELECT in form",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "q=1%20UNION%20SELECT%20username%2Cpassword%20FROM%20users"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-024",
+      "description": "UNION ALL SELECT in form",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "q=1%20UNION%20ALL%20SELECT%201%2C2"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "CA-025",
+      "description": "Script tag in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-026",
+      "description": "Script tag in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"comment\":\"<script>alert(1)</script>\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-027",
+      "description": "Image error handler in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-028",
+      "description": "Image error handler in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"comment\":\"<img src=x onerror=alert(1)>\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-029",
+      "description": "SVG load handler in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Csvg%2Fonload%3Dalert(1)%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-030",
+      "description": "SVG load handler in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"comment\":\"<svg/onload=alert(1)>\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-031",
+      "description": "JavaScript URI in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=javascript%3Aalert(1)",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-032",
+      "description": "JavaScript URI in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"comment\":\"javascript:alert(1)\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-033",
+      "description": "Data HTML URI in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=data%3Atext%2Fhtml%2C%3Cscript%3Ealert(1)%3C%2Fscript%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-034",
+      "description": "Data HTML URI in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"comment\":\"data:text/html,<script>alert(1)</script>\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-035",
+      "description": "Frame with JavaScript URI in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Ciframe%20src%3D%22javascript%3Aalert(1)%22%3E%3C%2Fiframe%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-036",
+      "description": "Frame with JavaScript URI in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"comment\":\"<iframe src=\\\"javascript:alert(1)\\\"></iframe>\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-037",
+      "description": "Attribute break-out in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%22%3E%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-038",
+      "description": "Attribute break-out in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"comment\":\"\\\"><img src=x onerror=alert(1)>\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-039",
+      "description": "Form focus handler in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Cinput%20autofocus%20onfocus%3Dalert(1)%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-040",
+      "description": "Form focus handler in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"comment\":\"<input autofocus onfocus=alert(1)>\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-041",
+      "description": "Object active content in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Cobject%20data%3D%22data%3Atext%2Fhtml%2C%3Cscript%3Ealert(1)%3C%2Fscript%3E%22%3E%3C%2Fobject%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-042",
+      "description": "Object active content in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"comment\":\"<object data=\\\"data:text/html,<script>alert(1)</script>\\\"></object>\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-043",
+      "description": "Mixed-case script tag in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3CScRiPt%3Ealert(1)%3C%2FsCrIpT%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-044",
+      "description": "Mixed-case script tag in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"comment\":\"<ScRiPt>alert(1)</sCrIpT>\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-045",
+      "description": "Script tag in form",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "comment=%3Cscript%3Ealert(1)%3C%2Fscript%3E"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-046",
+      "description": "Image error handler in form",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "comment=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-047",
+      "description": "SVG load handler in form",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "comment=%3Csvg%2Fonload%3Dalert(1)%3E"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-048",
+      "description": "JavaScript URI in form",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "comment=javascript%3Aalert(1)"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "CA-049",
+      "description": "Single parent segment to fake secret in query",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%2Fsecret%2Fflag.txt",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-050",
+      "description": "Single parent segment to fake secret double-encoded",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%252Fsecret%252Fflag.txt",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-051",
+      "description": "Multiple parent segments in query",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%2F..%2Fetc%2Fpasswd",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-052",
+      "description": "Multiple parent segments double-encoded",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%252F..%252Fetc%252Fpasswd",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-053",
+      "description": "Windows backslashes in query",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%5C..%5Cwindows%5Cwin.ini",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-054",
+      "description": "Windows backslashes double-encoded",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%255C..%255Cwindows%255Cwin.ini",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-055",
+      "description": "Relative path to fake config in query",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%2Fconfig%2Fsettings.ini",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-056",
+      "description": "Relative path to fake config double-encoded",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%252Fconfig%252Fsettings.ini",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-057",
+      "description": "Current and parent segments in query",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=.%2Fpublic%2F..%2F..%2Fsecret%2Fflag.txt",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-058",
+      "description": "Current and parent segments double-encoded",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=.%252Fpublic%252F..%252F..%252Fsecret%252Fflag.txt",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-059",
+      "description": "Repeated slashes in query",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%2F%2F..%2F%2Fetc%2Fpasswd",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-060",
+      "description": "Repeated slashes double-encoded",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%252F%252F..%252F%252Fetc%252Fpasswd",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-061",
+      "description": "Absolute system file signature in query",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=%2Fetc%2Fshadow",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-062",
+      "description": "Absolute system file signature double-encoded",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=%252Fetc%252Fshadow",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-063",
+      "description": "File URI signature in query",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=file%3A%2F%2F%2Fetc%2Fpasswd",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-064",
+      "description": "File URI signature double-encoded",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=file%253A%252F%252F%252Fetc%252Fpasswd",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "CA-065",
+      "description": "Command signature in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=127.0.0.1%3B%20cat%20%2Fetc%2Fpasswd",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "cmdi"
+        ]
+      }
+    },
+    {
+      "id": "CA-066",
+      "description": "Command signature in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"host\":\"127.0.0.1; cat /etc/passwd\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "cmdi"
+        ]
+      }
+    },
+    {
+      "id": "CA-067",
+      "description": "Command signature in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=127.0.0.1%20%7C%20whoami",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "cmdi"
+        ]
+      }
+    },
+    {
+      "id": "CA-068",
+      "description": "Command signature in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"host\":\"127.0.0.1 | whoami\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "cmdi"
+        ]
+      }
+    },
+    {
+      "id": "CA-069",
+      "description": "Command signature in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%24(id)",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "cmdi"
+        ]
+      }
+    },
+    {
+      "id": "CA-070",
+      "description": "Command signature in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"host\":\"$(id)\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "cmdi"
+        ]
+      }
+    },
+    {
+      "id": "CA-071",
+      "description": "Command signature in query",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%60whoami%60",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "cmdi"
+        ]
+      }
+    },
+    {
+      "id": "CA-072",
+      "description": "Command signature in JSON",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"host\":\"`whoami`\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "cmdi"
+        ]
+      }
+    },
+    {
+      "id": "CA-073",
+      "description": "Scanner user-agent sqlmap/1.8",
+      "request": {
+        "method": "GET",
+        "path": "/",
+        "headers": {
+          "user-agent": "sqlmap/1.8"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "scanner"
+        ]
+      }
+    },
+    {
+      "id": "CA-074",
+      "description": "Scanner user-agent nikto/2.5",
+      "request": {
+        "method": "GET",
+        "path": "/",
+        "headers": {
+          "user-agent": "nikto/2.5"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "scanner"
+        ]
+      }
+    },
+    {
+      "id": "CA-075",
+      "description": "Scanner user-agent Nmap Scripting Engine",
+      "request": {
+        "method": "GET",
+        "path": "/",
+        "headers": {
+          "user-agent": "Nmap Scripting Engine"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "scanner"
+        ]
+      }
+    },
+    {
+      "id": "CA-076",
+      "description": "Scanner user-agent masscan/1.3",
+      "request": {
+        "method": "GET",
+        "path": "/",
+        "headers": {
+          "user-agent": "masscan/1.3"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "scanner"
+        ]
+      }
+    },
+    {
+      "id": "CA-077",
+      "description": "Cross-parameter keyword reconstruction",
+      "request": {
+        "method": "GET",
+        "path": "/search?a=UN&b=ION&c=SEL&d=ECT&e=1",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      },
+      "knownLimitation": "Values are matched separately; an application concatenating them could reconstruct SQL."
+    },
+    {
+      "id": "CA-078",
+      "description": "Split JSON fields reconstructed by an application",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"a\":\"UN\",\"b\":\"ION\",\"c\":\"SEL\",\"d\":\"ECT\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      },
+      "knownLimitation": "No cross-field data-flow analysis."
+    },
+    {
+      "id": "CA-079",
+      "description": "Base64 payload inside an application-specific wrapper",
+      "request": {
+        "method": "GET",
+        "path": "/search?encoded=PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg%3D%3D",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      },
+      "knownLimitation": "The WAF does not decode arbitrary application-level base64."
+    },
+    {
+      "id": "CA-080",
+      "description": "Hexadecimal numeric boolean comparison",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20OR%200x31%3D0x31",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      },
+      "knownLimitation": "Numeric tautology signature covers decimal numbers, not hexadecimal expressions."
+    }
+  ]
+}

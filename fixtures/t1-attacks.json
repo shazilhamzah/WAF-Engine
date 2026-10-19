@@ -1,0 +1,511 @@
+{
+  "case": "T1",
+  "title": "SQLi, XSS and traversal strings",
+  "description": "Synthetic signature examples, sent only to the local lab. Expected protection: block.",
+  "samples": [
+    {
+      "id": "T1-SQLI-01",
+      "description": "Numeric tautology",
+      "request": {
+        "method": "GET",
+        "path": "/search?q='%20OR%201%3D1--",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T1-SQLI-02",
+      "description": "String tautology",
+      "request": {
+        "method": "GET",
+        "path": "/search?q='%20OR%20'a'%3D'a",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T1-SQLI-03",
+      "description": "UNION SELECT",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20UNION%20SELECT%20username%2Cpassword%20FROM%20users",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T1-SQLI-04",
+      "description": "UNION ALL SELECT",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20UNION%20ALL%20SELECT%201%2C2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T1-SQLI-05",
+      "description": "Quote and comment",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=admin'--",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T1-SQLI-06",
+      "description": "Stacked statement (inert lab input)",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%3B%20DROP%20TABLE%20fake_users",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T1-SQLI-07",
+      "description": "Delay function signature (never executed)",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20AND%20SLEEP(2)",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T1-SQLI-08",
+      "description": "System catalog name",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=information_schema.tables",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T1-SQLI-09",
+      "description": "ORDER BY column probe",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1'%20ORDER%20BY%203",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T1-SQLI-10",
+      "description": "Database version variable",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%40%40version",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T1-XSS-01",
+      "description": "Script tag",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Cscript%3Ealert(1)%3C%2Fscript%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T1-XSS-02",
+      "description": "Image error handler",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T1-XSS-03",
+      "description": "SVG load handler",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Csvg%2Fonload%3Dalert(1)%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T1-XSS-04",
+      "description": "JavaScript URI",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=javascript%3Aalert(1)",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T1-XSS-05",
+      "description": "Data HTML URI",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=data%3Atext%2Fhtml%2C%3Cscript%3Ealert(1)%3C%2Fscript%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T1-XSS-06",
+      "description": "Frame with JavaScript URI",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Ciframe%20src%3D%22javascript%3Aalert(1)%22%3E%3C%2Fiframe%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T1-XSS-07",
+      "description": "Attribute break-out",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%22%3E%3Cimg%20src%3Dx%20onerror%3Dalert(1)%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T1-XSS-08",
+      "description": "Form focus handler",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Cinput%20autofocus%20onfocus%3Dalert(1)%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T1-XSS-09",
+      "description": "Object active content",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Cobject%20data%3D%22data%3Atext%2Fhtml%2C%3Cscript%3Ealert(1)%3C%2Fscript%3E%22%3E%3C%2Fobject%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T1-XSS-10",
+      "description": "Mixed-case script tag",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3CScRiPt%3Ealert(1)%3C%2FsCrIpT%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T1-PATH-01",
+      "description": "Single parent segment to fake secret",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%2Fsecret%2Fflag.txt",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "T1-PATH-02",
+      "description": "Multiple parent segments",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%2F..%2Fetc%2Fpasswd",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "T1-PATH-03",
+      "description": "Windows backslashes",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%5C..%5Cwindows%5Cwin.ini",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "T1-PATH-04",
+      "description": "Relative path to fake config",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%2Fconfig%2Fsettings.ini",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "T1-PATH-05",
+      "description": "Current and parent segments",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=.%2Fpublic%2F..%2F..%2Fsecret%2Fflag.txt",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "T1-PATH-06",
+      "description": "Repeated slashes",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%2F%2F..%2F%2Fetc%2Fpasswd",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "T1-PATH-07",
+      "description": "Absolute system file signature",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=%2Fetc%2Fshadow",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "T1-PATH-08",
+      "description": "File URI signature",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=file%3A%2F%2F%2Fetc%2Fpasswd",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    }
+  ]
+}

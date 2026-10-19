@@ -1,0 +1,342 @@
+{
+  "case": "T5",
+  "title": "Evasion and bypass attempts",
+  "description": "Expected verdict remains block even for documented misses. Cross-field/base64 examples are conditional on application interpretation, not confirmed exploits of Vulnerable Shop.",
+  "samples": [
+    {
+      "id": "T5-01",
+      "description": "Comment-split UNION and SELECT",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20UN%2F**%2FION%20SEL%2F**%2FECT%201%2C2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T5-02",
+      "description": "Mixed case and horizontal tabs",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20UnIoN%09SeLeCt%201%2C2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T5-03",
+      "description": "SQL comments as spaces",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20UNION%2F**%2FSELECT%201%2C2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T5-04",
+      "description": "Versioned SQL comments",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20%2F*!50000UNION*%2F%20%2F*!50000SELECT*%2F%201%2C2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T5-05",
+      "description": "Nested JSON string",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"search\":{\"filter\":\"' OR 1=1--\"}}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T5-06",
+      "description": "JSON Unicode escapes decoded by JSON parser",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"q\":\"\\u003cscript\\u003ealert(1)\\u003c/script\\u003e\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T5-07",
+      "description": "Duplicate parameter with complete adverse value",
+      "request": {
+        "method": "GET",
+        "path": "/products?id=1&id=1%20UNION%20SELECT%201%2C2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T5-08",
+      "description": "Encoded dot segments",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=%252e%252e%252fsecret%252fflag.txt",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "T5-09",
+      "description": "Whitespace-split JavaScript scheme",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=j%09a%09v%09a%09s%09c%09r%09i%09p%09t%3Aalert(1)",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T5-10",
+      "description": "Alternative SVG event vector",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Csvg%3E%3Cg%20onload%3Dalert(1)%3E%3C%2Fg%3E%3C%2Fsvg%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T5-11",
+      "description": "Form-encoded SQLi",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "q='%20OR%201%3D1--"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T5-12",
+      "description": "Multipart field",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "multipart/form-data; boundary=waf-fixture"
+        },
+        "body": "--waf-fixture\r\nContent-Disposition: form-data; name=\"q\"\r\n\r\n<script>alert(1)</script>\r\n--waf-fixture--\r\n"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T5-13",
+      "description": "Cross-parameter keyword reconstruction",
+      "request": {
+        "method": "GET",
+        "path": "/search?a=UN&b=ION&c=SEL&d=ECT&e=1",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      },
+      "knownLimitation": "Values are matched separately; an application concatenating them could reconstruct SQL."
+    },
+    {
+      "id": "T5-14",
+      "description": "Split JSON fields reconstructed by an application",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)",
+          "content-type": "application/json"
+        },
+        "body": "{\"a\":\"UN\",\"b\":\"ION\",\"c\":\"SEL\",\"d\":\"ECT\"}"
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      },
+      "knownLimitation": "No cross-field data-flow analysis."
+    },
+    {
+      "id": "T5-15",
+      "description": "Base64 payload inside an application-specific wrapper",
+      "request": {
+        "method": "GET",
+        "path": "/search?encoded=PHNjcmlwdD5hbGVydCgxKTwvc2NyaXB0Pg%3D%3D",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      },
+      "knownLimitation": "The WAF does not decode arbitrary application-level base64."
+    },
+    {
+      "id": "T5-16",
+      "description": "Hexadecimal numeric boolean comparison",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20OR%200x31%3D0x31",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      },
+      "knownLimitation": "Numeric tautology signature covers decimal numbers, not hexadecimal expressions."
+    },
+    {
+      "id": "T5-17",
+      "description": "String-concatenated boolean comparison",
+      "request": {
+        "method": "GET",
+        "path": "/search?q='%20OR%20('a'%7C%7C'b')%3D('a'%7C%7C'b')",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      },
+      "knownLimitation": "No SQL expression interpreter or semantic constant folding."
+    },
+    {
+      "id": "T5-18",
+      "description": "XSS split between duplicate parameters",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Cscr&q=ipt%3EdoSomething()%3C%2Fscr&q=ipt%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      },
+      "knownLimitation": "An application joining duplicate values could reconstruct markup."
+    }
+  ]
+}
