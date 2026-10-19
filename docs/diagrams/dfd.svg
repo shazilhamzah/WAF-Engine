@@ -1,0 +1,160 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1040" height="960" viewBox="0 0 1040 960" font-family="Segoe UI, Helvetica, Arial, sans-serif" role="img" aria-labelledby="dfd-title dfd-desc">
+  <title id="dfd-title">WAF Studio — data-flow diagram with trust boundaries</title>
+  <desc id="dfd-desc">External entities (browser users and an untrusted HTTP client), processes (Studio API, security engine, WAF reverse proxy, vulnerable target), data stores (SQLite store, append-only audit log), 13 numbered data flows and five trust boundaries TB1 to TB5.</desc>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#374151"/>
+    </marker>
+    <style>
+      .ext { fill: #f3f4f6; stroke: #4b5563; stroke-width: 1.6; }
+      .proc { fill: #e8f0fa; stroke: #1e3a5f; stroke-width: 1.8; }
+      .eng { fill: #e6f4f1; stroke: #0f766e; stroke-width: 1.8; }
+      .lab { fill: #fdecec; stroke: #b00020; stroke-width: 1.8; }
+      .store { fill: #fff7e6; stroke: none; }
+      .store-line { stroke: #b7791f; stroke-width: 1.8; fill: none; }
+      .tb { stroke: #d62828; stroke-width: 2; stroke-dasharray: 9 6; fill: none; }
+      .tbl { fill: #d62828; font-size: 12px; font-weight: 700; }
+      .tbs { fill: #b91c1c; font-size: 10.5px; }
+      .flow { stroke: #374151; stroke-width: 1.6; fill: none; marker-end: url(#arrow); }
+      .flow2 { stroke: #374151; stroke-width: 1.6; fill: none; marker-end: url(#arrow); marker-start: url(#arrow); }
+      .num circle { fill: #ffffff; stroke: #111827; stroke-width: 1.4; }
+      .num text { font-size: 11px; font-weight: 700; fill: #111827; text-anchor: middle; dominant-baseline: central; }
+      .h { font-size: 14px; font-weight: 700; fill: #111827; text-anchor: middle; }
+      .s { font-size: 11px; fill: #374151; text-anchor: middle; }
+      .lg { font-size: 11.5px; fill: #1f2937; }
+      .lgh { font-size: 12.5px; font-weight: 700; fill: #111827; }
+    </style>
+  </defs>
+
+  <rect x="0" y="0" width="1040" height="960" fill="#ffffff"/>
+  <text x="520" y="34" text-anchor="middle" font-size="19" font-weight="700" fill="#1e3a5f">WAF Studio — Data-flow diagram (DFD level 1) with trust boundaries</text>
+  <text x="520" y="54" text-anchor="middle" font-size="11.5" fill="#6b7280">All server processes listen on 127.0.0.1 only · numbers refer to the flow table below · red dashed lines/boxes = trust boundaries</text>
+
+  <!-- ───────── trust boundaries ───────── -->
+  <line class="tb" x1="275" y1="70" x2="275" y2="420"/>
+  <text class="tbl" x="283" y="82">TB1 · Browser → Studio console</text>
+  <text class="tbs" x="283" y="96">session cookie, CSRF token, server-side RBAC</text>
+
+  <line class="tb" x1="275" y1="450" x2="275" y2="690"/>
+  <text class="tbl" x="283" y="672">TB2 · Untrusted HTTP → WAF proxy</text>
+  <text class="tbs" x="283" y="686">every request parsed, normalised, scored</text>
+
+  <rect class="tb" x="690" y="60" width="320" height="330" rx="10"/>
+  <text class="tbl" x="702" y="80">TB3 · Data at rest</text>
+  <text class="tbs" x="826" y="80">DB file · secret.key · owner-only perms</text>
+
+  <line class="tb" x1="665" y1="450" x2="665" y2="690"/>
+  <text class="tbl" x="560" y="706">TB4 · WAF enforcement → vulnerable target</text>
+
+  <rect class="tb" x="735" y="460" width="275" height="180" rx="10"/>
+  <text class="tbl" x="747" y="480">TB5 · Lab sandbox</text>
+  <text class="tbs" x="747" y="628">in-memory fake DB · files confined to target/files/</text>
+
+  <!-- ───────── external entities ───────── -->
+  <rect class="ext" x="30" y="110" width="180" height="100"/>
+  <text class="h" x="120" y="146">Browser</text>
+  <text class="s" x="120" y="166">admin · operator · viewer</text>
+  <text class="s" x="120" y="182">(public/ SPA, strict CSP)</text>
+
+  <rect class="ext" x="30" y="500" width="180" height="100"/>
+  <text class="h" x="120" y="536">External HTTP client</text>
+  <text class="s" x="120" y="556">tester / attacker / curl</text>
+  <text class="s" x="120" y="572">evaluation harness</text>
+
+  <!-- ───────── processes ───────── -->
+  <rect class="proc" x="340" y="110" width="240" height="100" rx="14"/>
+  <text class="h" x="460" y="140">Studio API</text>
+  <text class="s" x="460" y="160">Express · :3000 · src/api, src/auth</text>
+  <text class="s" x="460" y="176">authn · authz · CSRF · validation</text>
+  <text class="s" x="460" y="192">safe errors · services · reports</text>
+
+  <rect class="eng" x="340" y="300" width="240" height="110" rx="14"/>
+  <rect x="346" y="306" width="228" height="98" rx="10" fill="none" stroke="#0f766e" stroke-width="1"/>
+  <text class="h" x="460" y="334">Security engine</text>
+  <text class="s" x="460" y="354">src/engine · pure functions</text>
+  <text class="s" x="460" y="370">parser → DSL rules → scoring →</text>
+  <text class="s" x="460" y="386">modes → rate limit → exceptions</text>
+
+  <rect class="proc" x="340" y="500" width="240" height="100" rx="14"/>
+  <text class="h" x="460" y="530">WAF reverse proxy</text>
+  <text class="s" x="460" y="550">http-proxy · :8080 · src/proxy</text>
+  <text class="s" x="460" y="566">buffers ≤ maxBodyBytes, inspects,</text>
+  <text class="s" x="460" y="582">blocks / logs / forwards</text>
+
+  <rect class="lab" x="760" y="500" width="220" height="100" rx="14"/>
+  <text class="h" x="870" y="530">Vulnerable target</text>
+  <text class="s" x="870" y="550">Vulnerable Shop · :3001 · target/</text>
+  <text class="s" x="870" y="566">XSS · SQLi · traversal · echo</text>
+  <text class="s" x="870" y="582">LAB ONLY, fake data</text>
+
+  <!-- ───────── data stores (open-ended rectangles) ───────── -->
+  <rect class="store" x="720" y="95" width="260" height="90"/>
+  <path class="store-line" d="M980,95 L720,95 L720,185 L980,185"/>
+  <line x1="745" y1="95" x2="745" y2="185" stroke="#b7791f" stroke-width="1.2"/>
+  <text class="h" x="862" y="128">Audit log</text>
+  <text class="s" x="862" y="148">audit_log · append-only triggers</text>
+  <text class="s" x="862" y="164">SHA-256 hash chain, redacted details</text>
+
+  <rect class="store" x="720" y="250" width="260" height="110"/>
+  <path class="store-line" d="M980,250 L720,250 L720,360 L980,360"/>
+  <line x1="745" y1="250" x2="745" y2="360" stroke="#b7791f" stroke-width="1.2"/>
+  <text class="h" x="862" y="282">SQLite store</text>
+  <text class="s" x="862" y="302">users (scrypt) · sessions (token hash)</text>
+  <text class="s" x="862" y="318">rules · config versions · exceptions</text>
+  <text class="s" x="862" y="334">events (sanitised decisions)</text>
+
+  <!-- ───────── data flows ───────── -->
+  <line class="flow" x1="210" y1="145" x2="338" y2="145"/>
+  <line class="flow" x1="340" y1="180" x2="212" y2="180"/>
+  <line class="flow" x1="420" y1="210" x2="420" y2="298"/>
+  <line class="flow" x1="500" y1="300" x2="500" y2="212"/>
+  <line class="flow" x1="580" y1="140" x2="718" y2="140"/>
+  <path class="flow2" d="M582,192 L610,192 L610,295 L718,295"/>
+  <line class="flow" x1="210" y1="530" x2="338" y2="530"/>
+  <line class="flow" x1="340" y1="570" x2="212" y2="570"/>
+  <line class="flow" x1="420" y1="500" x2="420" y2="412"/>
+  <line class="flow" x1="500" y1="410" x2="500" y2="498"/>
+  <path class="flow" d="M580,515 L640,515 L640,335 L718,335"/>
+  <line class="flow" x1="580" y1="545" x2="758" y2="545"/>
+  <line class="flow" x1="760" y1="580" x2="582" y2="580"/>
+
+  <g class="num"><circle cx="240" cy="145" r="11"/><text x="240" y="145">1</text></g>
+  <g class="num"><circle cx="312" cy="180" r="11"/><text x="312" y="180">2</text></g>
+  <g class="num"><circle cx="420" cy="255" r="11"/><text x="420" y="255">3</text></g>
+  <g class="num"><circle cx="500" cy="255" r="11"/><text x="500" y="255">4</text></g>
+  <g class="num"><circle cx="640" cy="140" r="11"/><text x="640" y="140">5</text></g>
+  <g class="num"><circle cx="610" cy="245" r="11"/><text x="610" y="245">6</text></g>
+  <g class="num"><circle cx="240" cy="530" r="11"/><text x="240" y="530">7</text></g>
+  <g class="num"><circle cx="312" cy="570" r="11"/><text x="312" y="570">8</text></g>
+  <g class="num"><circle cx="420" cy="455" r="11"/><text x="420" y="455">9</text></g>
+  <g class="num"><circle cx="500" cy="455" r="11"/><text x="500" y="455">10</text></g>
+  <g class="num"><circle cx="640" cy="425" r="11"/><text x="640" y="425">11</text></g>
+  <g class="num"><circle cx="615" cy="545" r="11"/><text x="615" y="545">12</text></g>
+  <g class="num"><circle cx="702" cy="580" r="11"/><text x="702" y="580">13</text></g>
+
+  <!-- ───────── legend ───────── -->
+  <line x1="30" y1="728" x2="1010" y2="728" stroke="#d1d5db"/>
+  <text class="lgh" x="30" y="752">Data flows</text>
+  <text class="lg" x="30" y="774">1  Login + API requests (JSON, waf_sid cookie, X-CSRF-Token)</text>
+  <text class="lg" x="30" y="793">2  Role-filtered JSON: summaries (viewer) / evidence (operator, admin)</text>
+  <text class="lg" x="30" y="812">3  Validated sample, compiled rules, active config, approved exceptions</text>
+  <text class="lg" x="30" y="831">4  Decision: verdict, score breakdown, matches, explanation, timings</text>
+  <text class="lg" x="30" y="850">5  Append audit event (login, config, submission, export, denial …)</text>
+  <text class="lg" x="30" y="869">6  Parameterised reads/writes: users, sessions, rules, config, events</text>
+  <text class="lg" x="30" y="888">7  Raw, untrusted HTTP request (any method, encoding, body size)</text>
+  <text class="lg" x="530" y="774">8  Target response + X-WAF-Action/X-WAF-Event-Id, or generic 403 / 413 /</text>
+  <text class="lg" x="548" y="790">429 / 400 block page (event id only), or safe 502</text>
+  <text class="lg" x="530" y="809">9  Raw request summary (≤ inspectBodyBytes) + pseudonymous client key</text>
+  <text class="lg" x="530" y="828">10 Decision with action allowed / logged / blocked</text>
+  <text class="lg" x="530" y="847">11 Proxy event (sanitised summary, ≤120-char redacted excerpts); system.error</text>
+  <text class="lg" x="530" y="866">12 Forwarded request (only when allowed or monitor mode)</text>
+  <text class="lg" x="530" y="885">13 Lab response (may contain reflected payloads — never served unproxied in demos)</text>
+
+  <text class="lgh" x="30" y="922">Key</text>
+  <rect class="ext" x="70" y="910" width="26" height="16"/><text class="lg" x="102" y="922">external entity</text>
+  <rect class="proc" x="200" y="910" width="26" height="16" rx="5"/><text class="lg" x="232" y="922">process</text>
+  <rect class="lab" x="300" y="910" width="26" height="16" rx="5"/><text class="lg" x="332" y="922">deliberately vulnerable process</text>
+  <path class="store-line" d="M520,910 L496,910 L496,926 L520,926"/><text class="lg" x="528" y="922">data store</text>
+  <line class="tb" x1="620" y1="918" x2="660" y2="918"/><text class="lg" x="668" y="922">trust boundary (TB1 – TB5)</text>
+  <text class="lg" x="840" y="922" fill="#6b7280">docs/threat-model.md</text>
+</svg>
