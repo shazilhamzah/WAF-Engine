@@ -1,0 +1,754 @@
+{
+  "generatedAt": "2026-10-19T20:35:17.811Z",
+  "description": "Final source/evidence snapshot including the subsequent dashboard refinement. Text hashes normalize CRLF to LF; PDF/PNG hashes use raw bytes. Engine and fixture evaluation results retain their original measured timestamp; strict acceptance and live UI review were refreshed. Runtime data, credentials, dependencies, Git metadata and temporary files are excluded.",
+  "sourceTreeSha256": "0e0ff78d9ab3c39f377638ff1e37a43d310175b1b3d1ace3068a17faffd0ec13",
+  "sourceFiles": [
+    {
+      "path": "fixtures/README.md",
+      "sha256": "afb1a37be49bdab466aecdac9c728677c3ab6de6f56cbf91afc07ae901ba179c"
+    },
+    {
+      "path": "fixtures/corpus-attack.json",
+      "sha256": "222f6d0e3c586bd2c227234fef14936bcaf50fe8fd35810213444eb39c44df31"
+    },
+    {
+      "path": "fixtures/corpus-benign.json",
+      "sha256": "23ca038b1ab286948878f5e1747b3659b5f586b70e1cab6dfe733561a4213a20"
+    },
+    {
+      "path": "fixtures/import-sample.json",
+      "sha256": "0495b0c23cf66eb2979ffc18315da0dc7633b267459234997f760f585cdabdc4"
+    },
+    {
+      "path": "fixtures/large-body.js",
+      "sha256": "eb0193c4f4aa6a9f193295ab7095a260da25eb2ce7e5cc8af3b93a33ff4d33f1"
+    },
+    {
+      "path": "fixtures/t1-attacks.json",
+      "sha256": "26bab10e62bc1729cc0486fde8abd48a6aefe2b441ef72969121d83d444a7a47"
+    },
+    {
+      "path": "fixtures/t2-encoding.json",
+      "sha256": "f33dc7e0227737f303bd2a25a9a2382f466e53d434e62b762ea7a1b3ef3029a7"
+    },
+    {
+      "path": "fixtures/t3-benign.json",
+      "sha256": "50226b9c5e312256dc640fcab96eb0f06a1a036b01c42d197871d3118744468f"
+    },
+    {
+      "path": "fixtures/t5-bypass.json",
+      "sha256": "75dc208148686bb32817e37044028a8949a652ed0fa8a4ebf30330b1d1f592ac"
+    },
+    {
+      "path": "package-lock.json",
+      "sha256": "050a7b1b510c3ff3216ec55e29967ea73680d746e4f45299fd8bc98a2a34ef41"
+    },
+    {
+      "path": "package.json",
+      "sha256": "3733355596f9cdcaf4e1ea1297fc12dcb537b9936e875792081e90950ed0bfbc"
+    },
+    {
+      "path": "public/css/app.css",
+      "sha256": "c477f5421de20553cb330f531b9274be6043fed85f2bdaa9610d35c5108de37c"
+    },
+    {
+      "path": "public/favicon.svg",
+      "sha256": "7440fc72e909ebf3f2b8288b7060fdbc6c9a76ea891411c9e7c89bb862f72f4d"
+    },
+    {
+      "path": "public/index.html",
+      "sha256": "9cd460f6fc2fbdabb12c9fe79630a2d4bd008966c22a49180a3e646a054da928"
+    },
+    {
+      "path": "public/js/api.js",
+      "sha256": "07ac384cb2d28bb5f25478eb2bcf1034e1f4d4dee0ce9d8d186e7b0d62e8e53f"
+    },
+    {
+      "path": "public/js/app.js",
+      "sha256": "faa7de3e2a8f020a0cf6510736aeeaeffe99f29b8fe12fe67af666cfbb54ae1e"
+    },
+    {
+      "path": "public/js/decision.js",
+      "sha256": "307ed8264e6f8fb33fc3fe660bf64dcb0f4dfbb1e34f105a3859f5fca3fe42d4"
+    },
+    {
+      "path": "public/js/dom.js",
+      "sha256": "a7cb3ed95b54649155be533651ac5a105809d856ec6b28d0309c4d572d3dabda"
+    },
+    {
+      "path": "public/js/lib/dashboard.js",
+      "sha256": "889f34c59d6addea6093ae1a2c463bf4d2298c66ae2256e943545eff0b01a55f"
+    },
+    {
+      "path": "public/js/lib/diff.js",
+      "sha256": "fe93243844026057cb2c0d11fd2c5f401b62a2ddd45c4e81a1726570b60ab313"
+    },
+    {
+      "path": "public/js/lib/errors.js",
+      "sha256": "ab41a8dd352e256a6b9bc478c2bf7ecda4e709c51a74cc4d9912da559a9c2600"
+    },
+    {
+      "path": "public/js/lib/format.js",
+      "sha256": "e6b4d6140de035ee3a5e04863274ed0556757f6e58317502b6861267ea867bc1"
+    },
+    {
+      "path": "public/js/lib/query.js",
+      "sha256": "f7c25b677d904ea6f4468f5edfd2fb982564105d846d01d66d499343efc084fe"
+    },
+    {
+      "path": "public/js/lib/roles.js",
+      "sha256": "5313687856584db360a67fddf71b594ee2961b0b5f916fd9a1420f37d9e3d21d"
+    },
+    {
+      "path": "public/js/lib/samples.js",
+      "sha256": "ac847ffd3e475fd8be479a8b6c990c46131ddaa70efa6638cfcdb9c73485d089"
+    },
+    {
+      "path": "public/js/package.json",
+      "sha256": "3ca9d4afd21425087cf31893b8f9f63c81b0b8408db5e343ca76e5f8aa26ab9a"
+    },
+    {
+      "path": "public/js/ui.js",
+      "sha256": "9529ffb1cd0aaf0711c0cd3913ad193e405d517c62fc6ff4be99c36ab2854bb0"
+    },
+    {
+      "path": "public/js/views/account.js",
+      "sha256": "7baeefc047d9305e85706481b4c209a5c08c021cd110f9efce07fbf191a9c465"
+    },
+    {
+      "path": "public/js/views/analyze.js",
+      "sha256": "608b45a7a92fcdfdadfea0ec612b20d8d75bf504cf908dfe13e6f1d5e1257760"
+    },
+    {
+      "path": "public/js/views/audit.js",
+      "sha256": "18c20627624e4abc25a0e4b7f578ffe50c7dd97e40fa7c70e087fd8c55970000"
+    },
+    {
+      "path": "public/js/views/compare.js",
+      "sha256": "27fbd3fe8538a9337431adf269f87825fd21b647533c2a86a8ec1b5551230d4a"
+    },
+    {
+      "path": "public/js/views/config.js",
+      "sha256": "767753e81238f900117dc79222468f241ed621904eca026ac7d6ea67c8505a3b"
+    },
+    {
+      "path": "public/js/views/dashboard.js",
+      "sha256": "e8d0a363a3208ac14da3d2c791512a7e990408f6b84d50d79620cec251a047fa"
+    },
+    {
+      "path": "public/js/views/event-detail.js",
+      "sha256": "37de4fea95a786a71733811ebcc37c7e686a2690390ceba23ecbb464cbe2151a"
+    },
+    {
+      "path": "public/js/views/events.js",
+      "sha256": "2dcf9dfce47b873778b79f7fcd839dba3806628b174aa8d5e4b4e4816d621ccd"
+    },
+    {
+      "path": "public/js/views/exceptions.js",
+      "sha256": "8e90a2b1b317367a151705eb5fc697893eff31babb1c65dfa459b0fb95d87e60"
+    },
+    {
+      "path": "public/js/views/import.js",
+      "sha256": "e539d2b93065c78e7a7e0a5287668b09662abfc17058e5021a8ff536401b2137"
+    },
+    {
+      "path": "public/js/views/login.js",
+      "sha256": "0745b82a30e04b974dad0d4e5e51f321e4dd289cab9ab7eec631b1b878e4dff8"
+    },
+    {
+      "path": "public/js/views/reports.js",
+      "sha256": "811fce824cee3dbff8c6efbac218c711154f28e65bc737af4fa0c4552b830600"
+    },
+    {
+      "path": "public/js/views/rules.js",
+      "sha256": "44b8c686937b08bc984af57985698911a939b791b87d40bcd3068149a91510f5"
+    },
+    {
+      "path": "public/js/views/users.js",
+      "sha256": "7ed0a576f39ab2f0542e677b994fd898661d537a82f61021aec2479ce7468c72"
+    },
+    {
+      "path": "scripts/bench-latency.js",
+      "sha256": "74e2a44293f6412cae0ab7f6bc52579f7e9b0c3e65e00d8930d5f11a21c9e8e8"
+    },
+    {
+      "path": "scripts/build-attack-fixtures.js",
+      "sha256": "a3351bd1ddc69e2ba72753540fd9e6ca5b7b7bd85b36a7d33c1d73a43de0c204"
+    },
+    {
+      "path": "scripts/build-pdf.js",
+      "sha256": "b9296c3333ae1be90c21ea322c6540e837a9d2eb49a42101f2e43f5dc9776021"
+    },
+    {
+      "path": "scripts/check.js",
+      "sha256": "99a6273f521e9183ad7c46a1b9a32b132cf1d33ae821abe9a05bd7329ffdbeee"
+    },
+    {
+      "path": "scripts/evaluate.js",
+      "sha256": "70c7cf47827740209fcd71512632012377ff29b3ca49509c3d3352e429228e24"
+    },
+    {
+      "path": "scripts/reset.js",
+      "sha256": "42c165297356085d277e40033c769a1e2b01a4f2b346154354556ee8f0e1b98b"
+    },
+    {
+      "path": "scripts/setup.js",
+      "sha256": "4e2ff1d77059136d5e26298efec37ae599c00705f9b87092f07153ef6e496c64"
+    },
+    {
+      "path": "src/api/app.js",
+      "sha256": "459405e32fd57ef97ab20bf201dde6b5be56644b46c30747d1afd12be257c49f"
+    },
+    {
+      "path": "src/api/errors.js",
+      "sha256": "e436a314bedc8b411b180813425d008d58e3faf4062bef81ec5b6bd3110e2a34"
+    },
+    {
+      "path": "src/api/index.js",
+      "sha256": "ead711e67c5c6ed33ee9eea433f780166697ef460e67c774528c17a1dd5ae31a"
+    },
+    {
+      "path": "src/api/middleware.js",
+      "sha256": "117541bfa2308007824d5edccd13010fde7f5ee8378855b01e4e856aad1f7d8b"
+    },
+    {
+      "path": "src/api/routes/audit.js",
+      "sha256": "144ac63c3ec47d616ba508af4c038acbeb4b710906f017bdd81caa4dc340f7b0"
+    },
+    {
+      "path": "src/api/routes/auth.js",
+      "sha256": "31296699ffc43fc4fc98e081d64e61c32a252bf337fb9e547d7a73b38083ee09"
+    },
+    {
+      "path": "src/api/routes/config.js",
+      "sha256": "9235978b2d9f5a2bf66fe931f27b0fa5df58fea3f7578c57b483073f858b81dc"
+    },
+    {
+      "path": "src/api/routes/events.js",
+      "sha256": "0db90a796b614e4a900b71b82dc5e1e3c9a2cf863945c528ed572e1facd91a1b"
+    },
+    {
+      "path": "src/api/routes/exceptions.js",
+      "sha256": "e4c252e292bdf8064959c0f90c0bfcb8d3b6cfe4d383f0bf7b061da3e68c8230"
+    },
+    {
+      "path": "src/api/routes/reports.js",
+      "sha256": "b936a23d8d8858bb990b379a3b6b878d48f564472f35e846b89df17efa5462ad"
+    },
+    {
+      "path": "src/api/routes/rules.js",
+      "sha256": "8d8d74f0b8bacb4e9747caf2e81450971b1748dfa60f41fbcb226c4bcfc7d11f"
+    },
+    {
+      "path": "src/api/routes/users.js",
+      "sha256": "b4695d8c56d444ad8da79e0f112a236d95d22d651abebb61bcea8cf7c18f496e"
+    },
+    {
+      "path": "src/api/validation.js",
+      "sha256": "378cddcbb27c47fdc42c8402621e11fa0f4c95356764eecee88038744ee5353c"
+    },
+    {
+      "path": "src/auth/middleware.js",
+      "sha256": "1c1472719734f389efbbc4fdf7b17f375b1e6ab964364e370d9285a23d92a86c"
+    },
+    {
+      "path": "src/auth/passwords.js",
+      "sha256": "bc9a8ddde6968fdb6c2b5a64c14623e7a41a198d87e67739dd8f0e4df3dc545f"
+    },
+    {
+      "path": "src/auth/rateLimit.js",
+      "sha256": "25dbeab3e16e1c44766971533709e46b46c60b8e66085cbba646a11588d886ee"
+    },
+    {
+      "path": "src/auth/sessions.js",
+      "sha256": "78fbc291fa3c51bb99c446254c415b0b4c18d79067d2455bf54e0618ef78cb34"
+    },
+    {
+      "path": "src/config.js",
+      "sha256": "587cb4089e184ee085792c01f046e9dcdde69e13c1fe7f6174287d067f4afd17"
+    },
+    {
+      "path": "src/db/index.js",
+      "sha256": "dc2151fe209c14faa4a24c33b20977b6c692b52718f47eb5d6e87b34d19027aa"
+    },
+    {
+      "path": "src/db/repositories/audit.js",
+      "sha256": "d80778b1bf9e2935bfe1165602e378637b1179baeae19755ec49333a0826f9e8"
+    },
+    {
+      "path": "src/db/repositories/configs.js",
+      "sha256": "77e1689c9c36c5e594b14fe509421e6c198fcccb0d388c322bb5f12af310783e"
+    },
+    {
+      "path": "src/db/repositories/events.js",
+      "sha256": "c70ec9f5c4849a2544e8c2f256ccfb0753d4805ddae87bff4ab21e43d8a4313c"
+    },
+    {
+      "path": "src/db/repositories/exceptions.js",
+      "sha256": "c0bbfa194ddd79508d03ae7db5979771a01ad34c52b0038cfae6aefd44ab5d99"
+    },
+    {
+      "path": "src/db/repositories/rules.js",
+      "sha256": "23304dd6e31d4941ae899704611fcf7fc20cf68b45203e4300b4e598f0eaef98"
+    },
+    {
+      "path": "src/db/repositories/sessions.js",
+      "sha256": "0fb1f5b3b2d693ca1cdb3de651e7cb87db550ebeba0d61f231935f03dcc95c93"
+    },
+    {
+      "path": "src/db/repositories/users.js",
+      "sha256": "9f58c5cc2220d9b1706019405ac9cb9624ecc9a130607b245c1279b4e9cebb63"
+    },
+    {
+      "path": "src/db/schema.js",
+      "sha256": "b9eb3dca421c973c7a71879418cfd6ef22cd32a910848c06cfa15a49ab2cea25"
+    },
+    {
+      "path": "src/db/util.js",
+      "sha256": "7ed2e1c47dde4945904e79183de0c00c28c8cf3ec7e9d0952f56dba35babb1e2"
+    },
+    {
+      "path": "src/engine/config.js",
+      "sha256": "6e6e92fd0ce5aa006ea2f5e4cf42e27769e1517cfb5038d1b5b702dc670e6154"
+    },
+    {
+      "path": "src/engine/dsl.js",
+      "sha256": "d3219b8e98ede7119eb8ec873e56ed44c4af1220ef5dd872d76f70c6e178b986"
+    },
+    {
+      "path": "src/engine/evaluate.js",
+      "sha256": "481c44b2abc709c2d2c87c14e269d14c73ebfc72b134219c98296e4fb032f204"
+    },
+    {
+      "path": "src/engine/exceptions.js",
+      "sha256": "19579dee3d7829c360c200eb2fba536e783d50c7d217623e3518d774e8c64b17"
+    },
+    {
+      "path": "src/engine/explain.js",
+      "sha256": "9f86078a7fb4cd38623d63f7a2dc146ff6ca1325d14e82a6fa10e6069a3efdc2"
+    },
+    {
+      "path": "src/engine/index.js",
+      "sha256": "c79d02b28630aa71c3e1d0e6415589845280ce9639966edc3ad781b898d07e61"
+    },
+    {
+      "path": "src/engine/modes.js",
+      "sha256": "1d95e616c6f6044e21b018afb444e9b6320b5d5a8635447515eef0be8e9e2b3c"
+    },
+    {
+      "path": "src/engine/normalize.js",
+      "sha256": "6075b6a178a6a761e6f43e5e6fa4bdc9a2d0b5764196e782a668ff06ac529436"
+    },
+    {
+      "path": "src/engine/parser.js",
+      "sha256": "c0b16cf37eb8edb783608bc31acd6ddd679cf3951e9241b0da1f8841fb08f873"
+    },
+    {
+      "path": "src/engine/pipeline.js",
+      "sha256": "76cba1ffed895a3e257d84c128b54d384fe9f0b39ec66fbea5ce3ebbc0f46094"
+    },
+    {
+      "path": "src/engine/ratelimit.js",
+      "sha256": "d0037147680071298e5f94a5a30357e8f6c9b6c3a5093a50a4a0a4309511ff94"
+    },
+    {
+      "path": "src/engine/redact.js",
+      "sha256": "f176bbb5d29d5e486def2559df00fe9a628af8e9dba0ceda0b93812d8d1fb84b"
+    },
+    {
+      "path": "src/engine/regexguard.js",
+      "sha256": "7d724d09e2e7fda60c2203ea434c3f540a627a6fa6202bc6aa24bf32d7594083"
+    },
+    {
+      "path": "src/engine/scoring.js",
+      "sha256": "b9a728d4256e7333cf89c4635015696098c9bc5aaaa6a8bb3b90a7ef7f4456fc"
+    },
+    {
+      "path": "src/index.js",
+      "sha256": "f98a996a7eb08387f79e42556eca2f8c74a9c4b3d96c4aec49435aa47ed9ceaa"
+    },
+    {
+      "path": "src/proxy/pages.js",
+      "sha256": "d82afa74ec79cb8fb1b26c25b547f8595e0cb65ebd277bed10d53e7555e680c5"
+    },
+    {
+      "path": "src/proxy/server.js",
+      "sha256": "e17f326698043c9bbf68f461bb773fe6f5dd89be11999d486feaa76496da3523"
+    },
+    {
+      "path": "src/reports/export.js",
+      "sha256": "6e66fb185022892f293f950ba0d3d5b82c9d35b6de0687cf2af9a58483e1c223"
+    },
+    {
+      "path": "src/rules/default.rules",
+      "sha256": "f0d4e4486c338e59c2af77baea046af1db97e59d0c644c2dea0796659ada59f0"
+    },
+    {
+      "path": "src/rules/index.js",
+      "sha256": "ea2a30d86b900569ca0d539a2cecd1a675d4d27f531fde6fb478a02d9a75fc59"
+    },
+    {
+      "path": "src/services/analysis.js",
+      "sha256": "875920329acf09377bd2a9a74733eeb8986070557f4a4e0b88d1bf9dee5a2996"
+    },
+    {
+      "path": "src/services/audit.js",
+      "sha256": "96b168e9df7d41e4064b1762f7f198f5ba8951198b5b659845c04952a4bc6f4d"
+    },
+    {
+      "path": "src/services/clientId.js",
+      "sha256": "53007158e2d5ece41a92f1e593c645f70dc56b65c42390da6882aa841aefaa5e"
+    },
+    {
+      "path": "src/services/engineState.js",
+      "sha256": "8d5d905a0068862ef4e2a0079745de9ee2056af22412232abdf80a97b8b0dcf3"
+    },
+    {
+      "path": "src/services/logger.js",
+      "sha256": "bc6aec7842bf3d1b72c8b0cf5a4ddd665a4a81a782c26c25aa0693df2f8df713"
+    },
+    {
+      "path": "src/services/redact.js",
+      "sha256": "4d6603dc384829353ad67b594dd4be11979baf0c66208057882996b67b8057b0"
+    },
+    {
+      "path": "src/services/seed.js",
+      "sha256": "b422b50cd5e0b45c111030d598367c419d815617e49eb4b46e72b16ebc50ffae"
+    },
+    {
+      "path": "target/app.js",
+      "sha256": "679e9f7d0fc544f86ee31d99324c3e5ba952eaa692dafc82c4a40aa4839441d8"
+    },
+    {
+      "path": "target/files/config/app.ini",
+      "sha256": "13a2c168f939349efbb275fc00bd4ffbd7d571b127a3e242552c1808566a288c"
+    },
+    {
+      "path": "target/files/public/catalog.txt",
+      "sha256": "455a3e0b5f3c0271a4cc33927d26f1367aa02b06107d87df689045ccb1634b16"
+    },
+    {
+      "path": "target/files/public/shipping.txt",
+      "sha256": "74e64164d53aba65aaf301f0f85d52d612d7275078cc91f5557e278c78770a58"
+    },
+    {
+      "path": "target/files/public/welcome.txt",
+      "sha256": "e3e06963fa2a05ff87cbdf62f97639cd01d070d481959ae84fc47770fb0942ae"
+    },
+    {
+      "path": "target/files/secret/flag.txt",
+      "sha256": "1dace239facb3ba6c1d921cbbdb1417137cbaa81b2100bd79cac275cc7ebb45c"
+    },
+    {
+      "path": "target/server.js",
+      "sha256": "268b4d41d7b460608d56105fc3a895bec4baeb68d2a99ab1b7a3702aef776492"
+    },
+    {
+      "path": "test/evaluation/harness.test.js",
+      "sha256": "8c11340b1361c50cb7c5a3347d64d24726eb17d94b0575d351b957e104f81bf0"
+    },
+    {
+      "path": "test/evaluation/latency.js",
+      "sha256": "42496a5297a391e60a78a32e612a006376c729744fefdb9d7f76adb5d54070f7"
+    },
+    {
+      "path": "test/evaluation/report.js",
+      "sha256": "d8f08d0862ac76c21d5702326f54994fa7e0b71539fd6386c5474c6a68984555"
+    },
+    {
+      "path": "test/evaluation/runner.js",
+      "sha256": "d5c9c439fe288d99395b1272bf26db8d87af443490959f3c8c2f2e6ddd10b6d5"
+    },
+    {
+      "path": "test/evaluation/stats.js",
+      "sha256": "ff5fb1df1160777889ca18f68fece9fd9737ebcf646c966d217510165a2c1a79"
+    },
+    {
+      "path": "test/helpers/api.js",
+      "sha256": "11d2768da31e0c47366c95b223238d6393fe5f5c88e53ba0ab8176364d10fbe4"
+    },
+    {
+      "path": "test/helpers/http.js",
+      "sha256": "6a65b6e306cc4e998f0de6a1f6e532aaa7683659024029fc2462826268061f31"
+    },
+    {
+      "path": "test/helpers/stack.js",
+      "sha256": "6a9cb1087ee73e53b6d51bbafcc5f83c3157c3a60277642297a6de0dad3dc417"
+    },
+    {
+      "path": "test/integration/exceptions.test.js",
+      "sha256": "ca9174e071a89741c730ee53d55eaf9d9b1d307605ab129e4ff9d9edb1a01067"
+    },
+    {
+      "path": "test/integration/proxy.test.js",
+      "sha256": "c71c901885018143fe43767351213ceb867074a9cd2d8c03890cd39d066db0a5"
+    },
+    {
+      "path": "test/integration/target.test.js",
+      "sha256": "4659a1687f0ffd3b018f93383cb5216b011ab06b36aea97c34c32c3fcbb5dcc4"
+    },
+    {
+      "path": "test/integration/workflow.test.js",
+      "sha256": "96c75670abf20ce38281029d7270cfb0667d897386527e29acd2e3d43f11f674"
+    },
+    {
+      "path": "test/security/accounts.test.js",
+      "sha256": "56d7e6b0c7efd2274dfd9d6050b4843830d282977b77331ef2f720d0fafd2d9b"
+    },
+    {
+      "path": "test/security/audit-integrity.test.js",
+      "sha256": "724c0207394bd923296afca5c792c5a910c77e309c93a7266fab6c5cda85f136"
+    },
+    {
+      "path": "test/security/authorization.test.js",
+      "sha256": "6264b98d74f7430f1f3e42c23b3c6f85a9ae77804b30762627328e1f7ede8a78"
+    },
+    {
+      "path": "test/security/errors-headers.test.js",
+      "sha256": "a868da3738f96e2f645cfa9d780686f583550b27befbcc6452bb89c4ecd1dca0"
+    },
+    {
+      "path": "test/security/import-validation.test.js",
+      "sha256": "22759d380b128489a1fe7cca65f7da0b7650c0a404e81faf05128fa0f6f0372b"
+    },
+    {
+      "path": "test/security/injection-output.test.js",
+      "sha256": "e5803e544d305dcc15087a5b4b45cbd3a53a52843fa7e027daf26c8ecb8dd5a7"
+    },
+    {
+      "path": "test/security/login-protection.test.js",
+      "sha256": "9717ca38a5c1ac4a8af7c16e784f75ff43a0a2b839ee062116a26a7f09aa238e"
+    },
+    {
+      "path": "test/security/secrets.test.js",
+      "sha256": "335ce08233a2bb11eb24482831b5d17512ae6eae2d0df05b772380e6ae561687"
+    },
+    {
+      "path": "test/security/session-csrf.test.js",
+      "sha256": "8cbee9a5b09bc1c1be39911b34b34f95365f088cc743dd80808a06bcfd3622fc"
+    },
+    {
+      "path": "test/unit/api/api.test.js",
+      "sha256": "c627304e119279ebdcd92274180594aedf71715e89fd3137c75d027eeb727ad6"
+    },
+    {
+      "path": "test/unit/api/authz.test.js",
+      "sha256": "f9d7b01c13a2454889cf14e7ba40163d5bfd6958a878a7c68894781406feee41"
+    },
+    {
+      "path": "test/unit/api/fakeEngine.js",
+      "sha256": "73e6e90c359d15c67465fba5d21b6993f19f3e7efff14d7f8696d1928fc061b5"
+    },
+    {
+      "path": "test/unit/api/harness.js",
+      "sha256": "3755ddaa36522fc2e12ab119863e8711a9ad9513465f59a4adaecf6e4c0086e2"
+    },
+    {
+      "path": "test/unit/api/proxy.test.js",
+      "sha256": "9cebc4bf532fc00c8438ff525e165ea9abbd39f7681cbda5570192858102948e"
+    },
+    {
+      "path": "test/unit/api/real-engine.smoke.test.js",
+      "sha256": "332b8f4933691016940ffe1c0ffee727aa07ed731ce04886f4eed99f02d64234"
+    },
+    {
+      "path": "test/unit/api/services.test.js",
+      "sha256": "58039fa5e10f914afb15ffd33a7d5648497aa52f4e166f2d2f4b88debcb79726"
+    },
+    {
+      "path": "test/unit/auth/auth.test.js",
+      "sha256": "fc1a879c910fece2757c08ec1eb2558c4d9b459569dce34c40dce95ad309e738"
+    },
+    {
+      "path": "test/unit/auth/middleware.test.js",
+      "sha256": "2b85d6dfc43510695be2c70b27517681f1a5d0e0822553eb0391da3464638007"
+    },
+    {
+      "path": "test/unit/db/audit.test.js",
+      "sha256": "722def4343b0914639fb241e9f90552965fa4fc5dbdee7ddbf0765719be9b647"
+    },
+    {
+      "path": "test/unit/db/repositories.test.js",
+      "sha256": "0093fa4d8d95dd2db228e809e0a8944f37231c6283983736a7e9288362d76b2d"
+    },
+    {
+      "path": "test/unit/engine/attack-fixtures.test.js",
+      "sha256": "bd0f1c5a1b4ce27b40cea103fed2846bc436c53cc7eb11b1dfb463ca83be44f6"
+    },
+    {
+      "path": "test/unit/engine/config.test.js",
+      "sha256": "dc0e752cef813ee49d8db15074b3dc656e56c1bb73ecef6f157b08e98a4b8d17"
+    },
+    {
+      "path": "test/unit/engine/dsl.test.js",
+      "sha256": "8be9e5fce75c50f50990811203ff08ce92f5fcfdaa73513ba051229db83403e8"
+    },
+    {
+      "path": "test/unit/engine/exceptions.test.js",
+      "sha256": "bb51c5fb9c1ae4680bb86cd1e0933f08350679135c357de53677f32ce27e0ff8"
+    },
+    {
+      "path": "test/unit/engine/fixtures.test.js",
+      "sha256": "b8356de10858f65c690c3587995c3af36c3253b96842a68c1c47ec6bdf602f68"
+    },
+    {
+      "path": "test/unit/engine/helpers.js",
+      "sha256": "2bca0f7088d29d08207feffa8f7def6d4ffd3bac7e2cc9e8c28092f7127ed907"
+    },
+    {
+      "path": "test/unit/engine/inspect.test.js",
+      "sha256": "524a3286c02632c4ca71956c0ae3ed0700b232f9abd2e5829d4fffa710f0380e"
+    },
+    {
+      "path": "test/unit/engine/parser.test.js",
+      "sha256": "0ea4e00d20845a3eecac705b89a2f5b1f067f26e6f87c07c7b52a018a3e9e50c"
+    },
+    {
+      "path": "test/unit/engine/ratelimit.test.js",
+      "sha256": "591bed46c5c2280b4269cc54ff1845a05fb75f601cbafe312c4cdb5bd83c4ed9"
+    },
+    {
+      "path": "test/unit/engine/redact.test.js",
+      "sha256": "5b26798caabd7fe56a7caa4480874e7fefe5497c7e750bc506404b72fba95e85"
+    },
+    {
+      "path": "test/unit/engine/rules.test.js",
+      "sha256": "2290aba8a8cca68822c02e0ed89ba4f5d848ab27f0a10da54ebc7a247af6dec3"
+    },
+    {
+      "path": "test/unit/engine/scoring-modes.test.js",
+      "sha256": "c23e42a72087889960074c76a9a848f07627b3f084c3438ba761afbec2fb4a1f"
+    },
+    {
+      "path": "test/unit/reports/export.test.js",
+      "sha256": "9dbbf2c0330e0ffb79fed6a0e842918c276ebfc08e127a3e6ff94cb0656f5fe3"
+    },
+    {
+      "path": "test/unit/reports/route.test.js",
+      "sha256": "eb3e95d7cc122a012a285d50b91b2c8cb79539dc20eb4bb73b51b532c9dfb591"
+    },
+    {
+      "path": "test/unit/ui/dom.test.js",
+      "sha256": "8afc5b370c62bb6bbfaa4a7842c3861b301742e3d24e25668f48f070d8594da1"
+    },
+    {
+      "path": "test/unit/ui/lib.test.js",
+      "sha256": "f94cfcdcff71436a386ba49001779a34626c5ac83f645577696a40e07b000002"
+    },
+    {
+      "path": "test/unit/ui/static-security.test.js",
+      "sha256": "33fd5b851141ecbee4e89cc6dabc03b1946ffea1d8053d3e90ee829975b8c16d"
+    }
+  ],
+  "evidenceFiles": [
+    {
+      "path": "docs/00-project-plan.md",
+      "sha256": "b9f86da188623800d21220e67c80b90b78bbbda9270c691d0c77dd18ed1e2410"
+    },
+    {
+      "path": "docs/01-requirements.md",
+      "sha256": "85d41257acb8dea48131a4f11515e6f62782696b28f857f143aac491abdfe464"
+    },
+    {
+      "path": "docs/02-architecture.md",
+      "sha256": "fc48ca19ff924a60e4f6a6dbeb2b69911dd1d44d1bae75399ebc0aeb675ebd95"
+    },
+    {
+      "path": "docs/PROGRESS.md",
+      "sha256": "1e519c386cba6079eea1739445944901c888a6090865c9cf2bf38411b11245ba"
+    },
+    {
+      "path": "docs/engine.md",
+      "sha256": "1f232085df7c836b364618ca9b5689b092ef6021c3e4503762d5e0e89cece64a"
+    },
+    {
+      "path": "docs/evaluation/check-summary.json",
+      "sha256": "8d3133432d2d2c658382a821a098738a1d49214ab06911597e33f3e0cc0bcb9b"
+    },
+    {
+      "path": "docs/evaluation/latency.json",
+      "sha256": "288330f94c234a7790483dac152f0de5c44dc21e7501ada3d7d70d926732a3f2"
+    },
+    {
+      "path": "docs/evaluation/results.json",
+      "sha256": "55b07d7a5e8b1daf9284392f7689b2767d2339bfca8465297c08e93fcdf614ee"
+    },
+    {
+      "path": "docs/evaluation/results.md",
+      "sha256": "b84351c4767eb2c8d06e9dea31738553a7ec278d572c1fd53411f370160eef99"
+    },
+    {
+      "path": "docs/final-report.md",
+      "sha256": "c84d2072b4844b4af2ee8565d8e686f7159eb8c1d956b91bd82ecf7e1e3b3369"
+    },
+    {
+      "path": "docs/fixtures.md",
+      "sha256": "0f2352749bf18294a0c9d9bb5940d0cd6fe5fbf6be6b806700f90fba577b909e"
+    },
+    {
+      "path": "docs/limitations-and-ethics.md",
+      "sha256": "cb5845a22c3ef30e407b306560cc8f1ba4265528508dcb1a4f5eb2ebe29fc0a5"
+    },
+    {
+      "path": "docs/test-plan.md",
+      "sha256": "db7f4305c16eda9b8d464d5e00f6c1f1b6bf6fb5ba649ecdf7d8764bcd4bf873"
+    },
+    {
+      "path": "docs/test-results.md",
+      "sha256": "298aed8fa8ae6da61bca621e2c4e64623d58c753c2c6383e623d35451ef2fecf"
+    },
+    {
+      "path": "docs/threat-model.md",
+      "sha256": "332b70c57dbee1a07a9e1510dcc44b995b0017e048ea08c241fde89eb20b5daa"
+    },
+    {
+      "path": "docs/traceability.md",
+      "sha256": "ac4e6d891e38d50fcb8eff109b41907390b35b5ca62cb8829da861bcb4b36049"
+    },
+    {
+      "path": "docs/final-report.pdf",
+      "sha256": "6a5a71daa0f1cdb34bf8a7eda17e210ee712ee493ce3846eed8860958dd6677f",
+      "binary": true
+    },
+    {
+      "path": "docs/user-guide.md",
+      "sha256": "cc74fd7c673364856948d7c2b98616a74eb0e7a40112387205ad161f45a0b366"
+    },
+    {
+      "path": "docs/wireframes.md",
+      "sha256": "597bdc82a834db8a0a547e1a90b027ab4f95e9c7eeca3b9b2391d831d9459d82"
+    },
+    {
+      "path": "docs/evaluation/ui-review.json",
+      "sha256": "ad1a25313cfb1be56bc985531014ee117d008350846fbd8367a360d954eb1dd6"
+    },
+    {
+      "path": "docs/images/dashboard-desktop.png",
+      "sha256": "539bf857cda6f046b4cea34eac3c7b1554feb64ee70e2f321c297b2967abd4d6",
+      "binary": true
+    },
+    {
+      "path": "docs/images/dashboard-mobile.png",
+      "sha256": "0632e323d5fd7be8478283d039b111a1c7510cb8cb41e78eb8f7aec37f9b42c7",
+      "binary": true
+    }
+  ],
+  "verification": {
+    "automatedTests": 782,
+    "passed": 782,
+    "failed": 0,
+    "skipped": 0,
+    "criticalHighProductionAdvisories": 0,
+    "mandatoryChecks": 123,
+    "mandatoryPassed": 117,
+    "mandatoryFailed": 6,
+    "corpusTruePositives": 76,
+    "corpusTrueNegatives": 68,
+    "corpusFalsePositives": 0,
+    "corpusFalseNegatives": 4,
+    "pdfPages": 13,
+    "pdfReview": "Updated report: all13 pages rendered and visually inspected; successful isolated-profile build.",
+    "uiReview": "docs/evaluation/ui-review.json"
+  },
+  "scopeException": "The separate 10-15 minute demonstration/walkthrough was explicitly excluded by the user."
+}
