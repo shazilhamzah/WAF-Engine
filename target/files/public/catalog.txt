@@ -1,0 +1,6 @@
+Vulnerable Shop catalogue (synthetic data)
+1  Packet Sniffer Mug                12.50
+2  Firewall Hoodie                   39.00
+3  Encrypted Sticker Pack             4.99
+4  Zero-Day Notebook                  8.75
+5  Rubber Duck (debugging edition)    6.00

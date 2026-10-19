@@ -1,0 +1,8 @@
+Welcome to the Vulnerable Shop file library (LAB ONLY).
+
+Public documents:
+  welcome.txt   - this file
+  catalog.txt   - product catalogue
+  shipping.txt  - shipping policy
+
+Try:  /files?name=catalog.txt
