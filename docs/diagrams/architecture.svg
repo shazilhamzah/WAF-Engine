@@ -1,0 +1,110 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 960 600" width="960" height="600" font-family="Segoe UI, Helvetica, Arial, sans-serif" font-size="13">
+  <title>WAF Studio layered architecture</title>
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0,0 L10,5 L0,10 z" fill="#334155"/>
+    </marker>
+    <style>
+      .layer { fill: #f1f5f9; stroke: #94a3b8; stroke-width: 1; }
+      .box { fill: #ffffff; stroke: #1e3a5f; stroke-width: 1.5; rx: 6; }
+      .eng { fill: #e0f2fe; stroke: #0369a1; stroke-width: 1.5; }
+      .db { fill: #fef9c3; stroke: #a16207; stroke-width: 1.5; }
+      .tgt { fill: #fee2e2; stroke: #b91c1c; stroke-width: 1.5; }
+      .t { fill: #0f172a; }
+      .h { fill: #1e3a5f; font-weight: 700; font-size: 14px; }
+      .s { fill: #475569; font-size: 11.5px; }
+      .ln { stroke: #334155; stroke-width: 1.5; fill: none; marker-end: url(#arrow); }
+      .lbl { fill: #334155; font-size: 11px; }
+    </style>
+  </defs>
+  <rect x="0" y="0" width="960" height="600" fill="#ffffff"/>
+
+  <!-- Layer bands -->
+  <rect class="layer" x="20" y="20" width="920" height="90" rx="8"/>
+  <text class="h" x="32" y="40">Layer 1 · Browser interface (public/)</text>
+  <rect class="layer" x="20" y="125" width="920" height="110" rx="8"/>
+  <text class="h" x="32" y="145">Layer 2 · API / service layer (src/api, src/auth, src/services) + data plane (src/proxy)</text>
+  <rect class="layer" x="20" y="250" width="920" height="120" rx="8"/>
+  <text class="h" x="32" y="270">Layer 3 · Security engine (src/engine, src/rules) — pure, independently testable</text>
+  <rect class="layer" x="20" y="385" width="610" height="95" rx="8"/>
+  <text class="h" x="32" y="405">Layer 4 · Repository (src/db, SQLite)</text>
+  <rect class="layer" x="645" y="385" width="295" height="95" rx="8"/>
+  <text class="h" x="657" y="405">Layer 5 · Test fixtures (fixtures/)</text>
+
+  <!-- Layer 1 -->
+  <rect class="box" x="40" y="52" width="260" height="46"/>
+  <text class="t" x="52" y="72">Studio SPA (admin · operator · viewer)</text>
+  <text class="s" x="52" y="89">Dashboard, analyze, evidence, rules, audit</text>
+  <rect class="box" x="660" y="52" width="260" height="46"/>
+  <text class="t" x="672" y="72">HTTP client / attacker simulation</text>
+  <text class="s" x="672" y="89">curl, browser, evaluation harness</text>
+
+  <!-- Layer 2 -->
+  <rect class="box" x="40" y="157" width="260" height="66"/>
+  <text class="t" x="52" y="177">Studio API :3000</text>
+  <text class="s" x="52" y="194">sessions · CSRF · RBAC · validation</text>
+  <text class="s" x="52" y="210">stable error codes · reports export</text>
+  <rect class="box" x="330" y="157" width="230" height="66"/>
+  <text class="t" x="342" y="177">Engine state service</text>
+  <text class="s" x="342" y="194">compiled rules · config version</text>
+  <text class="s" x="342" y="210">approved exceptions · rate limiter</text>
+  <rect class="box" x="660" y="157" width="260" height="66"/>
+  <text class="t" x="672" y="177">WAF reverse proxy :8080</text>
+  <text class="s" x="672" y="194">buffer → inspect → block page or</text>
+  <text class="s" x="672" y="210">forward (http-proxy) + event id</text>
+
+  <!-- Layer 3 pipeline -->
+  <g font-size="11.5">
+    <rect class="eng" x="40" y="285" width="118" height="70" rx="6"/>
+    <text class="t" x="50" y="305">1 Request</text><text class="t" x="50" y="321">parser</text><text class="s" x="50" y="339">normalize, limits</text>
+    <rect class="eng" x="170" y="285" width="118" height="70" rx="6"/>
+    <text class="t" x="180" y="305">2 Rule DSL</text><text class="s" x="180" y="323">compile + evaluate</text><text class="s" x="180" y="339">+ exceptions</text>
+    <rect class="eng" x="300" y="285" width="118" height="70" rx="6"/>
+    <text class="t" x="310" y="305">3 Scoring</text><text class="s" x="310" y="323">anomaly points</text><text class="s" x="310" y="339">thresholds</text>
+    <rect class="eng" x="430" y="285" width="118" height="70" rx="6"/>
+    <text class="t" x="440" y="305">4 Block /</text><text class="t" x="440" y="321">monitor modes</text><text class="s" x="440" y="339">verdict → action</text>
+    <rect class="eng" x="560" y="285" width="118" height="70" rx="6"/>
+    <text class="t" x="570" y="305">5 Rate limits</text><text class="s" x="570" y="323">sliding window</text><text class="s" x="570" y="339">per client key</text>
+    <rect class="eng" x="690" y="285" width="230" height="70" rx="6"/>
+    <text class="t" x="700" y="305">Decision + explanation</text><text class="s" x="700" y="323">matches, evidence, score, versions</text><text class="s" x="700" y="339">→ 6 audit console · 7 tuning</text>
+    <path class="ln" d="M158,320 L168,320"/>
+    <path class="ln" d="M288,320 L298,320"/>
+    <path class="ln" d="M418,320 L428,320"/>
+    <path class="ln" d="M548,320 L558,320"/>
+    <path class="ln" d="M678,320 L688,320"/>
+  </g>
+
+  <!-- Layer 4 -->
+  <rect class="db" x="40" y="417" width="170" height="50" rx="6"/>
+  <text class="t" x="52" y="437">users · sessions</text><text class="s" x="52" y="454">scrypt, hashed tokens</text>
+  <rect class="db" x="225" y="417" width="185" height="50" rx="6"/>
+  <text class="t" x="237" y="437">rules · config · exceptions</text><text class="s" x="237" y="454">versioned history</text>
+  <rect class="db" x="425" y="417" width="190" height="50" rx="6"/>
+  <text class="t" x="437" y="437">events · audit_log</text><text class="s" x="437" y="454">append-only, hash chain</text>
+
+  <!-- Layer 5 -->
+  <rect class="box" x="660" y="417" width="260" height="50"/>
+  <text class="t" x="672" y="437">T1–T5 samples, corpora, import file</text>
+  <text class="s" x="672" y="454">synthetic, sanitized</text>
+
+  <!-- Target -->
+  <rect class="tgt" x="660" y="505" width="260" height="70" rx="6"/>
+  <text class="t" x="672" y="527">Vulnerable target :3001 (lab only)</text>
+  <text class="s" x="672" y="545">XSS · SQLi · traversal (sandboxed)</text>
+  <text class="s" x="672" y="561">fake data, 127.0.0.1 only</text>
+
+  <!-- Flows -->
+  <path class="ln" d="M170,98 L170,155"/><text class="lbl" x="176" y="121">JSON + CSRF</text>
+  <path class="ln" d="M790,98 L790,155"/><text class="lbl" x="796" y="132">HTTP</text>
+  <path class="ln" d="M300,190 L328,190"/>
+  <path class="ln" d="M658,190 L562,190"/>
+  <path class="ln" d="M445,223 L445,283"/><text class="lbl" x="451" y="258">inspect(raw, ctx)</text>
+  <path class="ln" d="M164,223 L164,415"/><text class="lbl" x="170" y="380">parameterized SQL</text>
+  <path class="ln" d="M720,223 L720,250 L600,250 L600,415" stroke-dasharray="4 3"/><text class="lbl" x="606" y="380">events</text>
+  <path class="ln" d="M900,223 L900,503"/><text class="lbl" x="826" y="497">allowed only</text>
+  <path class="ln" d="M790,415 L790,357" stroke-dasharray="4 3"/>
+
+  <text class="s" x="40" y="520">All listeners bind 127.0.0.1. Security decisions are made only in Layer 3;</text>
+  <text class="s" x="40" y="536">the browser validates for usability, the API re-validates and enforces roles.</text>
+  <text class="s" x="40" y="552">Arrows show request/data direction; dashed = asynchronous record writes / test inputs.</text>
+</svg>

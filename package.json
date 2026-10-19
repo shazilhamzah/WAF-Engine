@@ -1,0 +1,34 @@
+{
+  "name": "waf-studio",
+  "version": "1.0.0",
+  "description": "WAF Studio: a learning, explainable reverse-proxy Web Application Firewall (IS Proposal 44, Class 3, Group 12)",
+  "private": true,
+  "main": "src/index.js",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "start:target": "node target/server.js",
+    "setup": "node scripts/setup.js",
+    "reset": "node scripts/reset.js",
+    "test": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
+    "test:unit": "node --test \"test/unit/**/*.test.js\"",
+    "test:integration": "node --test --test-concurrency=1 \"test/integration/**/*.test.js\"",
+    "test:security": "node --test --test-concurrency=1 \"test/security/**/*.test.js\"",
+    "fixtures:build": "node scripts/build-attack-fixtures.js",
+    "evaluate": "node scripts/evaluate.js",
+    "bench": "node scripts/bench-latency.js",
+    "check": "node scripts/check.js",
+    "docs:pdf": "node scripts/build-pdf.js"
+  },
+  "license": "MIT",
+  "author": "Class 3, Group 12",
+  "dependencies": {
+    "express": "4.22.3",
+    "http-proxy": "1.18.1"
+  },
+  "devDependencies": {
+    "marked": "18.1.1"
+  }
+}

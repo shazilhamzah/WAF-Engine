@@ -1,0 +1,11 @@
+node_modules/
+# Runtime data: SQLite databases, generated secrets, logs
+data/
+*.db
+*.db-journal
+*.db-wal
+*.db-shm
+*.log
+# Temporary build output (final PDFs in docs/ ARE committed)
+.tmp/
+coverage/
