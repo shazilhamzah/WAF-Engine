@@ -1,0 +1,394 @@
+# WAF Studio — default detection rule set (version 1)
+#
+# Written for the WAF Studio lab (Proposal 44, Class 3, Group 12). Wording and patterns are our own;
+# rule ids follow the familiar 9xxxxx numbering so they are easy to group:
+#   913xxx scanners · 920xxx protocol · 930xxx traversal/LFI · 932xxx command injection
+#   941xxx cross-site scripting · 942xxx SQL injection
+#
+# Calibration (default thresholds: flag 3, block 5):
+#   score 5  strong indicator, enough to block on its own
+#   score 3-4 suspicious, flags on its own, blocks together with another indicator
+#   score 1-2 weak context signal, never blocks alone
+# Patterns only use bounded repetition ({0,10} instead of *) so they pass the ReDoS guard and stay
+# linear on large bodies. Grammar: docs/rule-dsl.md.
+
+# ============================================================== SQL injection (942xxx)
+
+rule 942100 "SQLi boolean tautology" {
+  when args, cookies, user_agent, header:referer matches /\b(?:or|and|xor)\b\s{1,10}['"(]{0,2}\d{1,10}['")]{0,2}\s{0,10}(?:=|<>|!=|<=|>=|\blike\b)\s{0,10}['"(]{0,2}\d{1,10}/i
+  severity critical
+  score 5
+  category sqli
+  tags sqli, owasp-a03, tautology
+  description "Numeric always-true comparison such as OR 1=1, used to bypass WHERE clauses in login and search queries"
+}
+
+rule 942110 "SQLi quoted string tautology" {
+  when args, cookies, user_agent, header:referer matches /['"`]\s{0,10}(?:\b(?:or|and)\b|\|\||&&)\s{0,10}['"`][^'"`]{0,40}['"`]\s{0,10}(?:=|<>|!=|\blike\b)\s{0,10}['"`]/i
+  severity critical
+  score 5
+  category sqli
+  tags sqli, owasp-a03, tautology
+  description "Breaks out of a quoted value and adds a string comparison that is always true, e.g. ' or 'a'='a"
+}
+
+rule 942120 "SQLi UNION SELECT" {
+  when args, cookies, user_agent, header:referer matches /\bunion\b[\s(+]{1,20}(?:all\b[\s(+]{1,20}|distinct\b[\s(+]{1,20})?select\b/i
+  severity critical
+  score 5
+  category sqli
+  tags sqli, owasp-a03, union
+  description "UNION SELECT appends attacker-chosen columns to a query result to read other tables"
+}
+
+rule 942130 "SQLi comment truncation after quote" {
+  when args, cookies matches /\w['"`]\s{0,5}(?:--(?:\s|$)|#|\/\*)/
+  severity high
+  score 5
+  category sqli
+  tags sqli, owasp-a03, comment
+  description "A closing quote followed by a SQL comment (--, # or /*) cuts off the rest of the query, e.g. admin'--"
+}
+
+rule 942140 "SQLi stacked query" {
+  when args, cookies matches /;\s{0,10}(?:drop\s{1,10}(?:table|database|schema|user)\b|delete\s{1,10}from\b|insert\s{1,10}into\b|update\s{1,10}\w{1,64}\s{1,10}set\b|truncate\s{1,10}table\b|alter\s{1,10}(?:table|user)\b|create\s{1,10}(?:table|user|database)\b|exec(?:ute)?\s{1,10}(?:xp_|sp_|master\.)|shutdown\b|declare\s{1,10}@)/i
+  severity critical
+  score 5
+  category sqli
+  tags sqli, owasp-a03, stacked
+  description "A semicolon followed by a destructive or administrative SQL statement (stacked queries)"
+}
+
+rule 942150 "SQLi time-based blind probe" {
+  when args, cookies, user_agent, header:referer matches /\b(?:sleep|pg_sleep)\s{0,5}\(\s{0,5}\d{1,6}(?:\.\d{1,3})?\s{0,5}\)|\bbenchmark\s{0,5}\(\s{0,5}\d{1,12}\s{0,5},|\bwaitfor\s{1,10}delay\s{1,10}['"]/i
+  severity high
+  score 5
+  category sqli
+  tags sqli, owasp-a03, blind
+  description "Database delay functions (SLEEP, PG_SLEEP, BENCHMARK, WAITFOR DELAY) used to infer data from response time"
+}
+
+rule 942160 "SQLi system catalog access" {
+  when args, cookies matches /\b(?:information_schema|sysobjects|syscolumns|sys\.tables|pg_catalog|pg_shadow|mysql\.user|sqlite_master|sqlite_schema|xp_cmdshell|all_tables|user_tables)\b/i
+  severity high
+  score 5
+  category sqli
+  tags sqli, owasp-a03, recon
+  description "Names of database system tables that list schemas, users or run commands; ordinary input never contains them"
+}
+
+rule 942170 "SQLi database function abuse" {
+  when args, cookies matches /@@(?:version|datadir|hostname)\b|\bload_file\s{0,3}\(|\binto\s{1,10}(?:out|dump)file\b|\bchar\s{0,3}\(\s{0,3}\d{1,3}\s{0,3}(?:,\s{0,3}\d{1,3}\s{0,3}){2,50}\)|\b(?:extractvalue|updatexml)\s{0,3}\(/i
+  severity high
+  score 5
+  category sqli
+  tags sqli, owasp-a03
+  description "Server variables and file / error-based functions (@@version, LOAD_FILE, INTO OUTFILE, CHAR(..), EXTRACTVALUE) used for data extraction"
+}
+
+rule 942180 "SQLi ORDER BY column probing" {
+  when args, cookies matches /['"`)]\s{0,10}(?:order|group)\s{1,10}by\s{1,10}\d{1,3}\b/i
+  severity high
+  score 5
+  category sqli
+  tags sqli, owasp-a03, recon
+  description "Closing quote followed by ORDER BY n, used to count the columns of a query before a UNION attack"
+}
+
+rule 942190 "SQL keyword after closing quote" {
+  when args, cookies matches /\w'\s{1,10}(?:union|select|having|insert|update|delete|drop|exec)\b\s{1,10}[\w*@(]/i
+  severity medium
+  score 2
+  category sqli
+  tags sqli, owasp-a03, weak
+  description "A quote that closes a value followed by a SQL keyword; weak on its own (possessive apostrophes look similar)"
+}
+
+# ============================================================== Cross-site scripting (941xxx)
+
+rule 941100 "XSS script tag" {
+  when args, cookies, path, user_agent, header:referer matches /<\s{0,5}\/?\s{0,5}script\b/i
+  severity critical
+  score 5
+  category xss
+  tags xss, owasp-a03
+  description "An HTML script element in user input; reflected into a page it runs attacker JavaScript"
+}
+
+rule 941110 "XSS event handler attribute" {
+  when args, cookies, path, header:referer matches /(?:<[^>]{0,200}|['"\s\/])\bon(?:abort|afterprint|animationstart|animationend|beforeprint|beforeunload|begin|blur|canplay|change|click|contextmenu|copy|cut|dblclick|drag\w{0,5}|drop|error|focus\w{0,3}|hashchange|input|invalid|key(?:down|press|up)|load\w{0,5}|message|mouse\w{2,6}|paste|pause|play\w{0,3}|pointer\w{2,6}|popstate|resize|scroll|search|select|show|submit|toggle|touch\w{2,6}|transition\w{2,6}|unload|wheel)\s{0,5}=/i
+  severity critical
+  score 5
+  category xss
+  tags xss, owasp-a03
+  description "An inline event handler such as onerror= or onload= that runs JavaScript without a script tag"
+}
+
+rule 941120 "XSS javascript: URI" {
+  when args, cookies, header:referer matches /\b(?:java|vb|live)script\s{0,5}:\s{0,5}[\w$.]{1,40}\s{0,5}[(\[`=]/i
+  severity critical
+  score 5
+  category xss
+  tags xss, owasp-a03, uri
+  description "A javascript: (or vbscript:) URL that calls code, e.g. javascript:alert(1) in a link or redirect parameter"
+}
+
+rule 941125 "XSS obfuscated javascript: scheme" {
+  when args, cookies matches /j\s{1,3}a\s{0,3}v\s{0,3}a\s{0,3}s\s{0,3}c\s{0,3}r\s{0,3}i\s{0,3}p\s{0,3}t\s{0,3}:/i
+  severity high
+  score 5
+  category xss
+  tags xss, owasp-a03, evasion
+  description "The javascript: scheme split by tabs, newlines or spaces, which browsers ignore inside URLs"
+}
+
+rule 941130 "XSS embedding tag" {
+  when args, cookies, path matches /<\s{0,5}(?:iframe|frame|frameset|object|embed|applet|base|meta|link|svg|math|isindex|marquee|xss)\b/i
+  severity high
+  score 3
+  category xss
+  tags xss, owasp-a03
+  description "HTML elements that load or embed active content (iframe, object, embed, svg, base, meta)"
+}
+
+rule 941140 "XSS JavaScript sink or dialog call" {
+  when args, cookies, path matches /\b(?:alert|prompt|confirm|eval)\s{0,5}\(\s{0,5}(?:['"`\d)]|document\b|window\b|this\b|String\.)|\bdocument\s{0,5}\.\s{0,5}(?:cookie|write(?:ln)?|domain)\b|\bwindow\s{0,5}\.\s{0,5}location\b|\.innerHTML\s{0,5}=|\bString\.fromCharCode\s{0,5}\(|\batob\s{0,5}\(/i
+  severity medium
+  score 3
+  category xss
+  tags xss, owasp-a03
+  description "Typical proof-of-concept calls and DOM sinks (alert(1), document.cookie, innerHTML=, fromCharCode)"
+}
+
+rule 941150 "XSS data: URI with script content" {
+  when args, cookies matches /\bdata\s{0,5}:\s{0,5}(?:text\/html|text\/(?:java|ecma)script|application\/(?:x-)?(?:java|ecma)script)\b/i
+  severity high
+  score 5
+  category xss
+  tags xss, owasp-a03, uri
+  description "A data: URL carrying HTML or JavaScript, which runs when loaded in a frame or link"
+}
+
+rule 941160 "XSS attribute break-out" {
+  when args, cookies matches /['"]\s{0,5}\/?>\s{0,10}<\s{0,5}[a-z!\/]/i
+  severity medium
+  score 2
+  category xss
+  tags xss, owasp-a03, weak
+  description "Closes a quoted attribute and its tag, then opens a new tag (\"><...); weak alone because HTML snippets look similar"
+}
+
+rule 941170 "XSS legacy CSS script vector" {
+  when args, cookies matches /\bexpression\s{0,5}\(\s{0,5}(?:alert|eval|document|window|this)\b|-moz-binding\s{0,5}:|\bbehavior\s{0,5}:\s{0,5}url\s{0,5}\(|@import\s{1,5}['"]?\s{0,5}(?:javascript|data):/i
+  severity medium
+  score 4
+  category xss
+  tags xss, owasp-a03, css
+  description "Old browser CSS features that execute script (expression(), -moz-binding, behavior:url, @import javascript:)"
+}
+
+rule 941180 "Client-side template injection" {
+  when args, cookies matches /\{\{\s{0,5}(?:[\w.$]{0,40}\bconstructor\b|\$on\b|\$eval\b|\d{1,5}\s{0,5}\*\s{0,5}\d{1,5}\s{0,5}\}\})/i
+  severity medium
+  score 4
+  category xss
+  tags xss, owasp-a03, template
+  description "Template expressions such as {{constructor.constructor(..)}} or the {{7*7}} probe aimed at client-side frameworks"
+}
+
+# ============================================================== Path traversal / LFI (930xxx)
+
+rule 930100 "Path traversal (multiple levels)" {
+  when path, args, cookies matches /(?:\.\.[\/\\;]){2}|(?:[\/\\]\.\.){2}|\.{4}[\/\\]{1,2}/
+  severity critical
+  score 5
+  category traversal
+  tags traversal, lfi, owasp-a01
+  description "Two or more ../ segments (or the ....// filter-evasion form) climbing out of the intended directory"
+}
+
+rule 930105 "Path traversal (relative segment)" {
+  when path, args, cookies matches /(?:^\s{0,3}|[\/\\=])\.\.(?:[\/\\]|$)/
+  severity high
+  score 5
+  category traversal
+  tags traversal, lfi, owasp-a01
+  description "A ../ (or ..\\) segment at the start of a value or after a slash, e.g. name=../secret/flag.txt; ../ after a space in prose is not matched"
+}
+
+rule 930110 "Sensitive system file access" {
+  when path, args, cookies matches /(?:^|[\/\\])(?:etc[\/\\](?:passwd|shadow|group|hosts|issue|crontab)\b|proc[\/\\](?:self|version)\b|boot\.ini\b|win\.ini\b|system\.ini\b|windows[\/\\]system32\b|\.ssh[\/\\]|id_rsa\b|\.htaccess\b|\.htpasswd\b|web\.config\b|\.env\b|\.git[\/\\]|\.aws[\/\\]credentials\b|wp-config\.php\b)/i
+  severity critical
+  score 5
+  category traversal
+  tags traversal, lfi, owasp-a01
+  description "Well-known OS, credential and configuration files (/etc/passwd, win.ini, .ssh/, .env, .git/) targeted by file inclusion"
+}
+
+rule 930120 "Overlong or exotic encoded traversal" {
+  when path_raw, args matches /%(?:c0%(?:ae|af|9v)|c1%(?:1c|9c|pc)|e0%80%(?:ae|af)|u(?:002e|2215|2216|ff0e|ff0f))/i
+  severity high
+  score 5
+  category traversal
+  tags traversal, evasion
+  description "Overlong UTF-8 or %u encodings of '.' and '/' that some servers decode into ../ after the filter ran"
+}
+
+rule 930130 "File inclusion wrapper scheme" {
+  when args, cookies matches /\b(?:file|php|phar|zip|expect|glob|gopher|dict|jar):\/\//i
+  severity critical
+  score 5
+  category traversal
+  tags lfi, rfi, owasp-a01
+  description "Stream wrappers (file://, php://filter, phar://, expect://) that turn a file parameter into local file read or code execution"
+}
+
+# ============================================================== OS command injection (932xxx)
+
+rule 932100 "OS command chaining" {
+  when args, cookies, user_agent matches /(?:[;&|`\n]|\$\()\s{0,10}(?:cat|ls|id|whoami|uname|pwd|wget|curl|nc|ncat|netcat|bash|sh|zsh|ksh|powershell|cmd|ping|nslookup|dig|rm|chmod|chown|python[23]?|perl|ruby|php|echo|printf|ifconfig|ipconfig|netstat|ps|kill|env|type|dir|systeminfo|tasklist|hostname)\b(?:\s{1,10}[-\/$.~'"\d]|\s{0,10}(?:$|[;&|`)]))/i
+  severity critical
+  score 5
+  category cmdi
+  tags cmdi, owasp-a03
+  description "A shell separator (; & | backtick $( ) followed by a common command and its arguments, e.g. ; cat /etc/passwd"
+}
+
+rule 932110 "OS command substitution" {
+  when args, cookies, user_agent matches /\$\(\s{0,5}(?:cat|ls|id|whoami|uname|curl|wget|sleep|echo|nc|bash|sh|ping|nslookup)\b|`\s{0,5}(?:cat|ls|id|whoami|uname|curl|wget|sleep|nc|bash|sh|ping|nslookup)\b[^`]{0,100}`|\$\{?IFS\b/
+  severity critical
+  score 5
+  category cmdi
+  tags cmdi, owasp-a03, evasion
+  description "Command substitution with $( ) or backticks, and the ${IFS} trick used to avoid spaces"
+}
+
+rule 932120 "Shell or interpreter invocation" {
+  when args, cookies matches /(?:^|[\s;&|`'"(=<>])(?:\/(?:usr\/)?(?:local\/)?s?bin\/(?:ba|z|k|da|c|tc)?sh\b|\/bin\/(?:cat|ls|id|nc|busybox)\b)|\bcmd(?:\.exe)?\s{1,5}\/[ck]\b|\bpowershell(?:\.exe)?\s{1,5}-(?:e|ec|enc|encodedcommand|nop|noprofile|c|command|w|windowstyle)\b/i
+  severity critical
+  score 5
+  category cmdi
+  tags cmdi, owasp-a03
+  description "Absolute paths to shells (/bin/sh, /bin/bash) or Windows cmd /c and powershell -enc invocations"
+}
+
+rule 932130 "Reverse shell or download-and-execute" {
+  when args, cookies, user_agent matches /\/dev\/(?:tcp|udp)\/|\b(?:wget|curl)\b[^|;&\n]{1,200}\|\s{0,5}(?:ba|z|k)?sh\b|\bn(?:c|cat|etcat)\s{1,5}(?:-\w{1,5}\s{1,5}){0,5}-[elc]\b|\bmkfifo\b|\bsocat\b[^\n]{0,100}exec:/i
+  severity critical
+  score 5
+  category cmdi
+  tags cmdi, owasp-a03, rce
+  description "Bash /dev/tcp sockets, curl|sh pipelines, netcat -e and mkfifo, which open an interactive shell for the attacker"
+}
+
+rule 932140 "JNDI lookup injection (Log4Shell)" {
+  when args, cookies, headers matches /\$\{\s{0,5}(?:jndi\s{0,5}:|\$\{|::-|lower\s{0,3}:|upper\s{0,3}:)/i
+  severity critical
+  score 5
+  category cmdi
+  tags rce, log4shell, cve-2021-44228
+  description "Log4j lookup syntax ${jndi:...} (and its nested ${lower:..} evasions) that makes vulnerable Java loggers load remote code"
+}
+
+# ============================================================== Protocol anomalies (920xxx)
+
+rule 920100 "Unusual HTTP method" {
+  when not method in ["GET", "POST", "PUT", "PATCH", "DELETE", "HEAD", "OPTIONS"]
+  severity medium
+  score 3
+  category protocol
+  tags protocol
+  description "Methods such as TRACE, TRACK, CONNECT or custom verbs are not used by the protected application"
+}
+
+rule 920110 "CRLF injection in URL" {
+  when query, path matches /[\r\n]\s{0,5}(?:set-cookie|location|content-type|content-length|refresh|x-[\w-]{1,40})\s{0,5}:|[\r\n]\s{0,5}http\/\d/i
+  severity critical
+  score 5
+  category protocol
+  tags protocol, crlf, response-splitting
+  description "An encoded CR/LF followed by a header name, used for HTTP response splitting and header injection"
+}
+
+rule 920120 "Missing User-Agent header" {
+  when not header:user-agent matches /\S/
+  severity low
+  score 1
+  category protocol
+  tags protocol, weak
+  description "Browsers always send a User-Agent; its absence suggests a hand-written client (context only)"
+}
+
+rule 920130 "Body sent with GET or HEAD" {
+  when method in ["GET", "HEAD"] and body_size gt 0
+  severity low
+  score 2
+  category protocol
+  tags protocol, smuggling
+  description "GET and HEAD requests normally have no body; one may be used to smuggle data past intermediaries"
+}
+
+rule 920150 "Both Transfer-Encoding and Content-Length" {
+  when header:transfer-encoding contains "chunked" and header:content-length matches /\d/
+  severity high
+  score 4
+  category protocol
+  tags protocol, smuggling
+  description "Sending both framing headers is the classic HTTP request smuggling setup (RFC 9112 forbids it)"
+}
+
+rule 920160 "Control characters in URL path" {
+  when path_raw matches /%(?:0[1-8bcef]|1[0-9a-f]|7f)/i
+  severity medium
+  score 3
+  category protocol
+  tags protocol, evasion
+  description "Percent-encoded control characters (other than NUL, scored separately) have no place in a URL path"
+}
+
+# ============================================================== Scanners (913xxx)
+
+rule 913100 "Security scanner User-Agent" {
+  when user_agent matches /\b(?:sqlmap|nikto|nmap|masscan|acunetix|nessus|openvas|w3af|dirbuster|gobuster|wfuzz|ffuf|nuclei|zgrab|arachni|havij|netsparker|wpscan|whatweb|jaeles|skipfish|commix|xsstrike|feroxbuster)\b/i
+  severity high
+  score 5
+  category scanner
+  tags scanner, recon
+  description "User-Agent strings of well-known vulnerability scanners and fuzzers"
+}
+
+rule 913110 "Out-of-band callback domain" {
+  when args, cookies, headers matches /\b(?:burpcollaborator\.net|oastify\.com|interact\.sh|oast\.(?:pro|live|site|online|fun|me)|dnslog\.cn|requestbin\.net|canarytokens\.com)\b/i
+  severity high
+  score 5
+  category scanner
+  tags scanner, oast
+  description "Domains used by scanners to detect blind injection through DNS or HTTP callbacks"
+}
+
+rule 913120 "Scripted HTTP client" {
+  when user_agent matches /^(?:python-requests|python-urllib|go-http-client|libwww-perl|java\/|okhttp|wget|curl|httpie|aiohttp|axios)\b/i
+  severity low
+  score 1
+  category scanner
+  tags scanner, weak
+  description "Common scripting libraries and command-line clients (context only; developers use them legitimately)"
+}
+
+rule 913130 "Probe for admin or backup resources" {
+  when path matches /\/(?:phpmyadmin|pma|wp-admin|wp-login\.php|\.git\/|\.svn\/|\.env$|server-status|actuator(?:\/|$)|cgi-bin\/|\.ds_store)|\.(?:bak|old|orig|swp|save|backup)$/i
+  severity medium
+  score 3
+  category scanner
+  tags scanner, recon
+  description "Paths that automated scanners request to find admin panels, source control folders and backup files"
+}
+
+rule 913140 "Scanner marker header" {
+  when header:acunetix-aspect, header:acunetix-product, header:x-wipp, header:x-scan-memo, header:x-request-memo matches /\S/
+  severity high
+  score 5
+  category scanner
+  tags scanner
+  description "Headers that commercial scanners add to their own requests"
+}
