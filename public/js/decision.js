@@ -1,12 +1,9 @@
-// Rendering of the engine Decision (docs/02-architecture.md §3.6) — the explainability core.
-// All decision fields (excerpts, paths, user agents, explanations) are attacker-influenced and are
-// therefore only ever inserted as text.
+// decision fields are attacker influenced so they are only inserted as text
 import { h, s, code } from './dom.js';
 import { formatMs, formatBytes, shortHash, scoreScaleMax, formatTs, prettyJson } from './lib/format.js';
 import { hashFor } from './lib/query.js';
-import { verdictBadge, actionBadge, modeBadge, severityBadge, chip, table, kvList, card, emptyState } from './ui.js';
+import { verdictBadge, actionBadge, modeBadge, severityBadge, chip, table, kvList, card, emptyState, statusLabel } from './ui.js';
 
-/** Score bar with flag/block threshold markers. Text labels make it readable without colour. */
 export function scoreBar(score) {
   const sc = score || {};
   const total = Number(sc.total) || 0;
@@ -41,7 +38,6 @@ function categoryLine(byCategory) {
   return h('p', null, 'By category: ', ...entries.map(([k, v], i) => [i ? ' · ' : '', chip(`${k} ${v}`, 'info')]));
 }
 
-/** Compact result shown right after Analyze. */
 export function decisionSummary(event) {
   const d = (event && event.decision) || {};
   const expl = Array.isArray(d.explanation) ? d.explanation : [];
@@ -85,7 +81,6 @@ function matchesTable(event, list, { canRequest, suppressed }) {
   return table({ caption: suppressed ? 'Suppressed matches' : 'Rule matches', columns, rows: list, empty: suppressed ? 'No matches were suppressed.' : 'No rule matched this request.' });
 }
 
-/** Full evidence view sections for an Event. */
 export function evidenceSections(event, { canRequest }) {
   const d = event.decision || {};
   const req = d.request || {};
@@ -128,7 +123,7 @@ export function evidenceSections(event, { canRequest }) {
       rows: d.anomalies,
     }) : emptyState('No parser anomalies.')),
     card('Rate limit', rl && rl.checked ? kvList([
-      ['Status', rl.limited ? h('strong', null, '⛔ limited') : '✔ within limit'],
+      ['Status', rl.limited ? statusLabel('limited', 'bad') : statusLabel('within limit', 'ok')],
       ['Count in window', `${rl.count} / ${rl.limit}`],
       ['Window', rl.windowMs ? `${Math.round(rl.windowMs / 1000)} s` : '—'],
     ]) : emptyState('Rate limiting was not checked for this event (console analysis is not rate-limited by the WAF stage).')),

@@ -1,10 +1,4 @@
 'use strict';
-/**
- * EngineConfig defaults and strict validation (contract §3.2).
- *
- * validateConfig(cfg) merges `cfg` over DEFAULT_CONFIG (missing fields take their default), rejects
- * unknown fields, wrong types and out-of-range values, and returns a normalized frozen-free copy.
- */
 
 const DEFAULT_CONFIG = deepFreeze({
   mode: 'block',
@@ -20,7 +14,6 @@ const DEFAULT_CONFIG = deepFreeze({
   rateLimit: { enabled: true, windowMs: 60000, maxRequests: 300 },
 });
 
-/** Integer ranges for every numeric field. */
 const RANGES = Object.freeze({
   'thresholds.flag': [1, 100],
   'thresholds.block': [1, 100],
@@ -47,10 +40,6 @@ function isPlainObject(v) {
   return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
-/**
- * @param {object} cfg candidate EngineConfig (partial allowed; defaults fill gaps)
- * @returns {{ ok: boolean, config: object|null, errors: {field: string, message: string}[] }}
- */
 function validateConfig(cfg) {
   const errors = [];
   const out = clone(DEFAULT_CONFIG);
@@ -113,7 +102,7 @@ function validateConfig(cfg) {
   return errors.length ? { ok: false, config: null, errors } : { ok: true, config: out, errors };
 }
 
-/** Lenient merge used inside inspect(): invalid input falls back to defaults field by field. */
+// lenient merge so invalid input falls back to defaults field by field
 function resolveConfig(cfg) {
   const res = validateConfig(cfg);
   if (res.ok) return res.config;

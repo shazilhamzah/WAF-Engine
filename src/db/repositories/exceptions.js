@@ -1,9 +1,4 @@
 'use strict';
-/**
- * Tuning exceptions (contract §3.4, §4). Status machine:
- *   pending -> approved | rejected ; approved -> revoked
- * Transitions are conditional UPDATEs (WHERE status = expected) so a concurrent change cannot be overwritten.
- */
 const { newId, nowIso } = require('../util');
 
 const STATUSES = Object.freeze(['pending', 'approved', 'rejected', 'revoked']);
@@ -28,7 +23,6 @@ function mapException(row) {
   };
 }
 
-/** Engine shape (contract §3.4). */
 function toEngineException(x) {
   return { id: x.id, ruleId: x.ruleId, scope: { ...x.scope }, reason: x.reason, status: x.status, expiresAt: x.expiresAt };
 }
@@ -58,16 +52,13 @@ function createExceptionsRepository({ raw, clock }) {
     list({ status } = {}) {
       return (status ? stmts.listStatus.all(String(status)) : stmts.listAll.all()).map(mapException);
     },
-    /** Approved and unexpired exceptions at `atMs` (default now), already in engine shape. */
     listActive(atMs) {
       const at = new Date(atMs === undefined ? clock() : atMs).toISOString();
       return stmts.active.all(at).map((r) => toEngineException(mapException(r)));
     },
-    /**
-     * Moves an exception from `from` to `to`. Returns the updated record, or null if it was not in `from`.
-     */
     transition(id, from, to, reviewerId, note = null) {
       if (!STATUSES.includes(to)) throw new Error('invalid status');
+      // the status in the where clause stops two reviewers both winning
       const changed = stmts.transition.run(to, reviewerId, note, nowIso(clock), String(id), from).changes;
       return changed ? mapException(stmts.get.get(String(id))) : null;
     },

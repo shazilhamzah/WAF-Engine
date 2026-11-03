@@ -1,9 +1,9 @@
-// Analyze: build a sample (method, path, headers, body), submit, show the explainable decision.
 import { h, mount, clear } from '../dom.js';
 import { api } from '../api.js';
 import { EXAMPLES, METHODS, LIMITS, exampleByKey, validateSample, rowsToHeaders, headersToRows, normalizeSample } from '../lib/samples.js';
 import { pageHeader, card, field, select, fieldErrors, showStatus, emptyState } from '../ui.js';
 import { decisionSummary, versionLine } from '../decision.js';
+import { icon } from '../icons.js';
 
 export function render(ctx) {
   const label = h('input', { type: 'text', maxlength: LIMITS.labelMax, placeholder: 'e.g. normal search' });
@@ -21,7 +21,7 @@ export function render(ctx) {
     const row = h('div', { class: 'header-row' },
       field('Header name', n),
       field('Header value', v),
-      h('button', { type: 'button', class: 'btn btn-small', 'aria-label': 'Remove header', on: { click: () => { row.remove(); addBtn.focus(); } } }, '✕'));
+      h('button', { type: 'button', class: 'btn btn-small', 'aria-label': 'Remove header', on: { click: () => { row.remove(); addBtn.focus(); } } }, icon('x')));
     return row;
   }
   const addBtn = h('button', { type: 'button', class: 'btn btn-small', on: { click: () => { const r = headerRow(); headerList.appendChild(r); r.querySelector('input').focus(); } } }, '+ Add header');
@@ -67,7 +67,7 @@ export function render(ctx) {
         decisionSummary(evt),
         h('p', { class: 'muted small' }, `Event ${evt.id} · ${versionLine(evt)}`),
         h('div', { class: 'btn-group' },
-          h('a', { class: 'btn btn-primary', href: `#/events/${encodeURIComponent(evt.id)}` }, 'Open full evidence →'),
+          h('a', { class: 'btn btn-primary', href: `#/events/${encodeURIComponent(evt.id)}` }, 'Open full evidence', icon('arrow-right')),
           h('a', { class: 'btn', href: '#/events' }, 'History')));
       showStatus(`Analysis complete: ${evt.verdict || (evt.decision && evt.decision.verdict)}.`, 'success');
     } catch (err) {
@@ -94,7 +94,7 @@ export function render(ctx) {
       h('div', { class: 'btn-group' }, ...EXAMPLES.map((ex) => h('button', {
         type: 'button', class: ['btn', 'btn-small', ex.kind === 'attack' ? 'example-attack' : 'example-benign'],
         on: { click: () => loadExample(ex.key, ex.label) },
-      }, ex.kind === 'attack' ? `⚠ ${ex.label}` : `✔ ${ex.label}`)))),
+      }, icon(ex.kind === 'attack' ? 'alert' : 'check'), ex.label)))),
     card('Sample',
       h('form', { class: 'form', novalidate: true, on: { submit: onSubmit } },
         field('Label (optional)', label, 'Helps you find this event in history.'),

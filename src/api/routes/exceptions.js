@@ -1,10 +1,4 @@
 'use strict';
-/**
- * Tuning & exception workflow (FR-7, contract §2, §3.4, §5.2).
- *  - admin/operator: list, preview impact, request (status pending)
- *  - admin: approve (≠ requester, confirm), reject (≠ requester), revoke (confirm)
- * Approve and revoke reload the shared engine state so the proxy applies the change immediately.
- */
 const express = require('express');
 const { ApiError, notFound, conflict, confirmationRequired } = require('../errors');
 const { v, validate, scopeSchema, ruleIdSchema } = require('../validation');
@@ -29,7 +23,6 @@ function normScope(scope) {
   return { pathPrefix: scope.pathPrefix ?? null, location: scope.location ?? null, method: scope.method ?? null };
 }
 
-/** Same suppression semantics as the engine (contract §3.4). */
 function scopeMatches(scope, { path, method, location }) {
   if (scope.pathPrefix !== null && !(typeof path === 'string' && path.startsWith(scope.pathPrefix))) return false;
   if (scope.location !== null && location !== scope.location) return false;

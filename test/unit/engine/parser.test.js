@@ -1,5 +1,4 @@
 'use strict';
-// FR-1 request parser: validation, limits, body parsing and anomalies.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { engine, UA } = require('./helpers');

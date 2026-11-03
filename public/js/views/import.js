@@ -1,10 +1,8 @@
-// Import: choose a .json file (≤ 256 KB), validate structure client-side, preview, POST /api/import.
-// The server re-validates file name, size, structure and every sample.
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { LIMITS, parseImportText, importPayload } from '../lib/samples.js';
 import { formatBytes, truncate, formatTs } from '../lib/format.js';
-import { pageHeader, card, field, table, showStatus, verdictBadge, actionBadge, emptyState } from '../ui.js';
+import { pageHeader, card, field, table, showStatus, verdictBadge, actionBadge, emptyState, message } from '../ui.js';
 
 export function render(ctx) {
   const fileInput = h('input', { type: 'file', accept: '.json,application/json' });
@@ -23,17 +21,17 @@ export function render(ctx) {
     if (!file) { mount(summary); return; }
     filename = file.name;
     if (!/\.json$/i.test(file.name)) {
-      mount(summary, h('p', { class: 'status-msg status-error' }, '⚠ The file must have a .json extension.'));
+      mount(summary, message('error', 'The file must have a .json extension.'));
       return;
     }
     if (file.size > LIMITS.importFileMaxBytes) {
-      mount(summary, h('p', { class: 'status-msg status-error' }, `⚠ The file is ${formatBytes(file.size)}; the limit is 256 KB.`));
+      mount(summary, message('error', `The file is ${formatBytes(file.size)}; the limit is 256 KB.`));
       return;
     }
     const text = await file.text();
     const res = parseImportText(text, file.size, file.name);
     if (res.error && !res.ok) {
-      mount(summary, h('p', { class: 'status-msg status-error' }, `⚠ ${res.error}`),
+      mount(summary, message('error', `${res.error}`),
         res.invalid.length ? invalidList(res.invalid) : null);
       return;
     }
@@ -41,7 +39,7 @@ export function render(ctx) {
     submit.disabled = false;
     submit.textContent = `Import ${res.samples.length} sample${res.samples.length === 1 ? '' : 's'}`;
     mount(summary,
-      h('p', { class: 'status-msg status-success' }, `✔ ${file.name} (${formatBytes(file.size)}) — ${res.samples.length} valid sample(s)` +
+      message('success', `${file.name} (${formatBytes(file.size)}) — ${res.samples.length} valid sample(s)` +
         (res.invalid.length ? `, ${res.invalid.length} invalid (will be skipped)` : '')),
       res.invalid.length ? invalidList(res.invalid) : null);
     mount(preview, table({
@@ -71,7 +69,7 @@ export function render(ctx) {
       const res = await api.importSamples(filename, importPayload(parsed));
       const events = res.events || [];
       mount(outcome,
-        h('p', { class: 'status-msg status-success' }, `✔ Imported ${res.imported ?? events.length} · rejected by server ${(res.rejected || []).length}`),
+        message('success', `Imported ${res.imported ?? events.length} · rejected by server ${(res.rejected || []).length}`),
         (res.rejected && res.rejected.length) ? h('ul', null, ...res.rejected.map((r) => h('li', null, `#${(r.index ?? 0) + 1}: ${r.code || ''} ${r.message || ''}`))) : null,
         table({
           caption: 'Imported events',
@@ -92,7 +90,7 @@ export function render(ctx) {
       mount(summary);
     } catch (err) {
       if (err && err.status !== 401) {
-        mount(outcome, h('p', { class: 'status-msg status-error' }, `⚠ ${err.friendly}`));
+        mount(outcome, message('error', `${err.friendly}`));
         submit.disabled = false;
       }
     }
@@ -113,7 +111,6 @@ export function render(ctx) {
     card('Preview', h('div', null, preview, emptyState('Choose a file to preview its samples.'))),
     card('Result', outcome));
 
-  // The preview card keeps its placeholder until a file is parsed.
   const placeholder = preview.nextSibling;
   const obs = new MutationObserver(() => { if (placeholder) placeholder.hidden = preview.childNodes.length > 0; });
   obs.observe(preview, { childList: true });

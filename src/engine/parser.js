@@ -1,23 +1,9 @@
 'use strict';
-/**
- * Request parser (FR-1, pipeline step 1).
- *
- * parseRequest(raw, limits) validates the raw request (contract §3.1) against the configured limits,
- * parses the query string, cookies and body (urlencoded / JSON / multipart / text), and builds the
- * normalized *fields* that rules are evaluated against. Every field carries a list of variants
- * produced by normalize.buildVariants(), so a rule match can report which decoding revealed it.
- *
- * Malformed or oversized input is rejected here, before any rule runs:
- *   INVALID_REQUEST, INVALID_METHOD, INVALID_URL, URL_TOO_LONG, INVALID_HEADER, HEADER_TOO_LONG,
- *   TOO_MANY_HEADERS, TOO_MANY_ARGS  -> error.code MALFORMED_REQUEST (HTTP 400)
- *   BODY_TOO_LARGE                   -> error.code BODY_TOO_LARGE   (HTTP 413)
- * Suspicious-but-parseable input produces scored anomalies instead (see ANOMALIES).
- */
 
 const { buildVariants, canonicalizePath } = require('./normalize');
 const { DEFAULT_CONFIG } = require('./config');
 
-/** Parser anomaly catalogue: code -> [points, default message]. Rejection codes carry 0 points. */
+// rejection codes carry 0 points
 const ANOMALIES = Object.freeze({
   DOUBLE_ENCODING: [2, 'A value was URL-encoded more than once (possible filter evasion)'],
   NULL_BYTE: [3, 'A value contains a null byte (possible string-termination attack)'],
@@ -60,7 +46,7 @@ function makeAnomaly(code, detail) {
   return { code, message: detail ? `${message} (${detail})` : message, points };
 }
 
-/** Collects anomalies, one entry per code (points count once per request). */
+// one entry per code so points count once per request
 function createAnomalyList() {
   const list = [];
   const seen = new Set();
@@ -99,7 +85,7 @@ function clipName(name) {
   return name.length > MAX_NAME_LENGTH ? name.slice(0, MAX_NAME_LENGTH) : name;
 }
 
-/** Splits "a=1&b=2" into [{rawName, rawValue, name}] (raw values are NOT decoded; variants do that). */
+// raw values are not decoded here since the variants do that
 function parsePairs(str, separator = '&') {
   const out = [];
   if (!str) return out;
@@ -129,7 +115,6 @@ function parseCookies(header) {
   return out;
 }
 
-/** Flattens parsed JSON into dotted leaf fields. Object keys are reported as names. */
 function flattenJson(root, maxFields, anomalies) {
   const fields = [];
   const names = [];
@@ -198,11 +183,6 @@ function toBodyBuffer(body) {
   return Buffer.from(String(body), 'utf8');
 }
 
-/**
- * Creates a field: { location, name, kind, variants, rawLength }.
- * report: which anomaly flags of this value are reported ('url' = all, 'decoded' = no INVALID_ENCODING,
- * 'nul' = null bytes only).
- */
 function makeField(location, name, kind, raw, opts, report, anomalies) {
   const value = typeof raw === 'string' ? raw : String(raw ?? '');
   const { variants, flags, decoded } = buildVariants(value, opts);
@@ -221,12 +201,6 @@ function rawField(location, name, kind, value) {
   return { location, name, kind, variants: [{ value: v, via: [] }], decoded: v, rawLength: v.length };
 }
 
-/**
- * @param {object} raw contract §3.1 raw request
- * @param {object} [limits] EngineConfig.limits
- * @returns {{ ok: boolean, request: object|null, anomalies: object[], error: {code: string, message: string}|null,
- *            statusCode?: number, partial?: object }}
- */
 function parseRequest(raw, limits) {
   const L = resolveLimits(limits);
   const anomalies = createAnomalyList();
@@ -251,12 +225,10 @@ function parseRequest(raw, limits) {
 function parseInner(raw, L, anomalies, partial) {
   if (raw === null || typeof raw !== 'object' || Array.isArray(raw)) throw new Rejection('INVALID_REQUEST', 'MALFORMED_REQUEST');
 
-  // --- method ---
   const method = typeof raw.method === 'string' ? raw.method : '';
   if (!METHOD_RE.test(method)) throw new Rejection('INVALID_METHOD', 'MALFORMED_REQUEST');
   partial.method = method.toUpperCase();
 
-  // --- URL ---
   let url = raw.url;
   if (typeof url !== 'string' || url.length === 0) throw new Rejection('INVALID_URL', 'MALFORMED_REQUEST', 'missing');
   if (url.length > L.maxUrlLength) throw new Rejection('URL_TOO_LONG', 'MALFORMED_REQUEST', `${url.length} > ${L.maxUrlLength}`);
@@ -272,7 +244,6 @@ function parseInner(raw, L, anomalies, partial) {
   const queryString = qpos === -1 ? '' : url.slice(qpos + 1);
   partial.path = pathRaw;
 
-  // --- headers ---
   const headers = new Map();
   const rawHeaders = raw.headers;
   if (rawHeaders !== null && rawHeaders !== undefined) {
@@ -295,7 +266,6 @@ function parseInner(raw, L, anomalies, partial) {
   partial.contentType = contentType ? contentType.slice(0, 100) : null;
   partial.userAgent = headers.has('user-agent') ? headers.get('user-agent') : null;
 
-  // --- body size ---
   const bodyBuf = toBodyBuffer(raw.body);
   const actual = bodyBuf ? bodyBuf.length : 0;
   const declared = Number.isFinite(Number(raw.bodyBytes)) && Number(raw.bodyBytes) >= 0 ? Math.floor(Number(raw.bodyBytes)) : 0;
@@ -308,10 +278,8 @@ function parseInner(raw, L, anomalies, partial) {
   if (truncated) anomalies.add('BODY_PARTIALLY_INSPECTED', `${inspectedBytes} of ${bodyBytes} bytes inspected`);
   const bodyText = inspectedBuf ? inspectedBuf.toString('utf8') : '';
 
-  // --- query ---
   const queryPairs = parsePairs(queryString);
 
-  // --- body fields ---
   const mime = contentType ? contentType.split(';')[0].trim().toLowerCase() : '';
   let bodyKind = bodyText ? 'text' : 'none';
   let bodyPairs = [];
@@ -351,7 +319,6 @@ function parseInner(raw, L, anomalies, partial) {
   const argCount = queryPairs.length + bodyPairs.length;
   if (argCount > L.maxArgs) throw new Rejection('TOO_MANY_ARGS', 'MALFORMED_REQUEST', `${argCount} > ${L.maxArgs}`);
 
-  // --- normalized fields ---
   const rounds = L.decodeRounds;
   const urlOpts = { decodeRounds: rounds, plusAsSpace: true };
   const fields = {

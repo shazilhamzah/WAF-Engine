@@ -1,6 +1,3 @@
-// Maps the API's stable error codes (docs/02-architecture.md §5.1) to friendly messages.
-// Pure module: imported by the browser and by Node unit tests.
-
 export const ERROR_MESSAGES = Object.freeze({
   VALIDATION_FAILED: 'Some fields are not valid. Check the highlighted values and try again.',
   MALFORMED_JSON: 'The request could not be read. Please try again.',
@@ -20,7 +17,6 @@ export const ERROR_MESSAGES = Object.freeze({
   BAD_RESPONSE: 'The server returned an unexpected response.',
 });
 
-/** Friendly message for a stable error code; falls back to a generic message by HTTP status. */
 export function messageFor(code, status) {
   if (code && Object.prototype.hasOwnProperty.call(ERROR_MESSAGES, code)) return ERROR_MESSAGES[code];
   if (status === 401) return ERROR_MESSAGES.AUTH_REQUIRED;
@@ -31,13 +27,7 @@ export function messageFor(code, status) {
   return 'The request failed.';
 }
 
-/**
- * Builds the text shown to the user for an API error.
- * - 403 is always generic (the server never reveals record content and neither do we).
- * - 401 AUTH_INVALID on login is always the same generic text (no username enumeration).
- * - VALIDATION_FAILED appends the field details the server returned.
- * - 429 adds the retry delay.
- */
+// 403 stays generic and login failures never reveal whether a username exists
 export function describeError(err) {
   if (!err) return 'Unknown error.';
   const status = err.status || 0;

@@ -1,4 +1,3 @@
-// Compare two events side by side; differences are marked with text ("≠ changed") and highlight.
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { hashFor } from '../lib/query.js';

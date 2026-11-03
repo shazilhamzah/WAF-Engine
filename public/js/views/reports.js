@@ -1,8 +1,8 @@
-// Reports: choose a format and filters, download via GET /api/reports/export.
 import { h, mount, uid } from '../dom.js';
 import { api } from '../api.js';
 import { parseIdList } from '../lib/query.js';
 import { dateInputToIso } from '../lib/format.js';
+import { icon } from '../icons.js';
 import { pageHeader, card, field, select, showStatus, fieldErrors, busy } from '../ui.js';
 
 const FORMATS = [
@@ -23,7 +23,7 @@ export function render(ctx) {
   const verdict = select([{ value: '', label: 'Any' }, 'allow', 'flag', 'block'], '');
   const ids = h('textarea', { rows: 2, maxlength: 20000, spellcheck: 'false', placeholder: 'evt_… , evt_… (optional)' });
   const errors = h('div');
-  const btn = h('button', { type: 'submit', class: 'btn btn-primary' }, '⇩ Download report');
+  const btn = h('button', { type: 'submit', class: 'btn btn-primary' }, icon('download'), 'Download report');
 
   async function onSubmit(e) {
     e.preventDefault();
@@ -51,8 +51,5 @@ export function render(ctx) {
         h('div', { class: 'form-row' }, field('From', from), field('To', to), field('Verdict', verdict)),
         field('Event ids (optional)', ids, 'Comma or space separated. Leave empty to export by date/verdict (most recent events first).'),
         errors,
-        h('div', null, btn))),
-    h('p', { class: 'note' },
-      'ⓘ Reports are sanitized: they contain redacted ≤120-character excerpts only, never secret headers, cookies, passwords or session data. ',
-      'HTML reports are escaped and script-free; CSV cells are protected against spreadsheet formula injection. Every export is recorded in the audit log.'));
+        h('div', null, btn))));
 }

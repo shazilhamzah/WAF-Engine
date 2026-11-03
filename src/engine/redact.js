@@ -1,16 +1,4 @@
 'use strict';
-/**
- * Redaction and evidence excerpts (data minimization, contract §4.2).
- *
- * - redact(value): deep copy with secrets masked. Keys that are sensitive header names or look like
- *   secrets (password, token, api key, session, card number ...) are replaced by MASK, and secret
- *   parameters embedded in strings (query strings, form bodies, JSON text, Authorization schemes)
- *   have their values masked.
- * - excerpt(str, index, len): ≤ 120 characters around [index, index+len), control / bidi / invisible
- *   characters escaped so the excerpt is safe to show and log.
- * - maskSecretsInString(str, preserveLength): masks secret values inside a string; with
- *   preserveLength the result keeps the same length so match indices remain valid.
- */
 
 const MASK = '[REDACTED]';
 const MAX_EXCERPT = 120;
@@ -32,10 +20,6 @@ function isSensitiveHeader(name) {
   return SENSITIVE_HEADERS.has(n) || SENSITIVE_NAME_RE.test(n);
 }
 
-/**
- * Whether evidence at a match location must not reveal its value (contract §3.5 locations).
- * `query.user.password` -> true; `header.authorization` -> true; `cookie.sid` -> true.
- */
 function isSensitiveLocation(location) {
   if (typeof location !== 'string') return false;
   const dot = location.indexOf('.');
@@ -63,7 +47,6 @@ const PAIR_RE = /(^|[?&;\s])([^=&;\s?]{1,64})=([^&;\s]*)/g;
 const JSON_PAIR_RE = /"((?:[^"\\]|\\.){1,64})"(\s*:\s*)"((?:[^"\\]|\\.)*)"/g;
 const AUTH_SCHEME_RE = /\b(Bearer|Basic|Digest|Token)(\s+)([A-Za-z0-9._~+/=-]{4,})/g;
 
-/** Masks secret values embedded in a string (query strings, form bodies, JSON text, auth schemes). */
 function maskSecretsInString(str, preserveLength = false) {
   if (typeof str !== 'string' || str === '') return str;
   const mask = (v) => (preserveLength ? '*'.repeat(v.length) : MASK);
@@ -80,9 +63,6 @@ function maskSecretsInString(str, preserveLength = false) {
   return out;
 }
 
-/**
- * Deep copy with secrets masked. Never throws; cycles and excessive depth are replaced by markers.
- */
 function redact(value) {
   const seen = new WeakSet();
   const walk = (v, depth, key) => {
@@ -140,10 +120,6 @@ function escapeChar(ch) {
   return ch;
 }
 
-/**
- * Safe excerpt of `str` around the region [index, index + len). Result is at most 120 characters,
- * starts/ends with '…' when truncated, and has control, bidi and invisible characters escaped.
- */
 function excerpt(str, index = 0, len = 0) {
   let s;
   try {

@@ -1,20 +1,4 @@
 'use strict';
-/**
- * Normalization (FR-1, contract §1.2 step 1).
- *
- * Every inspected value is turned into a small list of *variants*. Variant 0 is always the raw value;
- * later variants are produced by decoding / canonicalization steps. Each variant records the steps that
- * were needed to produce it (`via`), which becomes the `decodedVia` evidence of a rule match.
- *
- * Decode chain (cumulative, a variant is emitted after every step that changed the value):
- *   url (repeated up to decodeRounds) -> unicode_escape (%uXXXX) -> html (entities) -> nfkc
- *   -> nullbyte (removal) -> invisible (zero-width / soft-hyphen removal)
- * Derived variants (each computed from the fully decoded value):
- *   sql_comment (comments dropped), sql_comment (comments -> space), whitespace (collapsed),
- *   lowercase, backslash (\ -> /), path (dot-segment canonicalization, path values only)
- *
- * All functions are pure and never throw on string input.
- */
 
 const STEP_LABELS = Object.freeze({
   url: 'URL decoding',
@@ -34,11 +18,6 @@ function isHex(c) {
   return (c >= 48 && c <= 57) || (c >= 65 && c <= 70) || (c >= 97 && c <= 102);
 }
 
-/**
- * One round of percent-decoding. Byte sequences are decoded as UTF-8 (invalid UTF-8 becomes U+FFFD).
- * `%uXXXX` is left untouched (handled by decodeUnicodeEscapes) and is not counted as invalid.
- * @returns {{ value: string, changed: boolean, invalid: boolean }}
- */
 function percentDecodeOnce(input, plusAsSpace) {
   const hasPct = input.indexOf('%') !== -1;
   const hasPlus = plusAsSpace && input.indexOf('+') !== -1;
@@ -55,7 +34,7 @@ function percentDecodeOnce(input, plusAsSpace) {
   };
   for (let i = 0; i < input.length; i++) {
     const ch = input.charCodeAt(i);
-    if (ch === 37 /* % */) {
+    if (ch === 37) {
       if (i + 2 < input.length && isHex(input.charCodeAt(i + 1)) && isHex(input.charCodeAt(i + 2))) {
         bytes.push(parseInt(input.substr(i + 1, 2), 16));
         i += 2;
@@ -71,7 +50,7 @@ function percentDecodeOnce(input, plusAsSpace) {
       continue;
     }
     flush();
-    if (ch === 43 /* + */ && plusAsSpace) {
+    if (ch === 43 && plusAsSpace) {
       out += ' ';
       changed = true;
       continue;
@@ -82,11 +61,7 @@ function percentDecodeOnce(input, plusAsSpace) {
   return { value: out, changed: changed && out !== input, invalid };
 }
 
-/**
- * Multi-round URL decoding. `invalid` only reflects the first round (a literal '%' produced by a
- * legitimate single encoding such as "100%25" is not malformed).
- * @returns {{ value: string, rounds: number, invalid: boolean }}
- */
+// only the first round counts as invalid since a literal percent can come from one encoding
 function urlDecode(value, maxRounds, plusAsSpace) {
   let cur = value;
   let rounds = 0;
@@ -124,7 +99,6 @@ function codePointToString(cp) {
   return String.fromCodePoint(cp);
 }
 
-/** Decodes named (common subset), decimal and hex HTML character references; two rounds (&amp;lt;). */
 function decodeHtmlEntities(value) {
   if (value.indexOf('&') === -1) return value;
   let cur = value;
@@ -155,16 +129,13 @@ const INVISIBLE_RE = /[­​-‏⁠-⁤﻿]/g;
 const SQL_COMMENT_RE = /\/\*(!\d{0,6})?([\s\S]*?)\*\//g;
 const WHITESPACE_RE = /[\s\u0085᠎]+/g;
 
-/** Removes SQL block comments. MySQL versioned comments keep their content: /*!50000UNION*\/ -> UNION. */
+// mysql versioned comments keep their content
 function stripSqlComments(value, replacement) {
   if (value.indexOf('/*') === -1) return value;
   return value.replace(SQL_COMMENT_RE, (m, versioned, inner) => (versioned !== undefined ? inner : replacement));
 }
 
-/**
- * Canonicalizes a URL path: backslashes to slashes, duplicate slashes collapsed, '.' removed, '..'
- * resolved. Leading '..' that would escape the root are dropped (reported via `escapesRoot`).
- */
+// leading parent segments that would escape the root are dropped
 function canonicalizePath(value) {
   const s = String(value).replace(/\\/g, '/');
   const segments = s.split('/');
@@ -183,13 +154,6 @@ function canonicalizePath(value) {
   return { value: '/' + out.join('/') + (trailing ? '/' : ''), escapesRoot };
 }
 
-/**
- * Builds the variant list for one value.
- * @param {string} raw
- * @param {{ decodeRounds?: number, plusAsSpace?: boolean, urlDecode?: boolean, isPath?: boolean }} opts
- * @returns {{ variants: {value: string, via: string[]}[], flags: { doubleEncoded: number, invalidEncoding: boolean,
- *            unicodeEscape: boolean, nullByte: boolean, escapesRoot: boolean } }}
- */
 function buildVariants(raw, opts = {}) {
   const value = typeof raw === 'string' ? raw : String(raw ?? '');
   const flags = { doubleEncoded: 0, invalidEncoding: false, unicodeEscape: false, nullByte: false, escapesRoot: false };
@@ -204,7 +168,6 @@ function buildVariants(raw, opts = {}) {
 
   let cur = value;
   let via = [];
-  // --- decode chain ---
   if (opts.urlDecode !== false) {
     const r = urlDecode(cur, opts.decodeRounds ?? 3, Boolean(opts.plusAsSpace));
     if (r.invalid) flags.invalidEncoding = true;
@@ -241,7 +204,6 @@ function buildVariants(raw, opts = {}) {
   const decoded = cur;
   const decodedVia = via;
 
-  // --- derived variants (independent, from the decoded value) ---
   const derive = (name, v) => {
     if (v !== decoded) push(v, decodedVia.concat(name));
   };
@@ -260,7 +222,6 @@ function buildVariants(raw, opts = {}) {
   return { variants, flags, decoded };
 }
 
-/** Human-readable description of a decodedVia list, e.g. ['url','url','html'] -> "2 rounds of URL decoding, HTML entity decoding". */
 function describeVia(via) {
   if (!Array.isArray(via) || via.length === 0) return '';
   const parts = [];

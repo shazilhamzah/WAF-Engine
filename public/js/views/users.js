@@ -1,9 +1,8 @@
-// Users (admin): list, create, change role, set password, disable/enable — high-impact changes confirmed.
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { ROLES } from '../lib/roles.js';
 import { formatTs } from '../lib/format.js';
-import { pageHeader, card, field, select, table, chip, loading, errorPanel, showStatus, confirmDialog, fieldErrors, busy } from '../ui.js';
+import { pageHeader, card, field, select, table, statusLabel, loading, errorPanel, showStatus, confirmDialog, fieldErrors, busy } from '../ui.js';
 
 const MIN_PASSWORD = 12;
 const USERNAME = /^[A-Za-z0-9._-]{3,64}$/;
@@ -106,9 +105,9 @@ export async function render(ctx) {
           return h('span', { class: 'btn-group' }, sel, apply);
         } },
         { key: 'status', label: 'Status', render: (u) => {
-          if (u.disabled) return chip('○ disabled', 'muted');
-          if (u.lockedUntil && Date.parse(u.lockedUntil) > Date.now()) return chip(`⛔ locked until ${formatTs(u.lockedUntil)}`, 'bad');
-          return chip('✔ active', 'ok');
+          if (u.disabled) return statusLabel('disabled', 'muted');
+          if (u.lockedUntil && Date.parse(u.lockedUntil) > Date.now()) return statusLabel(`locked until ${formatTs(u.lockedUntil)}`, 'bad');
+          return statusLabel('active', 'ok');
         } },
         { key: 'createdAt', label: 'Created', render: (u) => formatTs(u.createdAt) },
         { key: 'id', label: 'Id', render: (u) => code(u.id) },

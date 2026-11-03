@@ -1,5 +1,4 @@
 'use strict';
-// Default rule set: compiles cleanly, documented, each category fires on a textbook string, linear time.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { engine, ctx, getWith, defaultRules, UA } = require('./helpers');

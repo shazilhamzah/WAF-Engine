@@ -1,20 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-/**
- * Acceptance check (owner: Nufil) — proposal: "At least 80% of automated tests must pass".
- *
- *   npm run check                run every test (unit + integration + security + evaluation helpers)
- *   node scripts/check.js --lenient   allow tests to SKIP when a module is missing (phase-1 development)
- *   node scripts/check.js --no-audit  skip `npm audit`
- *
- * 1. Runs `node --test --test-concurrency=1 "test/**\/*.test.js"` with the spec reporter on screen and the
- *    TAP reporter captured to .tmp/check.tap; counts pass / fail / skipped / cancelled / todo.
- *    WAF_STRICT=1 is set so integration/security suites FAIL (rather than skip) if the backend is missing.
- * 2. Computes the pass percentage = pass / (pass + fail + cancelled) and asserts ≥ 80 %.
- * 3. Runs `npm audit --omit=dev --json` (production dependencies) and reports vulnerability counts.
- * 4. Writes docs/evaluation/check-summary.json.
- * Exit code 0 when the threshold is met and there are no high/critical production vulnerabilities.
- */
+
 const fs = require('node:fs');
 const path = require('node:path');
 const { spawn, spawnSync } = require('node:child_process');
@@ -35,7 +21,7 @@ function parseTap(text) {
     const m = /^# (tests|suites|pass|fail|cancelled|skipped|todo|duration_ms) ([\d.]+)/.exec(line);
     if (m) counts[m[1]] = Number(m[2]);
   }
-  // Failing leaf tests: "not ok N - name" lines that are not just a failing parent/file.
+  // failing leaf tests only and not just a failing parent or file
   const failing = [];
   const lines = text.split(/\r?\n/);
   for (let i = 0; i < lines.length; i++) {

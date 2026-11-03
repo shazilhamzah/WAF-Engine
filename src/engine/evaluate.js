@@ -1,22 +1,4 @@
 'use strict';
-/**
- * Rule evaluation (FR-2, pipeline step 2).
- *
- * compileExpression(ast) turns a validated `when` expression into a closure. Running it against a
- * parsed request returns `{ ok, ev }` where `ev` is the evidence list: one item per matching field
- * (first matching variant), so a rule can report every location it matched.
- *
- * Semantics (docs/rule-dsl.md):
- *  - a condition over a target is true when ANY value of the target, in ANY normalization variant,
- *    satisfies the operator;
- *  - string operators (contains, equals, startswith, endswith, in) are case-insensitive;
- *  - gt/lt/ge/le compare the number for body_size and the raw value LENGTH for text targets;
- *  - `and` short-circuits; `or` evaluates both sides so evidence (and exception scoping) is complete;
- *  - `not X` is true when X is false and yields a context-only evidence item.
- *
- * evaluateRules() runs every compiled rule once per request (a rule counts once), applies approved
- * exceptions and builds Decision `matches` / `suppressed` entries.
- */
 
 const { excerpt, isSensitiveLocation, maskSecretsInString, MASK } = require('./redact');
 const { findSuppressingException } = require('./exceptions');
@@ -24,7 +6,6 @@ const { findSuppressingException } = require('./exceptions');
 const MAX_EVIDENCE = 25;
 const FALSE = Object.freeze({ ok: false, ev: [] });
 
-/** Static location used for context evidence (negations, numeric comparisons). */
 function targetLocation(t) {
   switch (t.name) {
     case 'header': return `header.${t.header}`;
@@ -38,7 +19,6 @@ function targetLocation(t) {
   }
 }
 
-/** Returns the list of fields for a target, cached per request evaluation. */
 function getFields(env, t) {
   const key = t.name === 'header' ? `header:${t.header}` : t.name;
   if (env.cache.has(key)) return env.cache.get(key);
@@ -68,7 +48,6 @@ function lc(variant) {
   return variant.lc;
 }
 
-/** Builds the per-value test for a condition: (variant) -> {index, length} | null. */
 function makeTester(cond) {
   switch (cond.op) {
     case 'matches': {
@@ -169,7 +148,6 @@ function firstTarget(node) {
   return firstTarget(node.left);
 }
 
-/** Compiles a validated `when` AST into (env) -> { ok, ev }. */
 function compileExpression(node) {
   if (!node) throw new Error('empty expression');
   switch (node.type) {
@@ -217,10 +195,6 @@ function evidenceExcerpt(item) {
   return excerpt(masked, item.index, item.length);
 }
 
-/**
- * Runs all compiled rules against a parsed request.
- * @returns {{ matches: object[], suppressed: object[], errors: number }}
- */
 function evaluateRules(rules, request, exceptions) {
   const env = { request, fields: request.fields, cache: new Map() };
   const matches = [];
@@ -241,7 +215,7 @@ function evaluateRules(rules, request, exceptions) {
     const valueEv = ev.filter((e) => !e.context);
     const primary = valueEv[0] || ev[0];
     const locations = [...new Set((valueEv.length ? valueEv : ev).map((e) => e.location))];
-    // A rule is suppressed only when EVERY location it matched is covered by an approved exception.
+    // suppressed only when every matched location is covered by an approved exception
     let suppressedBy = null;
     if (Array.isArray(exceptions) && exceptions.length) {
       let allCovered = true;

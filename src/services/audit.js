@@ -1,13 +1,4 @@
 'use strict';
-/**
- * Audit service: derives actor/client from the request and appends to the hash-chained audit log.
- * Never throws — a failed audit write is logged (the action itself already succeeded or failed).
- *
- *   const audit = createAuditor({ db, logger });
- *   audit(req, 'rule.update', { targetType: 'rule', targetId: 942100, outcome: 'success', details: {...} });
- *   audit.system('system.start', { details });
- *   audit.record({ actorName, action, ... })   // raw entry
- */
 const { normalizeLogger } = require('./logger');
 
 function createAuditor({ db, logger }) {

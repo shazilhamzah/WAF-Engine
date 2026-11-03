@@ -1,19 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-/**
- * npm run setup [-- --reset-passwords]
- *
- * Idempotent first-run setup:
- *  1. creates the data directory and the secret key file (<dataDir>/secret.key, owner-only)
- *  2. creates / migrates the SQLite database
- *  3. loads src/rules/default.rules into the rules table (version 1) if the table is empty
- *  4. writes the initial configuration version from engine.DEFAULT_CONFIG if none exists
- *  5. creates users admin, operator, viewer and admin2 (second admin for separation-of-duties demos)
- *
- * Passwords: WAF_ADMIN_PASSWORD / WAF_OPERATOR_PASSWORD / WAF_VIEWER_PASSWORD / WAF_ADMIN2_PASSWORD, or
- * randomly generated and printed ONCE to this console. They are never written to disk. Existing users are
- * left untouched unless --reset-passwords is given (which also ends their sessions).
- */
+
 const path = require('node:path');
 const { loadConfig, loadSecret, ensureDir } = require('../src/config');
 const { openDatabase } = require('../src/db');

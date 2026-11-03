@@ -1,40 +1,5 @@
 'use strict';
-/**
- * Vulnerable Shop — the WAF Studio lab target (owner: Nufil, contract docs/02-architecture.md §7).
- *
- *   LAB ONLY — THIS APPLICATION IS DELIBERATELY VULNERABLE.
- *
- * It exists so the WAF reverse proxy has something realistic to protect and so the evaluation harness
- * can prove that attacks which WOULD succeed against the bare app are stopped by the WAF.
- *
- * Deliberate vulnerabilities (each one is confined to a sandbox — see "Safety design" below):
- *   GET  /search?q=          reflected XSS (q echoed into HTML unescaped)
- *   POST /login              SQL injection (string-concatenated query, urlencoded or JSON body)
- *   GET  /products?id=       SQL injection (numeric context, UNION-able)
- *   GET  /comments           stored XSS (comments rendered unescaped)
- *   POST /comments           stored XSS sink (in-memory, capped at 100 entries)
- *   GET  /files?name=        path traversal (naive join) — but only inside target/files/
- *   POST /api/echo           returns the received byte count (large-body tests, capped at 5 MB)
- *   GET  /health             liveness probe
- *
- * Safety design (why "vulnerable" never means "dangerous to the host"):
- *   1. SQL injection runs against a private, per-app-instance `:memory:` SQLite database seeded with
- *      FAKE users and FAKE password strings. Nothing is ever written to disk. Statements are run with
- *      `prepare()`, which compiles only the FIRST statement, so stacked queries (`; DROP …`, `; ATTACH …`)
- *      are silently ignored; SQLite extension loading is disabled (`allowExtension: false`), so there is
- *      no way to reach load_extension()/readfile()-style host access. Worst case: an attacker reads or
- *      sees the fake rows we put there on purpose.
- *   2. Path traversal is real (`path.join(PUBLIC_DIR, name)` happily follows `../`), so an attacker CAN
- *      escape `files/public/` and read the fake `files/secret/flag.txt` and `files/config/app.ini`.
- *      However, after joining, the fully resolved path (and its realpath, to defeat symlinks) must stay
- *      inside `target/files/`. Anything that resolves outside it — `../../app.js`, `C:\Windows\…`,
- *      `/etc/passwd`, UNC paths — is refused with 403. The real filesystem is therefore unreachable.
- *   3. Stored XSS lives in a bounded in-memory array (max 100 comments, max 2,000 chars each), so it
- *      cannot exhaust memory and disappears on restart.
- *   4. The echo endpoint counts bytes as they stream in and aborts above 5 MB, never buffering the body.
- *   5. The app makes NO outbound network requests and binds to 127.0.0.1 only (see server.js).
- *   6. All data is synthetic. No real names, e-mail addresses or credentials appear anywhere.
- */
+// lab only app that is deliberately vulnerable
 const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
@@ -46,7 +11,6 @@ const MAX_COMMENTS = 100;
 const MAX_COMMENT_CHARS = 2000;
 const MAX_ECHO_BYTES = 5 * 1024 * 1024;
 
-/** Synthetic users. Passwords are obviously fake lab strings, not real secrets. */
 const FAKE_USERS = [
   { id: 1, username: 'alice', password: 'fake-pass-alice-001', role: 'customer', email: 'alice@shop.example' },
   { id: 2, username: 'bob', password: 'fake-pass-bob-002', role: 'customer', email: 'bob@shop.example' },
@@ -62,7 +26,6 @@ const FAKE_PRODUCTS = [
   { id: 5, name: 'Rubber Duck (debugging edition)', price: 6.0, stock: 77 }
 ];
 
-/** Fresh in-memory database per app instance; never touches the filesystem. */
 function createLabDatabase() {
   const db = new DatabaseSync(':memory:', { allowExtension: false });
   db.exec(`
@@ -70,7 +33,6 @@ function createLabDatabase() {
                         role TEXT NOT NULL, email TEXT NOT NULL);
     CREATE TABLE products (id INTEGER PRIMARY KEY, name TEXT NOT NULL, price REAL NOT NULL, stock INTEGER NOT NULL);
   `);
-  // Seeding itself is parameterized — only the request handlers below are deliberately unsafe.
   const insU = db.prepare('INSERT INTO users (id, username, password, role, email) VALUES (?, ?, ?, ?, ?)');
   for (const u of FAKE_USERS) insU.run(u.id, u.username, u.password, u.role, u.email);
   const insP = db.prepare('INSERT INTO products (id, name, price, stock) VALUES (?, ?, ?, ?)');
@@ -78,7 +40,6 @@ function createLabDatabase() {
   return db;
 }
 
-/** Only used for the static chrome of the page — the vulnerable sinks deliberately skip it. */
 function esc(s) {
   return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 }
@@ -98,7 +59,6 @@ function page(title, bodyHtml) {
 <p class="muted"><a href="/">Home</a> · Vulnerable Shop · WAF Studio lab target</p></main></body></html>`;
 }
 
-/** Reads a raw body, counting bytes, aborting above `limit`. Never buffers more than needed. */
 function countBody(req, limit) {
   return new Promise((resolve) => {
     let bytes = 0;
@@ -117,16 +77,12 @@ function countBody(req, limit) {
   });
 }
 
-/**
- * Resolves `name` the naive (vulnerable) way, then applies the sandbox guard.
- * Returns { ok, file } or { ok:false, status, reason }.
- */
 function resolveLabFile(name) {
   if (typeof name !== 'string' || name.length === 0) return { ok: false, status: 400, reason: 'name is required' };
   if (name.length > 512 || name.includes('\0')) return { ok: false, status: 400, reason: 'invalid name' };
-  // VULNERABLE ON PURPOSE: no normalisation or allow-list, so "../secret/flag.txt" escapes public/.
+  // vulnerable on purpose so dot dot paths escape the public folder
   const joined = path.join(PUBLIC_DIR, name);
-  // SANDBOX GUARD (not a vulnerability fix — a host-safety fence): stay inside target/files/.
+  // sandbox guard keeps resolved paths inside the lab files folder
   const resolved = path.resolve(joined);
   if (!isInside(resolved, FILES_ROOT)) return { ok: false, status: 403, reason: 'outside lab sandbox' };
   let real;
@@ -179,7 +135,7 @@ intentionally unsafe feature. Send attacks through the WAF proxy (default <code>
     res.json({ status: 'ok', app: 'vulnerable-shop', lab: true });
   });
 
-  // Reflected XSS: q is inserted into HTML without escaping.
+  // reflected xss as q goes into the html without escaping
   app.get('/search', (req, res) => {
     const q = typeof req.query.q === 'string' ? req.query.q : '';
     const hits = FAKE_PRODUCTS.filter((p) => q && p.name.toLowerCase().includes(q.toLowerCase()));
@@ -190,20 +146,18 @@ intentionally unsafe feature. Send attacks through the WAF proxy (default <code>
 <ul>${list || '<li>No products found.</li>'}</ul>`));
   });
 
-  // SQL injection (numeric context).
   app.get('/products', (req, res) => {
     const id = typeof req.query.id === 'string' ? req.query.id : '';
     let rows;
     let sql;
     try {
       if (id) {
-        sql = 'SELECT id, name, price FROM products WHERE id = ' + id; // VULNERABLE ON PURPOSE
+        sql = 'SELECT id, name, price FROM products WHERE id = ' + id;
       } else {
         sql = 'SELECT id, name, price FROM products';
       }
       rows = db.prepare(sql).all();
     } catch (e) {
-      // Error-based SQLi feedback is part of the lesson; message comes from SQLite only (no stack/paths).
       return res.status(500).type('html').send(page('Products', `<p>Database error: ${esc(e.message)}</p>`));
     }
     const wantsJson = (req.get('accept') || '').includes('application/json');
@@ -212,7 +166,7 @@ intentionally unsafe feature. Send attacks through the WAF proxy (default <code>
     res.type('html').send(page('Products', `<table><tr><th>id</th><th>name</th><th>price</th></tr>${trs}</table>`));
   });
 
-  // SQL injection in login (classic "' OR '1'='1" bypass).
+  // sql injection in login
   const parsers = [express.urlencoded({ extended: false, limit: '100kb' }), express.json({ limit: '100kb' })];
   app.post('/login', parsers, (req, res) => {
     const body = req.body && typeof req.body === 'object' ? req.body : {};
@@ -220,7 +174,7 @@ intentionally unsafe feature. Send attacks through the WAF proxy (default <code>
     const password = typeof body.password === 'string' ? body.password : '';
     const wantsJson = req.is('application/json') || (req.get('accept') || '').includes('application/json');
     const sql = "SELECT id, username, role FROM users WHERE username = '" + username +
-      "' AND password = '" + password + "'"; // VULNERABLE ON PURPOSE
+      "' AND password = '" + password + "'";
     let row;
     try {
       row = db.prepare(sql).get();
@@ -236,11 +190,11 @@ intentionally unsafe feature. Send attacks through the WAF proxy (default <code>
     res.type('html').send(page('Login', `<p>Welcome back, ${esc(row.username)} (role: ${esc(row.role)}).</p>`));
   });
 
-  // Stored XSS: comments are rendered without escaping.
+  // stored xss as comments are rendered without escaping
   app.get('/comments', (req, res) => {
     const wantsJson = (req.get('accept') || '').includes('application/json');
     if (wantsJson) return res.json({ items: comments });
-    const items = comments.map((c) => `<li><b>${c.author}</b>: ${c.text}</li>`).join(''); // VULNERABLE ON PURPOSE
+    const items = comments.map((c) => `<li><b>${c.author}</b>: ${c.text}</li>`).join('');
     res.type('html').send(page('Comments', `
 <form method="post" action="/comments">
  <input name="author" placeholder="name" aria-label="name"> <input name="text" placeholder="comment" aria-label="comment">
@@ -262,7 +216,6 @@ intentionally unsafe feature. Send attacks through the WAF proxy (default <code>
     res.redirect(303, '/comments');
   });
 
-  // Path traversal, sandboxed to target/files/.
   app.get('/files', (req, res) => {
     const name = typeof req.query.name === 'string' ? req.query.name : '';
     const r = resolveLabFile(name);
@@ -270,7 +223,6 @@ intentionally unsafe feature. Send attacks through the WAF proxy (default <code>
     res.type('text').send(fs.readFileSync(r.file, 'utf8'));
   });
 
-  // Large-body echo: counts bytes without buffering, 5 MB cap.
   app.post('/api/echo', async (req, res) => {
     const r = await countBody(req, MAX_ECHO_BYTES);
     if (r.tooLarge) {
@@ -281,7 +233,7 @@ intentionally unsafe feature. Send attacks through the WAF proxy (default <code>
   });
 
   app.use((req, res) => res.status(404).type('text').send('Not found'));
-  // Never leak stack traces, even in the lab app.
+  // never leak stack traces even in the lab app
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
     log('target error', err && err.type);

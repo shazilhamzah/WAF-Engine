@@ -1,7 +1,4 @@
 'use strict';
-/**
- * Reverse proxy (contract §6) against a stub upstream, with the fake engine.
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
@@ -19,7 +16,6 @@ function close(server) {
   return new Promise((r) => { server.closeAllConnections(); server.close(() => r()); });
 }
 
-/** Raw HTTP request; resolves { status, headers, text } or { error }. */
 function send(port, { method = 'GET', path = '/', headers = {}, body = null, chunks = null } = {}) {
   return new Promise((resolve) => {
     const req = http.request({ host: '127.0.0.1', port, method, path, headers, agent: false }, (res) => {

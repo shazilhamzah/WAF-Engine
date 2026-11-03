@@ -1,5 +1,4 @@
 'use strict';
-/** Renders docs/evaluation/results.md from the results object written to results.json. */
 const { mdCode, mdText } = require('./stats');
 
 const yes = (b) => (b === true ? '✅ pass' : b === false ? '❌ fail' : '—');

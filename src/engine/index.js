@@ -1,8 +1,4 @@
 'use strict';
-/**
- * WAF Studio security engine — public interface (contract docs/02-architecture.md §3).
- * Synchronous, no DB or network access. See docs/engine.md and docs/rule-dsl.md.
- */
 
 const { DEFAULT_CONFIG, validateConfig } = require('./config');
 const { parseRequest } = require('./parser');

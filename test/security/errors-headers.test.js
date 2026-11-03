@@ -1,12 +1,4 @@
 'use strict';
-/**
- * Safe failure (NFR-5, T-final "malformed/oversized input") and HTTP security headers (NFR-10):
- *  - malformed JSON → 400 MALFORMED_JSON; JSON > 256 KB → 413; wrong content type → 415;
- *    odd methods / unknown routes → 404/405; all use the stable error envelope with a requestId
- *  - NO stack traces, file paths, SQLite or Node internals in ANY error body
- *  - Studio responses carry CSP, nosniff, frame protection, referrer policy, no X-Powered-By
- *  - proxy block pages also carry no internals
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startStack, skipUnlessStack, findLeak } = require('../helpers/stack');
@@ -81,7 +73,7 @@ describe('safe errors and security headers', { skip: skipUnlessStack() }, () => 
       ['GET', '/api/does-not-exist'], ['GET', '/api/../../etc/passwd'], ['GET', '/api/events/%E0%A4%A'], ['OPTIONS', '/api/config']];
     for (const [method, path] of cases) {
       const r = await req({ method, path, headers: { 'content-type': 'application/json' }, body: method === 'GET' || method === 'OPTIONS' || method === 'TRACE' ? null : '{}' });
-      if (method === 'OPTIONS' && r.status < 400) continue; // CORS preflight answer without CORS headers is fine
+      if (method === 'OPTIONS' && r.status < 400) continue; // a preflight answer without cors headers is fine
       assertSafeError(r, `${method} ${path}`);
       assert.ok([400, 403, 404, 405, 501].includes(r.status), `${method} ${path} → ${r.status}`);
     }

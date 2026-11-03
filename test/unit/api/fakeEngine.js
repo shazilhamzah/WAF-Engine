@@ -1,15 +1,4 @@
 'use strict';
-/**
- * Minimal stand-in for src/engine (contract §3) so the API/proxy/service layer can be unit-tested
- * independently of the real engine. Rule DSL subset:
- *
- *   rule 942100 "SQLi tautology" {
- *     when args contains "or 1=1"
- *     severity critical
- *     score 5
- *     category sqli
- *   }
- */
 const crypto = require('node:crypto');
 
 const DEFAULT_CONFIG = Object.freeze({

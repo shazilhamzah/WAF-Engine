@@ -1,11 +1,11 @@
-// Overview: clear outcomes first; evidence and policy details remain one step away.
 import { h, s, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { can } from '../lib/roles.js';
 import { hashFor } from '../lib/query.js';
 import { summarizeOutcomes, eventOutcome, CATEGORY_NAMES, SOURCE_NAMES } from '../lib/dashboard.js';
 import { formatNumber, formatMs, hourLabel, formatTs, truncate } from '../lib/format.js';
-import { pageHeader, card, table, hbar, loading, errorPanel, emptyState, select, busy } from '../ui.js';
+import { pageHeader, card, table, hbar, loading, errorPanel, emptyState, select, busy, badge } from '../ui.js';
+import { icon } from '../icons.js';
 
 const WINDOWS = [
   { value: '1', label: 'Last hour' }, { value: '6', label: 'Last 6 hours' },
@@ -22,8 +22,7 @@ function metric(label, value, description, kind = '') {
 
 function outcomeBadge(event) {
   const info = eventOutcome(event);
-  return h('span', { class: ['badge', `tone-${info.tone}`] },
-    h('span', { 'aria-hidden': 'true' }, info.icon), ' ', info.text);
+  return badge(info.text, info.tone);
 }
 
 function bucketLabel(hour, hours) {
@@ -34,7 +33,7 @@ function bucketLabel(hour, hours) {
     : `${hourLabel(hour)}:00`;
 }
 
-/** Stacked actions are mutually exclusive; flagged is an overlapping verdict, not a fourth bar. */
+/* stacked actions are mutually exclusive so flagged is not a fourth bar */
 function timeline(buckets, hours) {
   const total = buckets.reduce((n, b) => n + (b.allowed || 0) + (b.logged || 0) + (b.blocked || 0), 0);
   if (!total) return h('div', { class: 'chart-empty' },
@@ -93,7 +92,7 @@ export async function render(ctx) {
   let hours = '24'; let loadSeq = 0; let rulesExpanded = false; let systemExpanded = false;
   const body = h('div', null, loading());
   const windowSel = select(WINDOWS, hours, { id: 'overview-window', on: { change: () => { hours = windowSel.value; load(); } } });
-  const refreshBtn = h('button', { type: 'button', class: 'btn', on: { click: () => busy(refreshBtn, load) } }, '↻ Refresh');
+  const refreshBtn = h('button', { type: 'button', class: 'btn', on: { click: () => busy(refreshBtn, load) } }, icon('refresh'), 'Refresh');
   const filter = h('label', { class: 'overview-window', for: 'overview-window' }, h('span', null, 'Time range'), windowSel);
   mount(ctx.el,
     pageHeader('Overview', filter, refreshBtn),
@@ -115,7 +114,6 @@ export async function render(ctx) {
       return;
     }
     if (seq !== loadSeq || !ctx.isCurrent()) return;
-    // Keep the single global protection indicator in sync with this snapshot.
     ctx.refreshMode(stats.mode);
     const totals = summarizeOutcomes(stats.totals);
     const lat = stats.latency || {};
@@ -144,8 +142,7 @@ export async function render(ctx) {
       h('dl', { class: 'kv' },
         h('dt', null, 'Ruleset'), h('dd', null, code(stats.rulesetVersion || '—')),
         h('dt', null, 'Configuration'), h('dd', null, `Version ${stats.configVersion ?? '—'}`),
-        h('dt', null, 'Inspection latency'), h('dd', null, `Average ${formatMs(lat.avgMs)} · Median ${formatMs(lat.p50Ms)} · p95 ${formatMs(lat.p95Ms)}`)),
-      h('p', { class: 'muted small' }, 'Counts include every inspection source. Flagged is a detection verdict and can overlap passed outcomes; monitor-only decisions are included in passed.'));
+        h('dt', null, 'Inspection latency'), h('dd', null, `Average ${formatMs(lat.avgMs)} · Median ${formatMs(lat.p50Ms)} · p95 ${formatMs(lat.p95Ms)}`)));
 
     const activity = card('Inspection activity',
       h('p', { class: 'card-description' }, 'Recorded outcomes by hour · Local time'),
@@ -160,7 +157,7 @@ export async function render(ctx) {
       h('div', { class: 'section-heading' },
         h('div', null, h('h2', { id: 'recent-title', class: 'card-title' }, 'Recent inspections'),
           h('p', { class: 'card-description' }, 'Latest five in the selected time range')),
-        h('a', { href: eventsUrl }, 'View all events →')),
+        h('a', { href: eventsUrl, class: 'link-arrow' }, 'View all events', icon('arrow-right'))),
       table({ caption: 'Recent inspections in the selected time range', empty: 'No inspections in this time range.',
         columns: [
           { key: 'ts', label: 'Time', render: (e) => formatTs(e.ts) },
@@ -181,8 +178,8 @@ export async function render(ctx) {
         metric('Passed', totals.passed, `${formatNumber(totals.flagged)} flagged · ${formatNumber(totals.monitored)} monitor-only`)),
       h('div', { class: 'overview-guidance' },
         h('p', null, h('span', { class: 'guidance-label' }, 'Recommended action'), recommend),
-        needsReview ? h('a', { href: reviewUrl }, 'Review events →') : can(ctx.role, 'samples.submit')
-          ? h('a', { href: '#/analyze' }, 'Analyze a request →') : null),
+        needsReview ? h('a', { href: reviewUrl, class: 'link-arrow' }, 'Review events', icon('arrow-right')) : can(ctx.role, 'samples.submit')
+          ? h('a', { href: '#/analyze', class: 'link-arrow' }, 'Analyze a request', icon('arrow-right')) : null),
       h('div', { class: 'overview-charts' }, activity, detections),
       recentCard,
       h('div', { class: 'overview-bottom' }, details,

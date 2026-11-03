@@ -1,16 +1,4 @@
 'use strict';
-/**
- * inspect(raw, ctx): the full decision pipeline (contract §1.2), executed in the proposal's order:
- *   1 parser      -> parseRequest (malformed / oversized input rejected before any rule runs)
- *   2 rule DSL    -> evaluateRules over normalized variants; approved exceptions applied here
- *   3 scoring     -> computeScore (rule points + anomaly points vs thresholds)
- *   4 modes       -> applyMode (block enforces, monitor logs with wouldBlock)
- *   5 rate limit  -> per-client sliding window (outcome mapped through the same mode policy)
- *   6 audit       -> the returned Decision is what the caller stores (no I/O here)
- *   7 tuning      -> exceptions come from ctx.exceptions; explanation + evidence are in the Decision
- *
- * inspect never throws: any internal failure returns a fail-safe MALFORMED_REQUEST decision.
- */
 
 const { performance } = require('node:perf_hooks');
 const { resolveConfig } = require('./config');
@@ -40,7 +28,6 @@ function round3(n) {
   return Math.round(n * 1000) / 1000;
 }
 
-/** Truncated, control-character-free copy for the request summary. */
 function clip(s, n) {
   if (typeof s !== 'string') return null;
   return excerpt(s, 0, n).slice(0, n);
@@ -102,11 +89,6 @@ function checkRateLimit(ctx, config, now) {
   }
 }
 
-/**
- * @param {object} raw contract §3.1 raw request
- * @param {object} ctx contract §3.3 inspect context
- * @returns {object} Decision (contract §3.6)
- */
 function inspect(raw, ctx) {
   const t0 = performance.now();
   let mode = 'block';
@@ -117,11 +99,9 @@ function inspect(raw, ctx) {
     mode = config.mode;
     const now = Number.isFinite(c.now) ? c.now : Date.now();
 
-    // 1. parser
     const parsed = parseRequest(raw, config.limits);
     const t1 = performance.now();
 
-    // 2. rules + exceptions (only for requests that passed the parser)
     let matches = [];
     let suppressed = [];
     if (parsed.ok) {
@@ -130,11 +110,10 @@ function inspect(raw, ctx) {
     }
     const t2 = performance.now();
 
-    // 3. scoring
     const anomalies = parsed.anomalies.map((a) => ({ code: a.code, message: a.message, points: a.points }));
     const { score, verdict: scoreVerdict } = computeScore(matches, anomalies, config.thresholds);
 
-    // 5. rate limit (every request counts, including rejected ones)
+    // every request counts toward the rate limit including rejected ones
     const rateLimit = checkRateLimit(c, config, now);
 
     let verdict = scoreVerdict;
@@ -153,7 +132,6 @@ function inspect(raw, ctx) {
       status = 429;
     }
 
-    // 4. mode (applied to the final would-block outcome)
     const m = applyMode(mode, blockReason !== null, status);
 
     const ex = buildExplanation({
@@ -188,7 +166,7 @@ function inspect(raw, ctx) {
   }
 }
 
-/** Decision returned when inspection itself failed: fail closed in block mode, log in monitor mode. */
+// fail closed in block mode and only log in monitor mode
 function failSafeDecision(mode, ctx, t0) {
   const monitor = mode === 'monitor';
   let cfgVersion = null;

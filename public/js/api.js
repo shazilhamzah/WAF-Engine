@@ -1,9 +1,3 @@
-// Fetch wrapper for the Studio API (docs/02-architecture.md §5).
-// - same-origin cookie session (waf_sid is HttpOnly; the UI never sees it)
-// - X-CSRF-Token on every state-changing request
-// - stable error codes → ApiError with a friendly message
-// - 401 → session handler (back to login), 429 → retryAfter seconds
-
 import { describeError } from './lib/errors.js';
 import { buildQuery } from './lib/query.js';
 
@@ -29,7 +23,6 @@ export class ApiError extends Error {
 
 export function setCsrfToken(token) { csrfToken = token || null; }
 export function getCsrfToken() { return csrfToken; }
-/** Called with (code) when a non-auth request receives 401. */
 export function onUnauthorized(fn) { unauthorizedHandler = fn; }
 export function lastActivity() { return lastRequestAt; }
 
@@ -49,11 +42,6 @@ async function readError(res) {
   });
 }
 
-/**
- * request('GET', '/api/events', { query: { limit: 50 } })
- * request('POST', '/api/analyze', { body: {...} })
- * Resolves with parsed JSON (or null for 204). Rejects with ApiError.
- */
 export async function request(method, path, { body, query, raw = false, signal } = {}) {
   const m = method.toUpperCase();
   const headers = { Accept: 'application/json' };
@@ -96,16 +84,11 @@ export const post = (path, body) => request('POST', path, { body: body === undef
 export const put = (path, body) => request('PUT', path, { body: body === undefined ? {} : body });
 export const del = (path, body) => request('DELETE', path, { body });
 
-/** Extracts the filename from a Content-Disposition header (ASCII filenames only). */
 export function filenameFromDisposition(header, fallback) {
   const m = /filename="?([A-Za-z0-9._-]+)"?/.exec(header || '');
   return m ? m[1] : fallback;
 }
 
-/**
- * Downloads a file from a GET endpoint (used for reports) without navigating away,
- * so API errors can still be shown in the page.
- */
 export async function download(path, query, fallbackName) {
   const res = await request('GET', path, { query, raw: true });
   const blob = await res.blob();
@@ -122,7 +105,6 @@ export async function download(path, query, fallbackName) {
   return { name, size: blob.size };
 }
 
-// ---- Typed endpoint helpers (thin, mirrors contract §5.2) -----------------------------
 const enc = encodeURIComponent;
 
 export const api = {

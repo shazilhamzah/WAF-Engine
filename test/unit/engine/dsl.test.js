@@ -1,5 +1,4 @@
 'use strict';
-// FR-2 rule DSL: valid rules, every error class with line/col, ReDoS refusal, file parsing, compiling.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { engine } = require('./helpers');

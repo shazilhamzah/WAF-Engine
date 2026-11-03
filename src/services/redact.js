@@ -1,8 +1,4 @@
 'use strict';
-/**
- * Service-layer redaction (independent of the engine so the repository/audit layer never depends on it).
- * Masks values whose key looks secret: passwords, tokens, cookies, authorization, API keys, secrets, sessions.
- */
 
 const MASK = '[REDACTED]';
 const SECRET_KEY_RE = /passw(or)?d|passphrase|^pass$|pwd|secret|token|cookie|authori[sz]ation|api[-_]?key|^session$|session[-_]?(id|token|key)|csrf|credential|private[-_]?key|^sid$|^waf_sid$/i;
@@ -15,7 +11,6 @@ function isSecretKey(key) {
   return typeof key === 'string' && SECRET_KEY_RE.test(key);
 }
 
-/** Deep copy of `value` with secret-looking keys masked. Cycles and depth are bounded. */
 function redact(value, depth = 0, seen = new WeakSet()) {
   if (value === null || typeof value !== 'object') return value;
   if (depth > 12) return '[TRUNCATED]';
@@ -30,7 +25,6 @@ function redact(value, depth = 0, seen = new WeakSet()) {
   return out;
 }
 
-/** Redacts an HTTP header map (lower-cased names). */
 function redactHeaders(headers) {
   const out = {};
   for (const [name, value] of Object.entries(headers || {})) {
@@ -39,10 +33,6 @@ function redactHeaders(headers) {
   return out;
 }
 
-/**
- * Redacts a request body string: JSON objects are redacted by key, form-urlencoded bodies by parameter
- * name. Anything else is returned unchanged (it is still subject to the 120-char excerpt rule in events).
- */
 function redactBody(body, contentType) {
   if (typeof body !== 'string' || body === '') return body;
   const ct = String(contentType || '').toLowerCase();
@@ -50,7 +40,7 @@ function redactBody(body, contentType) {
   if (ct.includes('json') || trimmed.startsWith('{') || trimmed.startsWith('[')) {
     try {
       return JSON.stringify(redact(JSON.parse(trimmed)));
-    } catch { /* not JSON, fall through */ }
+    } catch { /* not json so fall through */ }
   }
   if (ct.includes('x-www-form-urlencoded') || (/^[^\s=&]+=[^\s]*(&[^\s=&]+=[^\s]*)*$/.test(trimmed) && !ct.includes('json'))) {
     let changed = false;
@@ -67,7 +57,6 @@ function redactBody(body, contentType) {
   return body;
 }
 
-/** Masks secret-looking query parameters in a path (`/login?token=abc&q=1` → `/login?token=%5BREDACTED%5D&q=1`). */
 function redactPathQuery(p) {
   if (typeof p !== 'string') return p;
   const q = p.indexOf('?');
@@ -84,7 +73,6 @@ function redactPathQuery(p) {
   return p.slice(0, q + 1) + masked + (hashAt < 0 ? '' : p.slice(hashAt));
 }
 
-/** Redacts a console Sample `{ method, path, headers, body }` (contract §4.2). */
 function redactSample(sample) {
   if (!sample) return null;
   const headers = redactHeaders(sample.headers || {});

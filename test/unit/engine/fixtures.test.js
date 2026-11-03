@@ -1,5 +1,4 @@
 'use strict';
-// Benign fixtures must be allowed by the default engine (false-positive target: 0); large-body generator.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');

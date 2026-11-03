@@ -1,11 +1,4 @@
 'use strict';
-/**
- * Session and CSRF protection (NFR-2, NFR-3, contract §5):
- *  - session cookie flags (HttpOnly, SameSite=Strict, Path=/), raw token never stored in the DB
- *  - CSRF: missing / wrong / other-session token → 403 CSRF_INVALID; login is exempt
- *  - logout invalidates the session server-side (old cookie replay → 401)
- *  - idle (30 min) and absolute (8 h) expiry → 401 (simulated by ageing the session row)
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');

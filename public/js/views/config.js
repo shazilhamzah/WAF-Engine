@@ -1,9 +1,8 @@
-// Config: mode, thresholds, limits, rate limit. Admin changes go through a confirmation dialog
-// showing the old → new diff and a required reason; the request carries confirm: true.
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { can } from '../lib/roles.js';
 import { formatTs } from '../lib/format.js';
+import { icon } from '../icons.js';
 import { diffObjects, displayValue } from '../lib/diff.js';
 import { pageHeader, card, field, table, loading, errorPanel, showStatus, confirmDialog, diffTable, fieldErrors, modeBadge } from '../ui.js';
 
@@ -16,7 +15,6 @@ const LIMIT_FIELDS = [
   ['decodeRounds', 'URL-decode rounds', 'Detects double/triple encoding.'],
 ];
 
-/** Client-side sanity checks mirroring engine.validateConfig (server is authoritative). */
 export function checkConfig(cfg) {
   const errs = [];
   const int = (v) => Number.isInteger(v);
@@ -102,7 +100,7 @@ export async function render(ctx) {
         title: 'Confirm configuration change',
         body: h('div', null,
           diffTable(changes, displayValue),
-          modeChange && modeChange.to === 'monitor' ? h('p', { class: 'warn-note' }, '⚠ Monitor mode never blocks: attacks will be forwarded to the target and only logged.') : null,
+          modeChange && modeChange.to === 'monitor' ? h('p', { class: 'warn-note' }, icon('alert'), 'Monitor mode never blocks: attacks will be forwarded to the target and only logged.') : null,
           h('p', { class: 'small muted' }, 'The new configuration takes effect immediately in the proxy and is recorded as a new version in the audit log.')),
         confirmLabel: 'Apply change',
         danger: Boolean(modeChange),

@@ -1,13 +1,4 @@
 'use strict';
-/**
- * Repository layer entry point (contract §4, §10).
- *
- *   const db = openDatabase(':memory:' | '/path/to/waf-studio.db', { clock })
- *   db.users / db.sessions / db.rules / db.configs / db.events / db.exceptions / db.audit
- *   db.transaction(fn)  db.close()  db.raw (the underlying DatabaseSync — tests/tools only)
- *
- * All SQL is parameterized. Files use WAL journaling; foreign keys are enforced.
- */
 const fs = require('node:fs');
 const path = require('node:path');
 const { DatabaseSync } = require('node:sqlite');
@@ -20,11 +11,6 @@ const { createEventsRepository } = require('./repositories/events');
 const { createExceptionsRepository } = require('./repositories/exceptions');
 const { createAuditRepository } = require('./repositories/audit');
 
-/**
- * Opens (creating if needed) and migrates a database.
- * @param {string} dbPath file path or ':memory:'
- * @param {{ clock?: () => number }} [options]
- */
 function openDatabase(dbPath = ':memory:', options = {}) {
   const memory = dbPath === ':memory:';
   if (!memory) fs.mkdirSync(path.dirname(path.resolve(dbPath)), { recursive: true, mode: 0o700 });
@@ -44,14 +30,13 @@ function openDatabase(dbPath = ':memory:', options = {}) {
   try {
     migration = migrate(raw);
   } catch (err) {
-    raw.close(); // release the file handle (Windows locks open files)
+    raw.close(); // windows keeps the file locked until it is closed
     throw err;
   }
   if (!memory) { try { fs.chmodSync(dbPath, 0o600); } catch { /* best effort */ } }
 
   const clock = typeof options.clock === 'function' ? options.clock : () => Date.now();
   let depth = 0;
-  /** Runs fn inside a transaction (nested calls use savepoints). Returns fn's result. */
   function transaction(fn) {
     if (depth > 0) {
       const sp = `sp_${depth}`;

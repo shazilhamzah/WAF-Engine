@@ -37,7 +37,7 @@ it answers with a generic `403` that reveals nothing about the record, and recor
 4. **Account** (top right) shows your role and session expiry and lets you change your password
    (at least 12 characters; a passphrase of several words works well). **Log out** ends the session on the server.
 
-The header shows one protection indicator: **Blocking on** (block mode) or **Monitoring only**
+The header shows one protection indicator: **Enabled** (block mode) or **Monitoring only**
 (monitor mode). Oversized bodies still exceed the proxy's safety limit even in monitor mode.
 
 Navigation is grouped into **Activity**, **Tools**, **Policy**, and (for admins) **Administration**.

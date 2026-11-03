@@ -1,5 +1,4 @@
 'use strict';
-/** /api/config (contract §5.2). Reads: admin+operator. Changes: admin, always with "confirm": true. */
 const express = require('express');
 const { ApiError, confirmationRequired } = require('../errors');
 const { v, validate } = require('../validation');
@@ -11,7 +10,6 @@ const updateSchema = v.object({
   confirm: v.boolean({ optional: true }),
 });
 
-/** Flat list of changed leaf paths between two configs, for the audit record. */
 function configChanges(before, after, prefix = '') {
   const out = [];
   const keys = new Set([...Object.keys(before || {}), ...Object.keys(after || {})]);

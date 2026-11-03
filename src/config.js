@@ -1,11 +1,4 @@
 'use strict';
-/**
- * Runtime configuration (contract §1).
- *
- * All listeners bind to 127.0.0.1 only. The HMAC/pseudonymisation secret comes from WAF_SECRET or is
- * generated once into `<dataDir>/secret.key` (32 random bytes, hex, owner-only permissions). The secret is
- * never logged or returned by any API.
- */
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
@@ -22,10 +15,6 @@ function parsePort(value, fallback, name) {
   return n;
 }
 
-/**
- * Builds the runtime configuration from environment variables.
- * @param {NodeJS.ProcessEnv} [env]
- */
 function loadConfig(env = process.env) {
   const studioPort = parsePort(env.STUDIO_PORT, 3000, 'STUDIO_PORT');
   const proxyPort = parsePort(env.PROXY_PORT, 8080, 'PROXY_PORT');
@@ -36,7 +25,7 @@ function loadConfig(env = process.env) {
     : path.join(dataDir, 'waf-studio.db');
   const targetUrl = env.TARGET_URL || `http://${HOST}:${targetPort}`;
   try {
-    // Validate early so a typo fails fast instead of at the first proxied request.
+    // fail early so a typo shows at startup and not at the first request
     const u = new URL(targetUrl);
     if (u.protocol !== 'http:' && u.protocol !== 'https:') throw new Error('protocol');
   } catch {
@@ -49,13 +38,6 @@ function ensureDir(dir) {
   fs.mkdirSync(dir, { recursive: true, mode: 0o700 });
 }
 
-/**
- * Returns the server secret (string). Order: WAF_SECRET env var, then `<dataDir>/secret.key`, which is
- * created with 32 random bytes (hex) and mode 0o600 when missing.
- * @param {string} dataDir
- * @param {NodeJS.ProcessEnv} [env]
- * @returns {{ secret: string, source: 'env'|'file'|'generated' }}
- */
 function loadSecret(dataDir, env = process.env) {
   if (env.WAF_SECRET) {
     if (String(env.WAF_SECRET).length < 16) throw new Error('WAF_SECRET must be at least 16 characters');
@@ -71,14 +53,14 @@ function loadSecret(dataDir, env = process.env) {
     if (err.code !== 'ENOENT') throw err;
   }
   const secret = crypto.randomBytes(32).toString('hex');
-  // 'wx' fails if another process created the file in between; mode 0o600 = owner read/write only.
+  // exclusive create so two processes cannot both write the key
   try {
     fs.writeFileSync(keyPath, secret + '\n', { mode: 0o600, flag: 'wx' });
   } catch (err) {
     if (err.code === 'EEXIST') return loadSecret(dataDir, env);
     throw err;
   }
-  try { fs.chmodSync(keyPath, 0o600); } catch { /* best effort on Windows */ }
+  try { fs.chmodSync(keyPath, 0o600); } catch { /* best effort */ }
   return { secret, source: 'generated' };
 }
 

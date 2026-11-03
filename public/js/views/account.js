@@ -1,4 +1,3 @@
-// Account: session info, change own password, log out.
 import { h, mount } from '../dom.js';
 import { api } from '../api.js';
 import { formatTs } from '../lib/format.js';
@@ -29,7 +28,7 @@ export function render(ctx) {
     try {
       await api.changePassword(current.value, next.value);
       current.value = ''; next.value = ''; confirm.value = '';
-      // The server revokes every session of this user (including this one) after a password change.
+      // the server revokes every session of this user after a password change
       ctx.sessionEnded('Password changed. All your sessions were signed out — sign in again with your new password.');
       return;
     } catch (err) {

@@ -1,10 +1,4 @@
 'use strict';
-/**
- * T6 latency overhead: the same benign requests sent (a) directly to the vulnerable target and
- * (b) through the WAF proxy, interleaved one-by-one so both sides see the same machine load.
- * Each side uses its own keep-alive agent with one socket so connection setup is not measured.
- * Overhead = proxy statistic − direct statistic (ms).
- */
 const http = require('node:http');
 const { rawRequest } = require('../helpers/http');
 const { summarize, round } = require('./stats');
@@ -19,9 +13,6 @@ const SCENARIOS = {
   }
 };
 
-/**
- * @param {{ directUrl: string, proxyUrl: string, n?: number, warmup?: number, thresholdMs?: number, scenarios?: string[], onProgress?: Function }} o
- */
 async function measureOverhead(o) {
   const n = o.n || 300;
   const warmup = o.warmup ?? 30;

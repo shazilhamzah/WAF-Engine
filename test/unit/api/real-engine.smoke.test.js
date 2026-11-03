@@ -1,8 +1,4 @@
 'use strict';
-/**
- * Smoke test of the backend with the REAL engine (src/engine), default rules and the lab target.
- * Skipped automatically while those modules are absent.
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');

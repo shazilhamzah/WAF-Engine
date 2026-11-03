@@ -1,16 +1,10 @@
 'use strict';
-/**
- * Standalone launcher for the Vulnerable Shop lab target.
- *   npm run start:target          → http://127.0.0.1:3001 (TARGET_PORT overrides)
- * Binds to 127.0.0.1 ONLY so the deliberately vulnerable app is never reachable from the network.
- * `npm start` (src/index.js) normally starts this app for you behind the WAF proxy.
- */
+// binds to loopback only so the vulnerable app is never reachable from the network
 const http = require('node:http');
 const { createTargetApp } = require('./app');
 
 const HOST = '127.0.0.1';
 
-/** Starts the target; resolves to the http.Server. port 0 → ephemeral port (used by tests). */
 function startTarget({ port = Number(process.env.TARGET_PORT) || 3001, host = HOST } = {}) {
   if (host !== '127.0.0.1' && host !== 'localhost' && host !== '::1') {
     throw new Error('The vulnerable target may only bind to a loopback address');

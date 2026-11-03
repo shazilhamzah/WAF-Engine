@@ -1,15 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-/**
- * Standalone T6 latency benchmark (owner: Nufil).
- *
- *   npm run bench                    N = 300 interleaved pairs per scenario
- *   node scripts/bench-latency.js --n 1000 --warmup 50 --threshold 25
- *
- * Starts the full stack on ephemeral 127.0.0.1 ports (temp DB), raises the proxy rate limit so the
- * benchmark is not throttled, then compares direct-to-target vs. via-WAF latency.
- * Prints a table and writes docs/evaluation/latency.json. Exit 0 always (measurement), 1 if it cannot run.
- */
+
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');

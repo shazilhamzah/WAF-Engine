@@ -1,11 +1,14 @@
 node_modules/
-# Runtime data: SQLite databases, generated secrets, logs
+# runtime data like databases and generated secrets
 data/
 *.db
 *.db-journal
 *.db-wal
 *.db-shm
 *.log
-# Temporary build output (final PDFs in docs/ ARE committed)
 .tmp/
 coverage/
+Copy of 44_Class_3_Group_12_WAF_Studio_Learning_Web_Application_Firewall.pdf
+# generated logo exports and previews (master svgs stay tracked)
+docs/brand/variants/
+docs/brand/*.png

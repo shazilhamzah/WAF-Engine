@@ -86,7 +86,7 @@ describe('audit log: append-only enforcement and tamper detection', () => {
       let db = openDatabase(file);
       fill(db, 5);
       db.close();
-      // Attacker with file access bypasses the application and the triggers.
+      // attacker with file access bypasses the application and the triggers
       const raw = new DatabaseSync(file);
       raw.exec('DROP TRIGGER audit_log_no_update');
       raw.prepare("UPDATE audit_log SET actor_name = 'someone-else' WHERE seq = 3").run();

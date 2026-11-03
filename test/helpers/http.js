@@ -1,21 +1,12 @@
 'use strict';
-/**
- * HTTP helpers shared by integration tests, security tests and the evaluation harness.
- *
- *  - ApiClient  : JSON client for the Studio API (global fetch) that keeps the `waf_sid` cookie and the
- *                 CSRF token, and sends `X-CSRF-Token` on every state-changing request (contract §5).
- *  - rawRequest : low-level client (node:http) for the WAF proxy. Unlike fetch/URL it does NOT normalise
- *                 the path, so `../`, `%2e%2e`, double encoding and odd methods reach the WAF byte-for-byte.
- */
 const http = require('node:http');
 
 const STATE_CHANGING = new Set(['POST', 'PUT', 'PATCH', 'DELETE']);
 
 class ApiClient {
-  /** @param {string} baseUrl e.g. http://127.0.0.1:53211 */
   constructor(baseUrl, { username = null, role = null } = {}) {
     this.baseUrl = baseUrl.replace(/\/$/, '');
-    this.sid = null;          // value of the waf_sid cookie
+    this.sid = null;
     this.csrfToken = null;
     this.user = null;
     this.username = username;
@@ -34,10 +25,6 @@ class ApiClient {
     }
   }
 
-  /**
-   * Generic request. Returns { status, headers, body (parsed JSON or null), text }.
-   * opts: { body (object → JSON), rawBody (string|Buffer), headers, csrf (false|string to override) }
-   */
   async request(method, path, opts = {}) {
     method = method.toUpperCase();
     const headers = { accept: 'application/json', ...(opts.headers || {}) };
@@ -79,7 +66,6 @@ class ApiClient {
 
   async logout() { return this.post('/api/auth/logout', undefined); }
 
-  /** Re-reads the CSRF token from /api/auth/me (e.g. after a session refresh). */
   async refreshCsrf() {
     const r = await this.get('/api/auth/me');
     if (r.status === 200 && r.body && r.body.csrfToken) this.csrfToken = r.body.csrfToken;
@@ -87,7 +73,6 @@ class ApiClient {
   }
 }
 
-/** Makes an arbitrary path acceptable to node:http (only chars outside 0x21–0x7E are %-encoded). */
 function wireSafePath(p) {
   let out = '';
   for (const ch of String(p)) {
@@ -98,11 +83,6 @@ function wireSafePath(p) {
   return out;
 }
 
-/**
- * Sends one request without any path normalisation.
- * Resolves { status, headers (lower-cased object), body: Buffer, text, ms, error? }.
- * Never rejects: network errors resolve with status 0 and `error` set (useful for "target down" cases).
- */
 function rawRequest(baseUrl, { method = 'GET', path = '/', headers = {}, body = null, agent, timeoutMs = 15000 } = {}) {
   const u = new URL(baseUrl);
   const payload = body == null ? null : Buffer.isBuffer(body) ? body : Buffer.from(typeof body === 'string' ? body : JSON.stringify(body));
@@ -133,7 +113,7 @@ function rawRequest(baseUrl, { method = 'GET', path = '/', headers = {}, body = 
     req.on('error', (e) => resolve({ status: 0, headers: {}, body: Buffer.alloc(0), text: '', error: e.code || e.message,
       ms: Number(process.hrtime.bigint() - started) / 1e6 }));
     if (payload) {
-      // Large bodies: the server may answer (413) and close before we finish writing — that is fine.
+      // large bodies get a 413 and the server may close before we finish writing and that is fine
       req.on('error', () => {});
       req.end(payload);
     } else req.end();

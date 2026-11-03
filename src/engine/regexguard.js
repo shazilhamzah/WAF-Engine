@@ -1,21 +1,4 @@
 'use strict';
-/**
- * Static ReDoS guard for rule regexes (FR-2 "unsafe regexes refused").
- *
- * The pattern is parsed into a small tree (groups, alternatives, atoms, quantifiers) and rejected when
- * it contains a construct known to cause catastrophic (exponential or high-polynomial) backtracking:
- *
- *   R1 pattern longer than MAX_PATTERN_LENGTH characters
- *   R2 nested quantifiers: a repeated group that contains a repeated element, e.g. (a+)+, (\w*)*,
- *      (a+){2,9}. Bounded inner + bounded outer is allowed: (\d{1,3}\.){3}
- *   R3 overlapping alternation inside a repeated group: alternatives that can start with the same
- *      atom, e.g. (a|a)*, (ab|ac)+, (.|x)*, or an empty alternative (a|)*
- *   R4 backreferences inside a repeated group or themselves repeated, e.g. (a)\1+, ((a)\2)*
- *   R5 adjacent unbounded quantifiers over overlapping atoms, e.g. .*.*, \w+\w*, .*\s*
- *
- * The analysis is conservative: it may refuse some safe patterns; the error message explains how to
- * rewrite them (use bounded quantifiers such as {0,100} and non-overlapping character classes).
- */
 
 const MAX_PATTERN_LENGTH = 500;
 
@@ -47,27 +30,27 @@ function parsePattern(src) {
     if (!q) return null;
     q.offset = i;
     i += q.len;
-    if (src[i] === '?') i++; // lazy modifier
+    if (src[i] === '?') i++; // skip the lazy modifier
     return q;
   }
 
   function parseClass() {
     const start = i;
-    i++; // [
+    i++;
     if (src[i] === '^') i++;
     if (src[i] === ']') i++;
     while (i < src.length && src[i] !== ']') {
       if (src[i] === '\\') i++;
       i++;
     }
-    i++; // ]
+    i++;
     const text = src.slice(start, i);
     return { type: 'class', key: text, negated: text.startsWith('[^'), offset: start };
   }
 
   function parseEscape() {
     const start = i;
-    i++; // backslash
+    i++;
     const c = src[i];
     if (c === undefined) return { type: 'char', key: '\\', offset: start };
     if (/[1-9]/.test(c)) {
@@ -100,7 +83,7 @@ function parsePattern(src) {
 
   function parseGroup() {
     const start = i;
-    i++; // (
+    i++;
     let capture = true;
     let lookaround = false;
     if (src[i] === '?') {
@@ -158,7 +141,6 @@ function parsePattern(src) {
   return { type: 'group', alts, capture: false, offset: 0, quant: null };
 }
 
-/** Summary of the quantifiers inside a node: any repetition (max > 1), any unbounded repetition. */
 function innerQuantifiers(node) {
   let repeated = false;
   let unbounded = false;
@@ -229,10 +211,6 @@ function check(node, repeatDepth) {
   }
 }
 
-/**
- * @param {string} source regex source (without slashes)
- * @returns {{ ok: boolean, message: string|null, offset: number }}
- */
 function checkRegexSafety(source) {
   if (typeof source !== 'string') return { ok: false, message: 'pattern must be a string', offset: 0 };
   if (source.length > MAX_PATTERN_LENGTH) {

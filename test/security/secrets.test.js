@@ -1,10 +1,4 @@
 'use strict';
-/**
- * Secret exposure (NFR-6, §4.2 data minimisation): canary secrets sent in Authorization/Cookie headers,
- * password/token fields (form + JSON), API keys and login passwords must NEVER be persisted in
- * events, samples, audit details or exports — and raw client IPs must not be stored.
- * We grep the whole SQLite database (every table except users/sessions hashes) and every export format.
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -28,14 +22,12 @@ describe('secrets never persisted or exported', { skip: skipUnlessStack() }, () 
     operator = await stack.login('operator');
     admin = await stack.login('admin');
 
-    // 1. Through the proxy (high-volume path): secrets in headers, form body, JSON body, query.
     await stack.proxy({ path: '/search?q=hello&api_key=' + CANARY.apiKey, headers: { authorization: 'Bearer ' + CANARY.bearer, cookie: 'session=' + CANARY.cookie } });
     await stack.proxy({ method: 'POST', path: '/login', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: `username=alice&password=${CANARY.formPw}` });
     await stack.proxy({ method: 'POST', path: '/login', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ username: 'bob', password: CANARY.jsonPw, token: CANARY.token }) });
-    // attack hidden in a password field — the evidence excerpt must still be redacted
+    // attack hidden in a password field and the evidence excerpt must still be redacted
     await stack.proxy({ method: 'POST', path: '/login', headers: { 'content-type': 'application/x-www-form-urlencoded' }, body: 'username=alice&password=' + encodeURIComponent(`' OR 1=1 -- ${CANARY.sqliPw}`) });
 
-    // 2. Through the console (samples are stored for replay — must be redacted).
     await operator.post('/api/analyze', { label: 'secret sample', sample: {
       method: 'POST', path: '/login?token=' + CANARY.token,
       headers: { authorization: 'Bearer ' + CANARY.bearer, cookie: 'sid=' + CANARY.cookie, 'content-type': 'application/json', 'x-api-key': CANARY.apiKey },
@@ -44,7 +36,6 @@ describe('secrets never persisted or exported', { skip: skipUnlessStack() }, () 
       method: 'POST', path: '/login', headers: { 'content-type': 'application/x-www-form-urlencoded' },
       body: 'username=carol&password=' + encodeURIComponent(`' OR '1'='1 ${CANARY.sqliPw}`) } });
 
-    // 3. Login with a wrong password that looks like a canary.
     await stack.client().login('operator', CANARY.formPw + '-login');
   });
   after(async () => { if (stack) await stack.stop(); });

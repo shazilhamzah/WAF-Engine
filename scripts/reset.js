@@ -1,14 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-/**
- * npm run reset -- --yes [--new-secret]
- *
- * Recovery tool: deletes the SQLite database (and its -wal/-shm files) so that `npm run setup` can
- * recreate it. Use after corruption or to start a demo from a clean state. WAF Studio must be stopped.
- *
- * By default the secret key file is kept (so client pseudonyms stay stable); pass --new-secret to delete
- * it as well. Without --yes nothing is deleted.
- */
+
 const fs = require('node:fs');
 const path = require('node:path');
 const { loadConfig } = require('../src/config');

@@ -1,20 +1,4 @@
 'use strict';
-/**
- * WAF reverse proxy data plane (contract §6).
- *
- *   const server = createProxyServer({ db, engineState, targetUrl, secret, logger });  // http.Server
- *   server.listen(8080, '127.0.0.1');
- *
- * Per request:
- *  1. buffer the body up to maxBodyBytes + 1 bytes (stop reading beyond that; a declared Content-Length
- *     above the limit is decided without reading the body at all)
- *  2. engine.inspect(raw, ctx) with the shared compiled state and rate limiter
- *  3. store the decision as an event (source 'proxy': sanitized decision only, no bodies/header values)
- *  4. blocked → status from the decision + minimal HTML/JSON page with the event id only
- *     otherwise → forward with http-proxy, re-streaming the buffered body
- *  5. target unavailable → 502 safe page + `system.error` audit; proxy errors never crash the process
- *  X-WAF-Event-Id / X-WAF-Action are added to every inspected response.
- */
 const http = require('node:http');
 const { Readable } = require('node:stream');
 const httpProxy = require('http-proxy');
@@ -23,7 +7,6 @@ const { createAuditor } = require('../services/audit');
 const { createClientIdentifier } = require('../services/clientId');
 const { blockPage, errorPage, prefersJson } = require('./pages');
 
-// Hop-by-hop headers (RFC 7230 §6.1) are not forwarded; neither are credentials meant for this proxy.
 const HOP_BY_HOP = ['connection', 'keep-alive', 'proxy-connection', 'te', 'trailer', 'transfer-encoding', 'upgrade', 'proxy-authorization', 'proxy-authenticate'];
 const PRUNE_EVERY = 1000;
 const DEFAULT_RETENTION = 100000;
@@ -41,10 +24,6 @@ function stripHopByHop(headers) {
   for (const h of [...HOP_BY_HOP, ...listed]) delete headers[h];
 }
 
-/**
- * Reads the request body, keeping at most `cap` bytes. Resolves { body: Buffer, received, overflow }.
- * When the cap is exceeded the stream is paused (no more data is read) and overflow is true.
- */
 function readBody(req, cap) {
   return new Promise((resolve) => {
     const declared = Number.parseInt(req.headers['content-length'], 10);
@@ -77,10 +56,6 @@ function readBody(req, cap) {
   });
 }
 
-/**
- * @param {{ db, engineState, targetUrl: string, secret: string, logger?, audit?, retention?: number }} deps
- * @returns {http.Server}
- */
 function createProxyServer({ db, engineState, targetUrl, secret, logger, audit, retention = DEFAULT_RETENTION } = {}) {
   if (!db || !engineState || !targetUrl || !secret) throw new Error('createProxyServer requires db, engineState, targetUrl and secret');
   const log = normalizeLogger(logger);
@@ -96,7 +71,7 @@ function createProxyServer({ db, engineState, targetUrl, secret, logger, audit, 
   proxy.on('proxyRes', (proxyRes) => {
     delete proxyRes.headers['x-powered-by'];
   });
-  // Last-resort handler: http-proxy emits 'error' when no callback is given; never let it crash the process.
+  // last resort so a proxy error cannot crash the process
   proxy.on('error', (err, req, res) => onTargetError(err, req, res));
 
   function onTargetError(err, req, res) {
@@ -150,7 +125,7 @@ function createProxyServer({ db, engineState, targetUrl, secret, logger, audit, 
     try {
       decision = engine.inspect(raw, ctx);
     } catch (err) {
-      // Fail closed: if the engine cannot decide, nothing is forwarded.
+      // fail closed so nothing is forwarded if the engine cannot decide
       log.error('engine.inspect threw', { err });
       auditor.system('system.error', { outcome: 'failure', targetType: 'engine', targetId: 'inspect', details: { reason: 'inspect_failed' }, clientId: clientKey });
       const page = errorPage(503, null, prefersJson(headers.accept));
@@ -161,7 +136,7 @@ function createProxyServer({ db, engineState, targetUrl, secret, logger, audit, 
     const measured = Number(process.hrtime.bigint() - started) / 1e6;
 
     if (overflow && decision.action !== 'blocked') {
-      // The proxy never buffers or forwards more than maxBodyBytes, in any mode (memory safety).
+      // never buffer or forward more than the body limit
       decision = {
         ...decision,
         verdict: 'block', action: 'blocked', wouldBlock: true, statusCode: 413, blockReason: 'BODY_TOO_LARGE',
@@ -209,7 +184,7 @@ function createProxyServer({ db, engineState, targetUrl, secret, logger, audit, 
       }
     });
   });
-  // WebSocket/upgrade tunnelling is not inspected, so it is refused.
+  // upgrade requests are not inspected so they are refused
   server.on('upgrade', (req, socket) => { socket.end('HTTP/1.1 501 Not Implemented\r\nConnection: close\r\nContent-Length: 0\r\n\r\n'); });
   server.on('clientError', (err, socket) => {
     if (socket.writable && !socket.destroyed) socket.end('HTTP/1.1 400 Bad Request\r\nConnection: close\r\nContent-Length: 0\r\n\r\n');

@@ -1,10 +1,9 @@
-// Rules: list with enable toggle, DSL editor with server-side validation (line/col errors),
-// create/update, version history; disable/delete need a confirmation dialog (confirm: true).
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { can } from '../lib/roles.js';
 import { formatTs, shortHash, truncate } from '../lib/format.js';
-import { pageHeader, card, table, severityBadge, chip, loading, errorPanel, showStatus, confirmDialog, busy } from '../ui.js';
+import { pageHeader, card, table, severityBadge, loading, errorPanel, showStatus, confirmDialog, busy, message, statusLabel } from '../ui.js';
+import { icon } from '../icons.js';
 
 export const NEW_RULE_TEMPLATE = `rule 100100 "Describe what this rule detects" {
   when args contains "example-indicator"
@@ -16,7 +15,6 @@ export const NEW_RULE_TEMPLATE = `rule 100100 "Describe what this rule detects" 
 }
 `;
 
-/** Converts a 1-based line/col into a textarea offset. */
 export function offsetFor(text, line, col) {
   const lines = String(text).split('\n');
   const l = Math.max(1, Math.min(lines.length, Number(line) || 1));
@@ -32,7 +30,7 @@ export async function render(ctx) {
   const editorTitle = h('h2', { class: 'card-title', id: 'rule-editor-title' }, 'Rule editor');
   const validation = h('div', { 'aria-live': 'polite' });
   const historyBox = h('div');
-  let editing = null; // rule id being edited or null for new
+  let editing = null;
 
   const validateBtn = h('button', { type: 'button', class: 'btn', on: { click: () => busy(validateBtn, validate) } }, 'Validate');
   const saveBtn = isAdmin ? h('button', { type: 'button', class: 'btn btn-primary', on: { click: () => busy(saveBtn, save) } }, 'Save rule') : null;
@@ -58,7 +56,7 @@ export async function render(ctx) {
 
   function showErrors(errors) {
     mount(validation,
-      h('p', { class: 'status-msg status-error' }, `⚠ ${errors.length} problem${errors.length === 1 ? '' : 's'} found`),
+      message('error', `${errors.length} problem${errors.length === 1 ? '' : 's'} found`),
       h('ul', { class: 'field-errors' }, ...errors.map((e) => h('li', null,
         (e.line ? h('button', { type: 'button', class: 'link-btn', on: { click: () => {
           const off = offsetFor(editor.value, e.line, e.col);
@@ -74,8 +72,8 @@ export async function render(ctx) {
     if (res.ok) {
       editor.setAttribute('aria-invalid', 'false');
       const r = res.rule || {};
-      mount(validation, h('p', { class: 'status-msg status-success' },
-        `✔ Valid: rule ${r.id ?? ''} “${r.name ?? ''}”${r.severity ? ` · ${r.severity}` : ''}${r.category ? ` · ${r.category}` : ''}${r.score !== undefined ? ` · score ${r.score}` : ''}`));
+      mount(validation, message('success',
+        `Valid: rule ${r.id ?? ''} “${r.name ?? ''}”${r.severity ? ` · ${r.severity}` : ''}${r.category ? ` · ${r.category}` : ''}${r.score !== undefined ? ` · score ${r.score}` : ''}`));
     } else {
       showErrors(res.errors || []);
     }
@@ -169,7 +167,7 @@ export async function render(ctx) {
       h('p', { class: 'meta-line' }, h('span', null, 'Active ruleset ', code(shortHash(res.rulesetVersion, 20))),
         h('span', null, `${items.filter((r) => r.enabled).length} enabled of ${items.length}`)),
       (res.compileErrors && res.compileErrors.length) ? h('div', { class: 'warn-note' },
-        h('p', null, '⚠ Some stored rules failed to compile and are not active:'),
+        h('p', null, icon('alert'), 'Some stored rules failed to compile and are not active:'),
         h('ul', null, ...res.compileErrors.map((e) => h('li', null, `Rule ${e.ruleId ?? '?'}: line ${e.line ?? '?'}, col ${e.col ?? '?'} — ${e.message || ''}`)))) : null,
       table({
         caption: 'Rules',
@@ -179,7 +177,7 @@ export async function render(ctx) {
           { key: 'severity', label: 'Severity', render: (r) => severityBadge(r.severity) },
           { key: 'category', label: 'Category' },
           { key: 'version', label: 'Version', className: 'num' },
-          { key: 'enabled', label: 'Status', render: (r) => (r.enabled ? chip('✔ enabled', 'ok') : chip('○ disabled', 'muted')) },
+          { key: 'enabled', label: 'Status', render: (r) => (r.enabled ? statusLabel('enabled', 'ok') : statusLabel('disabled', 'muted')) },
           { key: 'actions', label: 'Actions', render: (r) => {
             const btns = [h('button', { type: 'button', class: 'btn btn-small', on: { click: () => startEdit(r) } }, isAdmin ? 'Edit' : 'View'),
               h('button', { type: 'button', class: 'btn btn-small', on: { click: () => showHistory(r) } }, 'History')];

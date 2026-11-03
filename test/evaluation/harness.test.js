@@ -1,5 +1,4 @@
 'use strict';
-/** Unit tests for the evaluation harness itself (stats, verdict mapping, report escaping, latency, T4 generator). */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');

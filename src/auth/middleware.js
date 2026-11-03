@@ -1,12 +1,4 @@
 'use strict';
-/**
- * Express middleware for authentication, role-based authorization and CSRF (contract §2, §5).
- *
- *   const auth = createAuthMiddleware({ sessions, audit });
- *   app.use(auth.loadSession);             // attaches req.auth = { user, session, csrfToken, expiresAt } or null
- *   router.get('/x', auth.requireAuth, auth.requireRole('admin', 'operator'), handler)
- *   app.use('/api', auth.requireCsrf)      // state-changing methods need a valid X-CSRF-Token
- */
 const { ApiError } = require('../api/errors');
 const { parseCookies, serializeCookie, COOKIE_NAME } = require('./sessions');
 
@@ -27,7 +19,6 @@ function createAuthMiddleware({ sessions, audit, csrfExempt = ['/api/auth/login'
     if (result.status === 'ok') {
       req.auth = { user: result.user, session: result.session, tokenHash: result.tokenHash, csrfToken: result.csrfToken, expiresAt: result.expiresAt };
     } else {
-      // Tell the browser to drop the stale cookie.
       res.append('Set-Cookie', serializeCookie('', { clear: true, secure: req.secure }));
     }
     return next();
@@ -38,7 +29,6 @@ function createAuthMiddleware({ sessions, audit, csrfExempt = ['/api/auth/login'
     return next(new ApiError(req.sessionStatus === 'expired' ? 'SESSION_EXPIRED' : 'AUTH_REQUIRED'));
   }
 
-  /** Generic 403 for wrong roles + `auth.denied` audit event (no record content revealed). */
   function requireRole(...roles) {
     const allowed = new Set(roles.flat());
     return function roleGuard(req, res, next) {
@@ -56,7 +46,7 @@ function createAuthMiddleware({ sessions, audit, csrfExempt = ['/api/auth/login'
     if (!STATE_CHANGING.has(req.method)) return next();
     const p = (req.originalUrl || req.url || '').split('?')[0];
     if (exempt.has(p)) return next();
-    if (!req.auth) return next(); // unauthenticated: requireAuth answers 401 first
+    if (!req.auth) return next(); // unauthenticated requests get their 401 from the auth check first
     if (sessions.checkCsrf(req.auth.session, req.get('x-csrf-token'))) return next();
     audit(req, 'auth.denied', {
       outcome: 'denied', targetType: 'endpoint', targetId: `${req.method} ${p.slice(0, 200)}`,

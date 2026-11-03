@@ -1,5 +1,4 @@
 'use strict';
-// Data minimization: redact(), excerpt() and secret-free decisions.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { engine, ctx } = require('./helpers');

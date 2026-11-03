@@ -1,11 +1,4 @@
 'use strict';
-/**
- * Audit log integrity (FR-6, contract §4/§4.1):
- *  - entries follow the documented format (seq, id, ts, actor, action, outcome, clientId, prevHash, hash)
- *  - the hash chain links each entry to the previous one and verifies via GET /api/audit/verify
- *  - UPDATE and DELETE on audit_log are rejected by SQLite triggers (append-only)
- *  - tampering performed by someone who bypasses the triggers is DETECTED by verification (brokenAt)
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startStack, skipUnlessStack } = require('../helpers/stack');
@@ -88,7 +81,7 @@ describe('append-only, hash-chained audit log', { skip: skipUnlessStack() }, () 
     try {
       const triggers = db.prepare("SELECT name, sql FROM sqlite_master WHERE type='trigger' AND tbl_name='audit_log'").all();
       assert.ok(triggers.length >= 2, 'append-only triggers present');
-      // Simulate an attacker with raw file access: drop triggers, edit a row, restore triggers.
+      // simulate an attacker with raw file access by dropping the triggers
       for (const t of triggers) db.exec(`DROP TRIGGER "${t.name}"`);
       const row = db.prepare("SELECT seq FROM audit_log WHERE action = 'auth.login.failure' ORDER BY seq LIMIT 1").get();
       tamperedSeq = row.seq;

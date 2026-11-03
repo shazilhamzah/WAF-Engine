@@ -1,18 +1,4 @@
 'use strict';
-/**
- * Rule DSL (FR-2): lexer, parser, validator and compiler. Grammar and semantics: docs/rule-dsl.md.
- *
- *   rule 942100 "SQLi boolean tautology" {
- *     when args matches /\b(or|and)\b\s+['"]?\d+['"]?\s*=\s*['"]?\d+/i
- *     severity critical
- *     score 5
- *     category sqli
- *     tags sqli, owasp-a03
- *     description "Tautology used to bypass WHERE clauses"
- *   }
- *
- * Every error carries a 1-based line and column and a friendly message.
- */
 
 const crypto = require('node:crypto');
 const { checkRegexSafety, MAX_PATTERN_LENGTH } = require('./regexguard');
@@ -30,7 +16,6 @@ const MAX_ID = 999999;
 const SEVERITIES = ['low', 'medium', 'high', 'critical'];
 const CLAUSES = ['when', 'severity', 'score', 'category', 'tags', 'description'];
 const REQUIRED = ['when', 'severity', 'score', 'category'];
-/** Target name -> value type. `header` takes a name: header:<name>. */
 const TARGETS = Object.freeze({
   path: 'string', path_raw: 'string', query: 'string', args: 'string', arg_names: 'string', body: 'string',
   headers: 'string', header: 'string', cookies: 'string', method: 'string', user_agent: 'string',
@@ -50,14 +35,9 @@ class DslError extends Error {
   }
 }
 
-// ---------------------------------------------------------------- lexer
 const IDENT_START = /[A-Za-z_]/;
 const IDENT_PART = /[A-Za-z0-9_-]/;
 
-/**
- * @returns {{ type: 'ident'|'number'|'string'|'regex'|'punct'|'eof', value: any, line: number, col: number,
- *             start: number, end: number, flags?: string }[]}
- */
 function tokenize(src) {
   const tokens = [];
   let i = 0;
@@ -124,8 +104,7 @@ function tokenize(src) {
       tok.value = value;
       advance(j + 1 - i);
     } else if (c === '/' && lastSignificant() && lastSignificant().type === 'ident') {
-      // A regex literal may follow any word; the parser then reports a misspelt operator
-      // ("Unknown operator 'matchez'") instead of a confusing lexer error.
+      // a regex after a word still lexes so the parser can report a misspelt operator
       let j = i + 1;
       let inClass = false;
       for (;;) {
@@ -165,7 +144,6 @@ function tokenize(src) {
   return tokens;
 }
 
-// ---------------------------------------------------------------- parser
 function describe(tok) {
   if (!tok || tok.type === 'eof') return 'end of input';
   if (tok.type === 'string') return 'a string';
@@ -205,10 +183,6 @@ function hint(word, options) {
   return c ? ` — did you mean '${c}'?` : '';
 }
 
-/**
- * Parses one rule starting at tokens[pos]. Syntax errors throw DslError; semantic problems are
- * pushed to `errors` so several can be reported at once.
- */
 function parseRuleAt(tokens, pos, errors) {
   let p = pos;
   const peek = () => tokens[p];
@@ -246,7 +220,6 @@ function parseRuleAt(tokens, pos, errors) {
   const seen = new Map();
   let conditions = 0;
 
-  // ----- expression parsing -----
   function parseExpr(depth) {
     return parseOr(depth);
   }
@@ -372,7 +345,6 @@ function parseRuleAt(tokens, pos, errors) {
     return cond;
   }
 
-  // ----- clauses -----
   for (;;) {
     const t = next();
     if (t.type === 'punct' && t.value === '}') {
@@ -483,7 +455,6 @@ function validateRegex(tok, semantic) {
   }
 }
 
-// ---------------------------------------------------------------- public API
 function collectMeta(rule) {
   const targets = new Set();
   const operators = new Set();
@@ -516,10 +487,6 @@ function sortErrors(errors) {
   return errors.sort((a, b) => (a.line - b.line) || (a.col - b.col));
 }
 
-/**
- * Validates the source of ONE rule.
- * @returns {{ ok: boolean, rule: object|null, errors: {line: number, col: number, message: string}[] }}
- */
 function validateRuleSource(src) {
   const res = parseOne(src);
   if (!res.ok) return { ok: false, rule: null, errors: res.errors };
@@ -552,12 +519,6 @@ function parseOne(src) {
   return { ok: true, ast, errors };
 }
 
-/**
- * Splits a multi-rule .rules file into one source per rule. Rules start at a line beginning with
- * `rule`; text between rules may only be comments. Invalid rules are reported (with file-relative
- * line/col and ruleId when known) and left out of `rules`.
- * @returns {{ rules: {id: number, source: string}[], errors: {ruleId: number|null, line: number, col: number, message: string}[] }}
- */
 function parseRuleFile(text) {
   const rules = [];
   const errors = [];
@@ -568,7 +529,7 @@ function parseRuleFile(text) {
   lines.forEach((l, idx) => {
     if (/^\s*rule\b/.test(l)) starts.push(idx);
   });
-  // content before the first rule must be comments/blank
+  // text before the first rule may only be comments or blank lines
   const preambleEnd = starts.length ? starts[0] : lines.length;
   for (let k = 0; k < preambleEnd; k++) {
     const t = lines[k].trim();
@@ -581,7 +542,7 @@ function parseRuleFile(text) {
   starts.forEach((startLine, n) => {
     const endLine = n + 1 < starts.length ? starts[n + 1] : lines.length;
     let chunkLines = lines.slice(startLine, endLine);
-    // drop trailing blank/comment lines (they usually introduce the next rule)
+    // drop trailing blank and comment lines since they usually introduce the next rule
     while (chunkLines.length > 1 && /^\s*(#.*)?$/.test(chunkLines[chunkLines.length - 1])) chunkLines.pop();
     const source = chunkLines.join('\n');
     const idMatch = /^\s*rule\s+(-?\d+)/.exec(source);
@@ -602,7 +563,6 @@ function parseRuleFile(text) {
   return { rules, errors };
 }
 
-/** Short SHA-256 over the enabled rules' ids, versions and sources (sorted by id). */
 function computeRulesetVersion(entries) {
   const h = crypto.createHash('sha256');
   const sorted = entries.slice().sort((a, b) => a.id - b.id);
@@ -610,12 +570,6 @@ function computeRulesetVersion(entries) {
   return h.digest('hex').slice(0, 16);
 }
 
-/**
- * Compiles rule records into executable rules. Disabled records are skipped. Records whose source
- * fails validation, whose id differs from the source id, or whose id is duplicated are reported.
- * @param {{ id: number, source: string, enabled?: boolean, version?: number }[]} records
- * @returns {{ rules: object[], errors: {ruleId: number|null, line: number, col: number, message: string}[], rulesetVersion: string }}
- */
 function compileRules(records) {
   const rules = [];
   const errors = [];

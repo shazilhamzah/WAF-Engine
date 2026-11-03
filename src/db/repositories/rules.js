@@ -1,8 +1,4 @@
 'use strict';
-/**
- * Rules (current state) + rule_versions (immutable change history, one row per change).
- * Versions keep increasing across delete/re-create of the same DSL id so history stays unambiguous.
- */
 const { nowIso, toBool } = require('../util');
 
 function mapRule(row) {
@@ -51,6 +47,7 @@ function createRulesRepository({ raw, clock, transaction }) {
   };
 
   function nextVersion(id) {
+    // max over history so versions keep rising after a delete and re create
     const row = stmts.maxVersion.get(id);
     return (row && row.v ? row.v : 0) + 1;
   }
@@ -59,7 +56,6 @@ function createRulesRepository({ raw, clock, transaction }) {
     list() { return stmts.list.all().map(mapRule); },
     get(id) { return mapRule(stmts.get.get(Number(id))); },
     count() { return stmts.count.get().n; },
-    /** Records for engine.compileRules (contract §3). */
     listForCompile() {
       return stmts.list.all().map((r) => ({ id: r.id, source: r.source, enabled: toBool(r.enabled), version: r.version }));
     },
@@ -72,10 +68,6 @@ function createRulesRepository({ raw, clock, transaction }) {
         return mapRule(stmts.get.get(id));
       });
     },
-    /**
-     * Applies a change. `change` is 'update' | 'enable' | 'disable'.
-     * @returns updated rule or null when the rule does not exist
-     */
     update(id, patch, userId = null, change = 'update') {
       return transaction(() => {
         const current = stmts.get.get(Number(id));
@@ -94,7 +86,6 @@ function createRulesRepository({ raw, clock, transaction }) {
         return mapRule(stmts.get.get(current.id));
       });
     },
-    /** Deletes the rule, keeping its history (a final 'delete' version row). */
     delete(id, userId = null) {
       return transaction(() => {
         const current = stmts.get.get(Number(id));

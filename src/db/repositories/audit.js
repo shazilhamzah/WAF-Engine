@@ -1,14 +1,4 @@
 'use strict';
-/**
- * Append-only, hash-chained audit log (contract §4.1).
- *
- *   hash = SHA-256( prevHash + canonicalJSON({ seq, id, ts, actorId, actorName, actorRole, action, targetType,
- *                                              targetId, outcome, clientId, details, prevHash }) )
- *
- * The first entry chains from GENESIS_HASH (64 zeros). UPDATE/DELETE are refused by SQLite triggers
- * (schema.js); edits made by bypassing the triggers (e.g. editing a copy of the file) are detected by
- * verifyChain(), which recomputes every hash and checks every link and the seq sequence.
- */
 const { newId, nowIso, canonicalJson, sha256Hex, parseJson, escapeLike } = require('../util');
 const { redact } = require('../../services/redact');
 
@@ -36,7 +26,6 @@ function entryFromRow(row) {
   };
 }
 
-/** Computes the chain hash for an entry (all fields except `hash`). */
 function computeHash(entry) {
   const { hash, ...rest } = entry; // eslint-disable-line no-unused-vars
   const body = {
@@ -50,7 +39,7 @@ function computeHash(entry) {
 
 function sanitizeDetails(details) {
   let d = redact(details && typeof details === 'object' ? details : {});
-  // Round-trip through JSON so what we hash is exactly what we store and read back.
+  // round trip through json so the hash covers exactly what is stored
   let json = JSON.stringify(d);
   if (json.length > MAX_DETAILS_BYTES) {
     d = { truncated: true, note: 'details exceeded 8 KB and were dropped' };
@@ -71,10 +60,6 @@ function createAuditRepository({ raw, clock, transaction }) {
 
   return {
     GENESIS_HASH, OUTCOMES, MAX_LIMIT,
-    /**
-     * Appends an audit entry. `details` is redacted (no passwords/tokens/secrets) and capped at 8 KB.
-     * @returns the stored entry (with seq and hash)
-     */
     append({ actorId = null, actorName, actorRole = null, action, targetType = null, targetId = null,
       outcome = 'success', clientId = null, details = {} }) {
       if (!action || typeof action !== 'string') throw new Error('audit action required');
@@ -104,10 +89,6 @@ function createAuditRepository({ raw, clock, transaction }) {
     },
     get(seq) { const r = stmts.get.get(Number(seq)); return r ? entryFromRow(r) : null; },
     count() { return stmts.count.get().n; },
-    /**
-     * Filters: action (exact, or prefix when it matches a dotted family e.g. 'auth' or 'auth.login'), actor
-     * (actor name), outcome, from/to (ISO), limit (≤200), offset. Newest first.
-     */
     list(f = {}) {
       const where = [];
       const params = [];
@@ -127,17 +108,13 @@ function createAuditRepository({ raw, clock, transaction }) {
         .map(entryFromRow);
       return { items, total };
     },
-    /**
-     * Recomputes the whole chain. Returns { ok, checked, brokenAt } where brokenAt is the seq of the first
-     * entry whose hash, link (prevHash) or sequence number is wrong.
-     */
     verifyChain() {
       let prevHash = GENESIS_HASH;
       let expectedSeq = 1;
       let checked = 0;
       for (const row of stmts.iterate.iterate()) {
         const entry = entryFromRow(row);
-        // details are hashed in parsed form; a row whose JSON cannot be parsed is treated as tampered.
+        // a row whose details cannot be parsed counts as tampered
         const detailsOk = parseJson(row.details_json, undefined) !== undefined;
         const seqOk = entry.seq === expectedSeq;
         if (!detailsOk || !seqOk || entry.prevHash !== prevHash || computeHash(entry) !== entry.hash) {

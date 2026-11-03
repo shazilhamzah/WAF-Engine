@@ -1,9 +1,4 @@
 'use strict';
-/**
- * Table-driven authorization matrix: every endpoint of contract §5.2 × { anonymous, viewer, operator, admin }.
- *  anonymous → 401; role not allowed → generic 403 FORBIDDEN (+ auth.denied); allowed → neither 401 nor 403.
- * Bodies are chosen so that allowed destructive calls stop at 400/428 and leave state intact.
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startHarness } = require('./harness');

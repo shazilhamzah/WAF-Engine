@@ -1,13 +1,4 @@
 'use strict';
-/**
- * Login brute-force protection (FR-5, NFR-7, contract §5.2):
- *  - generic 401 AUTH_INVALID for wrong password AND unknown user (no user enumeration)
- *  - 5 failures / 15 min per username → 429 RATE_LIMITED with Retry-After (even with the right password)
- *  - lockout is audited (auth.login.failure + auth.lockout), passwords never appear in the audit log
- *  - 20 attempts / min per client → 429
- *  - SQLi strings as usernames do not break the query or log anyone in
- * Each describe block gets its own stack so the counters never interfere with other files.
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startStack, skipUnlessStack } = require('../helpers/stack');
@@ -38,7 +29,7 @@ describe('login lockout per username', { skip: skipUnlessStack() }, () => {
   });
 
   it('5 failures lock the username → 429 with Retry-After, even with the correct password', async () => {
-    // one failure already happened in the first test; make sure we reach ≥ 5
+    // one failure already happened in the first test so make sure we reach five
     let locked = null;
     for (let i = 0; i < 6; i++) {
       const r = await stack.client().login('operator', WRONG + i);
@@ -84,7 +75,7 @@ describe('login rate limit per client', { skip: skipUnlessStack() }, () => {
   it('more than 20 attempts per minute from one client → 429', async () => {
     const statuses = [];
     for (let i = 0; i < 24; i++) {
-      // different usernames so the per-username lockout is not what triggers
+      // different usernames so the per username lockout is not what triggers
       const r = await stack.client().login(`spray-user-${i}`, WRONG);
       statuses.push(r.status);
     }

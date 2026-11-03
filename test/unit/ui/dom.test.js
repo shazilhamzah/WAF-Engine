@@ -1,6 +1,4 @@
 'use strict';
-// Tests for public/js/dom.js using a tiny fake document: data must become text nodes, and
-// inline handlers, style attributes and unsafe URLs must be refused.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');

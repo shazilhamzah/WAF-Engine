@@ -17,7 +17,6 @@ function mapUser(row) {
   };
 }
 
-/** Public projection (what the API returns). Never includes the password hash. */
 function publicUser(u) {
   if (!u) return null;
   return { id: u.id, username: u.username, role: u.role, disabled: u.disabled, lockedUntil: u.lockedUntil, createdAt: u.createdAt };
@@ -40,7 +39,6 @@ function createUsersRepository({ raw, clock }) {
 
   return {
     ROLES,
-    /** @returns user (public fields) */
     create({ username, passwordHash, role, disabled = false }) {
       if (!ROLES.includes(role)) throw new Error('invalid role');
       const id = newId('usr_');
@@ -50,7 +48,6 @@ function createUsersRepository({ raw, clock }) {
     },
     findById(id) { return mapUser(stmts.byId.get(String(id))); },
     findByUsername(username) { return mapUser(stmts.byName.get(String(username))); },
-    /** Internal: returns { user, passwordHash } for credential checks only. */
     findCredentials(username) {
       const row = stmts.byName.get(String(username));
       return row ? { user: mapUser(row), passwordHash: row.password_hash } : null;
@@ -68,7 +65,6 @@ function createUsersRepository({ raw, clock }) {
       return stmts.setRole.run(role, nowIso(clock), id).changes > 0;
     },
     setDisabled(id, disabled) { return stmts.setDisabled.run(disabled ? 1 : 0, nowIso(clock), id).changes > 0; },
-    /** Records login-failure state (persisted so a lockout survives restarts). */
     setFailureState(id, failedAttempts, lockedUntil) {
       return stmts.setFailures.run(failedAttempts, lockedUntil || null, nowIso(clock), id).changes > 0;
     },

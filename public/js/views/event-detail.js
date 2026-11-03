@@ -1,10 +1,9 @@
-// Event detail — the evidence view. Shows the full explainable decision plus tuning actions:
-// replay with current rules, request an exception for a match, export this event.
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { can } from '../lib/roles.js';
 import { hashFor } from '../lib/query.js';
 import { truncate } from '../lib/format.js';
+import { icon } from '../icons.js';
 import { pageHeader, verdictBadge, actionBadge, modeBadge, chip, loading, showStatus, select, busy } from '../ui.js';
 import { evidenceSections, versionLine } from '../decision.js';
 
@@ -30,9 +29,9 @@ export async function render(ctx) {
   const canReplay = can(ctx.role, 'events.replay') && REPLAYABLE.has(event.source) && event.sample !== null;
   const canRequest = can(ctx.role, 'exceptions.request');
 
-  const replayBtn = h('button', { type: 'button', class: 'btn btn-primary', disabled: !canReplay, on: { click: replay } }, '↻ Replay with current rules');
+  const replayBtn = h('button', { type: 'button', class: 'btn btn-primary', disabled: !canReplay, on: { click: replay } }, icon('refresh'), 'Replay with current rules');
   const fmt = select(['html', 'csv', 'json'], 'html', { 'aria-label': 'Export format' });
-  const exportBtn = h('button', { type: 'button', class: 'btn', on: { click: doExport } }, '⇩ Export this event');
+  const exportBtn = h('button', { type: 'button', class: 'btn', on: { click: doExport } }, icon('download'), 'Export this event');
 
   async function replay() {
     await busy(replayBtn, async () => {

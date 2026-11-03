@@ -1,22 +1,4 @@
 'use strict';
-/**
- * GET /api/reports/export (contract §5.2, §8; owner Wahaj).
- *
- *   const { createReportsRouter } = require('./routes/reports');
- *   app.use('/api/reports', auth.requireAuth, createReportsRouter({ db, engineState, audit }));
- *
- * Options:
- *   db            – repository (uses db.events.list({ ...filters, full: true, limit, offset }))
- *   engineState   – active config / ruleset / config version for the report header
- *   audit         – auditor from src/services/audit.js: audit(req, action, { targetType, targetId, outcome, details })
- *   listEventsForReport(filters) – OPTIONAL seam: returns (or resolves to) an array of full Events.
- *                   When given it replaces the repository lookup (used by unit tests and as a fallback
- *                   if the repository API changes). `filters` = { from, to, verdict, ids, max }.
- *   now()         – OPTIONAL clock for deterministic filenames in tests.
- *
- * Authorization: requireAuth is applied by the caller; this router additionally allows only the
- * admin and operator roles (generic 403 + auth.denied audit event otherwise).
- */
 const express = require('express');
 const { buildReport, FORMATS } = require('../../reports/export');
 
@@ -26,7 +8,7 @@ const VERDICTS = new Set(['allow', 'flag', 'block']);
 const ID_RE = /^[A-Za-z0-9_-]{1,100}$/;
 const ISO_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})?)?$/;
 const MAX_IDS = 500;
-const MAX_EVENTS = 1000;   // hard cap on events per report (date-range exports)
+const MAX_EVENTS = 1000;
 const PAGE = 200;          // repository page size cap
 
 let ApiErrorCtor = null;
@@ -46,7 +28,6 @@ function currentUser(req) {
   return (req.auth && req.auth.user) || req.user || null;
 }
 
-/** Validates the query string; returns { value, errors }. */
 function validateQuery(query) {
   const errors = [];
   const q = query || {};
@@ -88,7 +69,6 @@ function validateQuery(query) {
   return { value: errors.length ? null : value, errors };
 }
 
-/** Reads full events from the repository, chunking ids and paging date-range queries. */
 function readFromRepository(db, filters) {
   const base = {};
   if (filters.from) base.from = filters.from;
@@ -162,7 +142,6 @@ function createReportsRouter(options = {}) {
         filters: { ...filters, ...(filters.ids ? { ids: `${filters.ids.length} id(s)` } : {}) },
       }, format);
 
-      // Audit: what was exported, never the content.
       auditFn(req, 'report.export', {
         outcome: 'success', targetType: 'report', targetId: format,
         details: {

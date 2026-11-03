@@ -1,9 +1,8 @@
-// Audit console (admin): filters, append-only log table, hash-chain verification.
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { hashFor } from '../lib/query.js';
 import { formatTs, formatNumber, truncate, prettyJson, dateInputToIso } from '../lib/format.js';
-import { pageHeader, card, field, select, table, pagination, statusBadge, loading, errorPanel, busy } from '../ui.js';
+import { pageHeader, card, field, select, table, pagination, statusBadge, loading, errorPanel, busy, message } from '../ui.js';
 
 const PAGE = 50;
 const KEYS = ['action', 'actor', 'outcome', 'from', 'to'];
@@ -29,8 +28,8 @@ export async function render(ctx) {
   async function verify() {
     const res = await api.verifyAudit();
     mount(verifyOut, res.ok
-      ? h('p', { class: 'status-msg status-success' }, `✔ Chain intact — ${formatNumber(res.checked)} records checked; every hash links to the previous one.`)
-      : h('p', { class: 'status-msg status-error' }, `⛔ Chain broken at seq ${res.brokenAt} (${formatNumber(res.checked)} checked). A record was altered or removed outside the application — investigate and restore from backup.`));
+      ? message('success', 'Hash chain verified')
+      : message('error', `Chain broken at seq ${res.brokenAt} (${formatNumber(res.checked)} checked). A record was altered or removed outside the application — investigate and restore from backup.`));
   }
 
   const form = h('form', { class: 'form', role: 'search', 'aria-label': 'Filter audit log', on: { submit: (e) => {
@@ -46,7 +45,6 @@ export async function render(ctx) {
   mount(ctx.el,
     pageHeader('Audit log', verifyBtn),
     verifyOut,
-    h('p', { class: 'muted small' }, 'Append-only: the database refuses updates and deletes, and each record stores the SHA-256 of the previous one. Client addresses are pseudonymous (c_…).'),
     card('Filters', form),
     card(null, results));
 

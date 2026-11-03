@@ -1,4 +1,3 @@
-// Events / history: filters (kept in the URL hash so Back works), pagination, select two → Compare.
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { can } from '../lib/roles.js';

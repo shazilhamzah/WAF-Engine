@@ -1,6 +1,3 @@
-// Client-side sample helpers: examples, validation and import-file parsing.
-// These checks are for usability only — the server re-validates everything (contract §5, Sample).
-
 export const METHODS = Object.freeze(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
 export const LIMITS = Object.freeze({
   pathMax: 4096,
@@ -13,8 +10,7 @@ export const LIMITS = Object.freeze({
 });
 const HEADER_NAME = /^[A-Za-z0-9-]+$/;
 
-// Safe, instructor-approvable lab samples. The attack strings are classic textbook indicators,
-// harmless on their own; they only target the local deliberately vulnerable lab app.
+// the attack strings are textbook indicators that only target the local lab app
 export const EXAMPLES = Object.freeze([
   {
     key: 'benign-search', label: 'Benign search', kind: 'benign',
@@ -64,7 +60,6 @@ function byteLength(str) {
   return String(str).length;
 }
 
-/** Validates a Sample; returns [] when valid, else [{ field, message }]. */
 export function validateSample(sample) {
   const errors = [];
   if (!sample || typeof sample !== 'object' || Array.isArray(sample)) {
@@ -100,7 +95,6 @@ export function validateSample(sample) {
   return errors;
 }
 
-/** Normalizes a sample to exactly the contract fields (drops unknown keys, lower-cases header names). */
 export function normalizeSample(sample) {
   const headers = {};
   for (const [k, v] of Object.entries((sample && sample.headers) || {})) headers[String(k).toLowerCase()] = v;
@@ -108,7 +102,6 @@ export function normalizeSample(sample) {
   return { method: sample.method, path: sample.path, headers, body };
 }
 
-/** Header editor rows [{name, value}] → { headers, errors }. Empty rows are ignored. */
 export function rowsToHeaders(rows) {
   const headers = {};
   const errors = [];
@@ -130,16 +123,10 @@ export function headersToRows(headers) {
   return Object.entries(headers || {}).map(([name, value]) => ({ name, value: String(value) }));
 }
 
-/** Items to POST: { label, sample } when a label exists, otherwise the bare sample. */
 export function importPayload(parsed) {
   return parsed.samples.map((s, i) => (parsed.labels && parsed.labels[i] ? { label: parsed.labels[i], sample: s } : s));
 }
 
-/**
- * Parses an import file's text. Accepts either an array of samples or { samples: [...] };
- * each entry may be a Sample or { label, sample }.
- * Returns { ok, error, samples (valid, normalized), labels, invalid: [{ index, message }], total }.
- */
 export function parseImportText(text, sizeBytes, filename) {
   const result = { ok: false, error: null, samples: [], invalid: [], total: 0 };
   if (filename !== undefined && !/\.json$/i.test(String(filename))) {
@@ -178,7 +165,6 @@ export function parseImportText(text, sizeBytes, filename) {
   result.total = list.length;
   result.labels = [];
   list.forEach((item, index) => {
-    // Either a bare Sample or { label, sample } (both accepted by POST /api/import).
     const wrapped = item && typeof item === 'object' && !Array.isArray(item) && item.sample && typeof item.sample === 'object';
     const inner = wrapped ? item.sample : item;
     const label = wrapped && typeof item.label === 'string' && item.label.trim() ? item.label.trim().slice(0, LIMITS.labelMax) : null;

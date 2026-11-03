@@ -1,8 +1,4 @@
 'use strict';
-/**
- * Decision events (contract §4, §5.2). Proxy events store only the sanitized decision; console/import/replay
- * events additionally store the redacted sample so they can be replayed.
- */
 const { newId, nowIso, parseJson, escapeLike } = require('../util');
 
 const MAX_LIMIT = 200;
@@ -48,7 +44,6 @@ function mapEvent(row) {
   };
 }
 
-/** Derives the indexed columns from an engine Decision (defensive against partial decisions). */
 function columnsFromDecision(decision, fallback = {}) {
   const d = decision || {};
   const active = Array.isArray(d.matches) ? d.matches.filter((m) => m && !m.suppressedBy) : [];
@@ -121,11 +116,6 @@ function createEventsRepository({ raw, clock }) {
 
   return {
     SOURCES, VERDICTS, ACTIONS, MAX_LIMIT,
-    /**
-     * Stores a decision as an event.
-     * @param {{ source, decision, label?, clientId?, sample?, latencyMs?, submittedBy?, replayOf?, fallback? }} rec
-     * @returns full Event
-     */
     record({ source, decision, label = null, clientId = null, sample = null, latencyMs = null, submittedBy = null, replayOf = null, fallback = {} }) {
       if (!SOURCES.includes(source)) throw new Error('invalid event source');
       const c = columnsFromDecision(decision, fallback);
@@ -141,10 +131,6 @@ function createEventsRepository({ raw, clock }) {
     get(id) { return mapEvent(stmts.get.get(String(id))); },
     getSummary(id) { const row = stmts.get.get(String(id)); return row ? mapSummary(row) : null; },
     count() { return stmts.count.get().n; },
-    /**
-     * Filtered list (newest first). `full: true` returns full Events (reports); default EventSummary.
-     * limit is capped at 200.
-     */
     list(filters = {}) {
       const { sql, params } = buildWhere(filters);
       const limit = Math.min(Math.max(parseInt(filters.limit, 10) || 50, 1), MAX_LIMIT);
@@ -153,11 +139,9 @@ function createEventsRepository({ raw, clock }) {
       const rows = raw.prepare(`${SELECT_FULL}${sql} ORDER BY e.ts DESC, e.rowid DESC LIMIT ? OFFSET ?`).all(...params, limit, offset);
       return { items: rows.map(filters.full ? mapEvent : mapSummary), total };
     },
-    /** Recent full events whose active matches include ruleId (exception impact preview). */
     recentWithRule(ruleId, limit = 1000) {
       return stmts.withRule.all(Number(ruleId), Math.min(Math.max(Number(limit) || 1000, 1), 5000)).map(mapEvent);
     },
-    /** Dashboard statistics over the last `hours` hours (contract §5.2 GET /api/stats). */
     stats({ hours = 24 } = {}) {
       const now = clock();
       const h = Math.min(Math.max(parseInt(hours, 10) || 24, 1), 720);
@@ -199,7 +183,6 @@ function createEventsRepository({ raw, clock }) {
         timeline: [...buckets.values()],
       };
     },
-    /** Retention: keeps the newest `maxRows` events (data minimization). Returns rows deleted. */
     prune(maxRows) {
       const n = Math.max(parseInt(maxRows, 10) || 0, 0);
       if (!n) return 0;
