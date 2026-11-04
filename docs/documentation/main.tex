@@ -287,7 +287,7 @@ SQL injection & 942xxx & 10 \\
 %==================================================================
 \chapter{Console and Application Security}
 \section{Web Console}
-The console groups its screens by task: \emph{Activity} (Overview, Events, Reports), \emph{Tools} (Analyze request, Import samples), \emph{Policy} (Rules, Configuration, Exceptions) and \emph{Administration} (Audit log, Users), plus an account page. Each role sees only the groups it can use. The Overview (Figure~\ref{fig:dash}) answers the most common question first: how many requests were inspected, blocked and passed in a chosen time range, with a recommended next action, an hourly activity chart and the most frequent detection categories.
+The console groups its screens by task: \emph{Activity} (Overview, Events with inline report export), \emph{Tools} (Analyze, combining single-request inspection and batch JSON import), \emph{Policy} (Rules, Configuration, Exceptions) and \emph{Administration} (Audit log, Users), plus an account page in the header. Each role sees only the groups it can use, and secondary forms (such as creating rules, exception requests and users, or viewing version history) expand on demand to keep the interface minimal. The Overview (Figure~\ref{fig:dash}) answers the most common question first: how many requests were inspected, blocked and passed in a chosen time range, with a recommended next action, an hourly activity chart and the most frequent detection categories.
 
 \begin{figure}[!h]
 \centering
@@ -297,12 +297,12 @@ The console groups its screens by task: \emph{Activity} (Overview, Events, Repor
 \end{figure}
 
 \section{Explainable Evidence}
-Opening an event shows the evidence behind the decision (Figure~\ref{fig:evidence}): each matched rule with its points, where it matched, the total against the thresholds, the rate-limit state, the mode, and a recommendation that explains how to request a scoped exception instead of disabling a rule.
+Opening an event shows the evidence behind the decision across three focused cards (\emph{Decision \& score}, \emph{Rule matches} and \emph{Request \& metadata}): the unified outcome badge, each matched rule with its points and location, the total score against the thresholds, any parser anomalies or rate-limit state, and a recommendation that explains how to request a scoped exception instead of disabling a rule (Figure~\ref{fig:evidence}).
 
 \begin{figure}[!h]
 \centering
 \includegraphics[width=0.85\textwidth]{Figures/evidence.png}
-\caption{The ``Why this decision'' card for a blocked request with a score of 9.}
+\caption{Decision explanation and recommendation for a blocked request with a score of 9.}
 \label{fig:evidence}
 \end{figure}
 

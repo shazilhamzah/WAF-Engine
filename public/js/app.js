@@ -117,7 +117,9 @@ function renderShell() {
 }
 
 function markActiveNav(route) {
-  const active = route === 'event' || route === 'compare' ? 'events' : route;
+  const active = route === 'event' || route === 'compare' || route === 'reports'
+    ? 'events'
+    : route === 'import' ? 'analyze' : route;
   for (const a of document.querySelectorAll('.nav-link')) {
     if (a.dataset.route === active) {
       a.setAttribute('aria-current', 'page');

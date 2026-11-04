@@ -39,13 +39,14 @@ export async function render(ctx) {
       from: dateInputToIso(from.value) || q.from, to: dateInputToIso(to.value, true) || q.to,
     }));
   } } },
-  h('div', { class: 'form-row' }, field('Action', action), field('Actor', actor), field('Outcome', outcome), field('From', from), field('To', to)),
-  h('div', { class: 'btn-group' }, h('button', { type: 'submit', class: 'btn btn-primary' }, 'Apply filters'), h('a', { class: 'btn', href: '#/audit' }, 'Reset')));
+  h('div', { class: 'form-row' },
+    field('Action', action), field('Actor', actor), field('Outcome', outcome), field('From', from), field('To', to),
+    h('div', { class: 'btn-group' }, h('button', { type: 'submit', class: 'btn btn-primary' }, 'Filter'), h('a', { class: 'btn', href: '#/audit' }, 'Reset'))));
 
   mount(ctx.el,
     pageHeader('Audit log', verifyBtn),
     verifyOut,
-    card('Filters', form),
+    card(null, form),
     card(null, results));
 
   let res;

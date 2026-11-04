@@ -2,9 +2,9 @@ import { h, s, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { can } from '../lib/roles.js';
 import { hashFor } from '../lib/query.js';
-import { summarizeOutcomes, eventOutcome, CATEGORY_NAMES, SOURCE_NAMES } from '../lib/dashboard.js';
+import { summarizeOutcomes, CATEGORY_NAMES, SOURCE_NAMES } from '../lib/dashboard.js';
 import { formatNumber, formatMs, hourLabel, formatTs, truncate } from '../lib/format.js';
-import { pageHeader, card, table, hbar, loading, errorPanel, emptyState, select, busy, badge } from '../ui.js';
+import { pageHeader, card, table, hbar, loading, errorPanel, emptyState, select, busy, outcomeBadge } from '../ui.js';
 import { icon } from '../icons.js';
 
 const WINDOWS = [
@@ -18,11 +18,6 @@ function metric(label, value, description, kind = '') {
     h('span', { class: 'metric-label' }, label),
     h('span', { class: 'metric-value' }, formatNumber(value)),
     h('span', { class: 'metric-description' }, description));
-}
-
-function outcomeBadge(event) {
-  const info = eventOutcome(event);
-  return badge(info.text, info.tone);
 }
 
 function bucketLabel(hour, hours) {
@@ -71,21 +66,12 @@ function timeline(buckets, hours) {
   return h('div', null,
     h('div', { class: 'timeline-wrap' }, s('svg', {
       class: 'timeline overview-timeline', viewBox: `0 0 ${W} ${H}`, role: 'img',
-      'aria-label': `${total} inspections by hour. The expandable data table gives exact counts and local times.`,
+      'aria-label': `${total} inspections by hour.`,
     }, ...bars)),
     h('div', { class: 'legend-row', 'aria-hidden': 'true' },
       h('span', null, h('span', { class: 'swatch swatch-allowed' }), 'Passed'),
       h('span', null, h('span', { class: 'swatch swatch-logged' }), 'Monitor only'),
-      h('span', null, h('span', { class: 'swatch swatch-blocked' }), 'Blocked')),
-    h('details', { class: 'chart-data' }, h('summary', null, 'View exact counts'), table({
-      caption: 'Hourly inspection outcomes, local time', className: 'table-compact',
-      columns: [
-        { key: 'hour', label: 'Local time', render: (b) => formatTs(b.hour) },
-        { key: 'allowed', label: 'Passed', className: 'num' },
-        { key: 'logged', label: 'Monitor only', className: 'num' },
-        { key: 'blocked', label: 'Blocked', className: 'num' },
-      ], rows: buckets.map((b) => ({ ...b, allowed: b.allowed || 0, logged: b.logged || 0, blocked: b.blocked || 0 })),
-    })));
+      h('span', null, h('span', { class: 'swatch swatch-blocked' }), 'Blocked')));
 }
 
 export async function render(ctx) {
@@ -96,7 +82,6 @@ export async function render(ctx) {
   const filter = h('label', { class: 'overview-window', for: 'overview-window' }, h('span', null, 'Time range'), windowSel);
   mount(ctx.el,
     pageHeader('Overview', filter, refreshBtn),
-    h('p', { class: 'overview-intro' }, 'All inspections · Proxy traffic, manual analyses, imports and replays.'),
     body);
 
   async function load() {
@@ -182,8 +167,7 @@ export async function render(ctx) {
           ? h('a', { href: '#/analyze', class: 'link-arrow' }, 'Analyze a request', icon('arrow-right')) : null),
       h('div', { class: 'overview-charts' }, activity, detections),
       recentCard,
-      h('div', { class: 'overview-bottom' }, details,
-        h('span', { class: 'muted small', role: 'status' }, `Updated ${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}`)));
+      h('div', { class: 'overview-bottom' }, details));
     body.setAttribute('aria-busy', 'false');
   }
   const breakpoint = window.matchMedia('(max-width: 720px)');

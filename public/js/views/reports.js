@@ -39,7 +39,7 @@ export function render(ctx) {
     if (problems.length) return;
     await busy(btn, async () => {
       const res = await api.exportReport({ format: fmt, from: f, to: t, verdict: verdict.value, ids: list });
-      showStatus(`Downloaded ${res.name}. The export was recorded in the audit log.`, 'success');
+      showStatus(`Downloaded ${res.name}.`, 'success');
     });
   }
 

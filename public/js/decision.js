@@ -2,7 +2,7 @@
 import { h, s, code } from './dom.js';
 import { formatMs, formatBytes, shortHash, scoreScaleMax, formatTs, prettyJson } from './lib/format.js';
 import { hashFor } from './lib/query.js';
-import { verdictBadge, actionBadge, modeBadge, severityBadge, chip, table, kvList, card, emptyState, statusLabel } from './ui.js';
+import { outcomeBadge, severityBadge, chip, table, kvList, card, statusLabel } from './ui.js';
 
 export function scoreBar(score) {
   const sc = score || {};
@@ -27,8 +27,7 @@ export function scoreBar(score) {
   }
   const label = `Anomaly score ${total}. Flag threshold ${Number.isFinite(flag) ? flag : 'unknown'}, block threshold ${Number.isFinite(block) ? block : 'unknown'}.`;
   return h('div', { class: 'score' },
-    h('p', null, h('strong', null, `Score ${total}`), ` — flag at ${Number.isFinite(flag) ? flag : '—'}, block at ${Number.isFinite(block) ? block : '—'}`,
-      tone === 'bad' ? ' (at or above block threshold)' : tone === 'warn' ? ' (at or above flag threshold)' : ' (below thresholds)'),
+    h('p', null, h('strong', null, `Score ${total}`), ` — flag at ${Number.isFinite(flag) ? flag : '—'}, block at ${Number.isFinite(block) ? block : '—'}`),
     s('svg', { class: 'scorebar', viewBox: `0 0 ${W} 54`, role: 'img', 'aria-label': label }, ...parts));
 }
 
@@ -43,13 +42,10 @@ export function decisionSummary(event) {
   const expl = Array.isArray(d.explanation) ? d.explanation : [];
   return h('div', { class: 'decision-summary' },
     h('div', { class: 'badges' },
-      verdictBadge(d.verdict || event.verdict),
-      actionBadge(d.action || event.action),
-      d.statusCode ? chip(`HTTP ${d.statusCode}`, 'bad') : null,
-      modeBadge(d.mode || event.mode),
-      d.wouldBlock && d.action !== 'blocked' ? chip('would block in block mode', 'warn') : null),
+      outcomeBadge({ verdict: d.verdict || event.verdict, action: d.action || event.action }),
+      d.statusCode ? chip(`HTTP ${d.statusCode}`, 'bad') : null),
     scoreBar(d.score),
-    expl.length ? h('ol', { class: 'explanation' }, ...expl.slice(0, 5).map((t) => h('li', null, String(t)))) : h('p', { class: 'muted' }, 'No rule matched; no warnings.'),
+    expl.length ? h('ol', { class: 'explanation' }, ...expl.slice(0, 5).map((t) => h('li', null, String(t)))) : null,
     d.recommendation ? h('p', { class: 'recommendation' }, 'Recommendation: ', String(d.recommendation)) : null);
 }
 
@@ -64,15 +60,12 @@ function exceptionLink(event, m) {
 function matchesTable(event, list, { canRequest, suppressed }) {
   const columns = [
     { key: 'rule', label: 'Rule', render: (m) => h('span', null, code(m.ruleId), ' ', String(m.ruleName || '')), rowHeader: true },
-    { key: 'ruleVersion', label: 'Ver', className: 'num' },
     { key: 'severity', label: 'Severity', render: (m) => severityBadge(m.severity) },
     { key: 'points', label: 'Points', className: 'num', render: (m) => (m.points === undefined ? '—' : `+${m.points}`) },
     { key: 'category', label: 'Category' },
     { key: 'location', label: 'Location', render: (m) => code(m.location) },
-    { key: 'operator', label: 'Operator' },
     { key: 'excerpt', label: 'Matched excerpt', render: (m) => code(m.excerpt, 'code excerpt') },
     { key: 'decodedVia', label: 'Decoded via', render: (m) => (Array.isArray(m.decodedVia) && m.decodedVia.length ? h('span', null, ...m.decodedVia.map((d) => [chip(d, 'info'), ' '])) : 'none') },
-    { key: 'tags', label: 'Tags', render: (m) => (Array.isArray(m.tags) && m.tags.length ? m.tags.join(', ') : '—') },
   ];
   if (suppressed) columns.push({ key: 'suppressedBy', label: 'Suppressed by', render: (m) => code(m.suppressedBy) });
   else if (canRequest) {
@@ -85,72 +78,55 @@ export function evidenceSections(event, { canRequest }) {
   const d = event.decision || {};
   const req = d.request || {};
   const rl = d.rateLimit || null;
-  const eng = d.engine || {};
   const t = d.timings || {};
-  const contributions = (d.score && d.score.contributions) || [];
   const expl = Array.isArray(d.explanation) ? d.explanation : [];
+  const anomalies = Array.isArray(d.anomalies) ? d.anomalies : [];
+  const suppressed = Array.isArray(d.suppressed) ? d.suppressed : [];
 
   return [
-    card('Score',
+    card('Decision & score',
       scoreBar(d.score),
       categoryLine(d.score && d.score.byCategory),
-      contributions.length ? h('details', null, h('summary', null, 'Score contributions'),
-        table({
-          caption: 'Score contributions', className: 'table-compact',
-          columns: [
-            { key: 'source', label: 'Source' },
-            { key: 'id', label: 'Id', render: (c) => code(c.id) },
-            { key: 'points', label: 'Points', className: 'num', render: (c) => `+${c.points}` },
-            { key: 'reason', label: 'Reason', render: (c) => String(c.reason || '') },
-          ],
-          rows: contributions,
-        })) : null),
-    card('Why this decision',
-      expl.length ? h('ol', { class: 'explanation' }, ...expl.map((x) => h('li', null, String(x)))) : h('p', { class: 'muted' }, 'No rule matched and no anomalies were found.'),
       d.recommendation ? h('p', { class: 'recommendation' }, 'Recommendation: ', String(d.recommendation)) : null,
-      d.blockReason ? h('p', null, 'Block reason: ', code(d.blockReason)) : null),
-    card('Rule matches', matchesTable(event, d.matches || [], { canRequest })),
-    (d.suppressed && d.suppressed.length) ? card('Suppressed by approved exceptions',
-      h('p', { class: 'muted small' }, 'These matches were found but did not count towards the score because an approved exception covers them.'),
-      matchesTable(event, d.suppressed, { suppressed: true })) : null,
-    card('Parser anomalies', (d.anomalies && d.anomalies.length) ? table({
-      caption: 'Parser anomalies', className: 'table-compact',
-      columns: [
-        { key: 'code', label: 'Code', render: (a) => code(a.code) },
-        { key: 'points', label: 'Points', className: 'num', render: (a) => (a.points ? `+${a.points}` : '0') },
-        { key: 'message', label: 'Meaning', render: (a) => String(a.message || '') },
-      ],
-      rows: d.anomalies,
-    }) : emptyState('No parser anomalies.')),
-    card('Rate limit', rl && rl.checked ? kvList([
-      ['Status', rl.limited ? statusLabel('limited', 'bad') : statusLabel('within limit', 'ok')],
-      ['Count in window', `${rl.count} / ${rl.limit}`],
-      ['Window', rl.windowMs ? `${Math.round(rl.windowMs / 1000)} s` : '—'],
-    ]) : emptyState('Rate limiting was not checked for this event (console analysis is not rate-limited by the WAF stage).')),
-    card('Request summary (sanitized)', kvList([
-      ['Method', code(req.method || event.method)],
-      ['Path', code(req.path || event.path)],
-      ['Query parameter names', (req.queryNames && req.queryNames.length) ? h('span', null, ...req.queryNames.map((n) => [code(n), ' '])) : '—'],
-      ['Body field names', (req.bodyNames && req.bodyNames.length) ? h('span', null, ...req.bodyNames.map((n) => [code(n), ' '])) : '—'],
-      ['Content type', req.contentType ? code(req.contentType) : '—'],
-      ['Body size', `${formatBytes(req.bodyBytes)} (inspected ${formatBytes(req.inspectedBytes)}${req.truncated ? ', truncated' : ''})`],
-      ['User agent', req.userAgent ? code(req.userAgent) : '—'],
-    ])),
-    card('Reproducibility', kvList([
-      ['Engine version', code(eng.engineVersion)],
-      ['Ruleset version', code(event.rulesetVersion || eng.rulesetVersion)],
-      ['Config version', code(event.configVersion ?? eng.configVersion)],
-      ['Timings', `parse ${formatMs(t.parseMs)} · rules ${formatMs(t.rulesMs)} · total ${formatMs(t.totalMs)}`],
-      ['Recorded', formatTs(event.ts)],
-      ['Source', event.source],
-      ['Submitted by', event.submittedBy || '—'],
-      ['Client (pseudonym)', event.clientId ? code(event.clientId) : '—'],
-      ['Replay of', event.replayOf ? h('a', { href: `#/events/${encodeURIComponent(event.replayOf)}` }, code(event.replayOf)) : '—'],
-    ])),
-    event.sample ? card('Stored sample (redacted)',
-      h('p', { class: 'muted small' }, 'Secrets such as authorization and cookie headers or password fields are masked before storage.'),
-      h('pre', null, prettyJson(event.sample))) : null,
-    h('details', { class: 'card' }, h('summary', null, 'Raw decision JSON'), h('pre', null, prettyJson(d))),
+      d.blockReason ? h('p', null, 'Block reason: ', code(d.blockReason)) : null,
+      expl.length ? h('details', null, h('summary', null, `Decision steps (${expl.length})`),
+        h('ol', { class: 'explanation' }, ...expl.map((x) => h('li', null, String(x))))) : null),
+    card('Rule matches',
+      matchesTable(event, d.matches || [], { canRequest }),
+      suppressed.length ? h('details', null, h('summary', null, `Suppressed by exceptions (${suppressed.length})`),
+        matchesTable(event, suppressed, { suppressed: true })) : null,
+      anomalies.length ? h('details', { open: true }, h('summary', null, `Parser anomalies (${anomalies.length})`),
+        table({
+          caption: 'Parser anomalies', className: 'table-compact',
+          columns: [
+            { key: 'code', label: 'Code', render: (a) => code(a.code) },
+            { key: 'points', label: 'Points', className: 'num', render: (a) => (a.points ? `+${a.points}` : '0') },
+            { key: 'message', label: 'Meaning', render: (a) => String(a.message || '') },
+          ],
+          rows: anomalies,
+        })) : null,
+      (rl && rl.checked) ? h('details', { open: Boolean(rl.limited) }, h('summary', null, 'Rate limit'),
+        kvList([
+          ['Status', rl.limited ? statusLabel('limited', 'bad') : statusLabel('within limit', 'ok')],
+          ['Count in window', `${rl.count} / ${rl.limit}`],
+          ['Window', rl.windowMs ? `${Math.round(rl.windowMs / 1000)} s` : '—'],
+        ])) : null),
+    card('Request & metadata',
+      kvList([
+        (req.queryNames && req.queryNames.length) ? ['Query parameters', h('span', null, ...req.queryNames.map((n) => [code(n), ' ']))] : null,
+        (req.bodyNames && req.bodyNames.length) ? ['Body fields', h('span', null, ...req.bodyNames.map((n) => [code(n), ' ']))] : null,
+        req.contentType ? ['Content type', code(req.contentType)] : null,
+        ['Body size', `${formatBytes(req.bodyBytes)} (inspected ${formatBytes(req.inspectedBytes)}${req.truncated ? ', truncated' : ''})`],
+        req.userAgent ? ['User agent', code(req.userAgent)] : null,
+        ['Recorded', formatTs(event.ts)],
+        ['Timings', `parse ${formatMs(t.parseMs)} · rules ${formatMs(t.rulesMs)} · total ${formatMs(t.totalMs)}`],
+        ['Versions', versionLine(event)],
+        event.clientId ? ['Client', code(event.clientId)] : null,
+        event.submittedBy ? ['Submitted by', event.submittedBy] : null,
+        event.replayOf ? ['Replay of', h('a', { href: `#/events/${encodeURIComponent(event.replayOf)}` }, code(event.replayOf))] : null,
+      ]),
+      event.sample ? h('details', null, h('summary', null, 'Stored sample (redacted)'), h('pre', null, prettyJson(event.sample))) : null,
+      h('details', null, h('summary', null, 'Raw decision JSON'), h('pre', null, prettyJson(d)))),
   ];
 }
 

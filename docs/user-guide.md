@@ -50,21 +50,20 @@ Policy/Administration expand when needed. **Account** appears once in the header
   a supporting count, not added to the total. These are inspection records from proxy traffic,
   manual analyses, imports and replays, not a count of proxy traffic alone.
 * **Recommended action** links to relevant filtered events or to request analysis when appropriate.
-* **Inspection activity** shows hourly outcomes in local time, with dates for multi-day ranges.
-  **View exact counts** exposes a keyboard-accessible table alternative.
+* **Inspection activity** shows hourly outcomes in local time, with dates for multi-day ranges and per-bar tooltips.
 * **Detected patterns** uses readable category names. **Matched rules** expands to show rule IDs,
   names and match counts without competing with the main overview.
 * **Recent inspections** shows the latest five records within the same selected time window.
   One outcome badge distinguishes blocked, passed, flagged-but-passed and would-block-in-monitor
   records. Full verdict/action/score evidence remains on the event detail screen.
 * **System details** expands to show full ruleset/config versions and latency statistics.
-* **Refresh** updates the snapshot and the single global protection indicator; the update time is shown below.
+* **Refresh** updates the snapshot and the single global protection indicator.
 
 Current screenshots: [desktop](images/dashboard-desktop.png), [phone width](images/dashboard-mobile.png).
 
 ## 4. Analyzing a request (Analyze)
 
-1. Open **Tools → Analyze request**. Optionally click a **Load example** button:
+1. Open **Tools → Analyze** (`Single request` tab). Optionally choose from the **Load example…** dropdown in the header:
    * `✔ Benign search`, `✔ Benign name with apostrophe`, `✔ Benign JSON comment` — normal inputs, including
      classic false-positive candidates (an apostrophe; the words *select* and *union* in prose).
    * `⚠ SQL injection`, `⚠ Cross-site scripting`, `⚠ Path traversal`, `⚠ Double-encoded traversal` — textbook
@@ -73,13 +72,14 @@ Current screenshots: [desktop](images/dashboard-desktop.png), [phone width](imag
    rows; *+ Add header*, *✕* to remove) and **Body**. Give it a **Label** so you can find it later.
 3. Press **Analyze**. The console checks the obvious problems first (method, path, header names, sizes) and lists them
    if anything is wrong; the server validates everything again.
-4. The **Result** panel shows the verdict and action badges, the score bar with the flag and block thresholds,
+4. The **Result** card appears with the unified outcome badge, the score bar with the flag and block thresholds,
    the explanation and the recommendation. Press **Open full evidence →** for the complete record.
 
 Repeated submissions are rate-limited; if you see *"Too many requests. Try again in N seconds."* wait and retry.
 
-## 5. Importing samples (Import)
+## 5. Importing samples (Batch import tab)
 
+* Open **Tools → Analyze** and select the **Batch import (.json)** tab (or visit `#/import`).
 * Choose a `.json` file of at most **256 KB** with at most **100 samples**: either an array of samples or
   `{ "samples": [ … ] }`. Each entry is a sample (`{ "method": "GET", "path": "/search?q=shoes", "headers": {}, "body": null }`)
   or `{ "label": "…", "sample": { … } }`.
@@ -90,42 +90,35 @@ Repeated submissions are rate-limited; if you see *"Too many requests. Try again
 
 ## 6. Reading a decision — the evidence view
 
-Open an event from **Events**, the dashboard, or the Analyze result. From top to bottom:
+Open an event from **Events**, the dashboard, or the Analyze result. The view is organized into a summary bar and three cards:
 
 | Section | What it tells you |
 |---|---|
-| Badges | **Verdict** (`✔ allow`, `⚑ flag`, `⛔ block`) is the engine's opinion; **Action** is what actually happened (`allowed`, `logged (monitor)`, `blocked`), plus the HTTP status returned to the client and *would block: yes/no*. In monitor mode a block verdict is only logged. |
-| Score | The anomaly score against the **flag** and **block** thresholds (dashed markers), the per-category breakdown and, under *Score contributions*, every rule or anomaly that added points. |
-| Why this decision | Plain-language explanation lines (e.g. *"Rule 942100 'SQLi boolean tautology' matched query.q after URL decoding (+5)"*), the recommendation and, if blocked, the block reason (`SCORE_THRESHOLD`, `RATE_LIMITED`, `MALFORMED_REQUEST`, `BODY_TOO_LARGE`). |
-| Rule matches | Per match: rule id, name and version, severity, points, category, **location** (`query.q`, `body.comment`, `header.user-agent`, …), operator, the **matched excerpt** (shown as inert text, at most 120 characters, secrets masked) and **decoded via** chips (`url`, `html`, `unicode` …) showing which normalization revealed the attack. |
-| Suppressed by approved exceptions | Matches that were found but did not score because an approved exception covers them, with the exception id — tuning never hides evidence. |
-| Parser anomalies | Codes such as `DOUBLE_ENCODING` or `BODY_PARTIALLY_INSPECTED` with their points. |
-| Rate limit | Count in the current window and whether the client was limited (proxy traffic). |
-| Request summary | Sanitized: method, path, parameter *names*, content type, sizes, user agent. Proxy events never store bodies or header values. |
-| Reproducibility | Engine version, ruleset version, configuration version, timings, source, who submitted it, client pseudonym (`c_…`, never the IP) and *Replay of* link. |
-| Stored sample (redacted) | Console/import events only: the sample with `authorization`, cookies and password-like fields masked. |
+| Summary bar | Unified **Outcome** badge (`Passed`, `Flagged · passed`, `Would block · monitor`, `Blocked`), HTTP status chip when blocked, event source/label and the request `METHOD /path`. |
+| Decision & score | The anomaly score bar against the **flag** and **block** thresholds (dashed markers), the per-category breakdown, the tuning recommendation, block reason (if blocked) and expandable **Decision steps** explaining each rule/anomaly contribution. |
+| Rule matches | Per match: rule id and name, severity, points, category, **location** (`query.q`, `body.comment`, `header.user-agent`, …), the **matched excerpt** (shown as inert text, at most 120 characters, secrets masked) and **decoded via** chips (`url`, `html`, `unicode` …). Also includes expandable **Suppressed by exceptions**, **Parser anomalies** and **Rate limit** sections when present. |
+| Request & metadata | Sanitized request parameters, body sizes, user agent, timestamps, timings, engine/ruleset/config versions, client pseudonym (`c_…`, never the IP), and expandable **Stored sample (redacted)** and **Raw decision JSON** views. |
 
-What a **normal** sample looks like: `✔ allow`, action `allowed`, score below the flag threshold, *"No rule matched;
-no warnings."*. What a **seeded adverse** sample looks like: `⛔ block` (or `⚑ flag`), the exact rule, location and
+What a **normal** sample looks like: `✔ Passed`, score below the flag threshold, *"No rule matched this request."*.
+What a **seeded adverse** sample looks like: `■ Blocked` (or `⚑ Flagged · passed`), the exact rule, location and
 excerpt that triggered it — never just "unsafe".
 
 ### Actions on an event
 
-* **↻ Replay with current rules** (console and import events): re-runs the stored sample with today's rules,
+* **↻ Replay** (console and import events): re-runs the stored sample with today's rules,
   thresholds and exceptions and opens the new event, which links back to the original. Proxy events cannot be
   replayed because their bodies are not stored.
-* **Compare with original** (on replays) / **Compare with…**: opens the compare view.
-* **⇩ Export this event**: downloads a report for just this event in the chosen format.
+* **Compare with original** (on replays) / **Compare…**: opens the compare view.
+* **⇩ Export**: downloads a report for just this event in the chosen format (`html`, `csv`, `json`).
 * **Request exception** (per match): opens the exception form pre-filled with the rule id, location, path and method.
 
-## 7. History and comparison (Events, Compare)
+## 7. History, comparison and export (Events, Compare)
 
-* **Filters**: verdict, action, source (`proxy`, `console`, `import`, `replay`), rule id, free text (path, label,
-  event id, method) and a date range. Filters live in the address bar, so Back/Forward and bookmarks work.
-* Results are paged 50 at a time (**‹ Previous / Next ›**).
-* Tick **two** events and press **Compare selected (2/2)**. The compare view lists a summary of differences
-  (verdict changed, score delta, rules added/removed, ruleset or configuration changed) and a side-by-side table in
-  which every differing row is marked **"≠ changed"** and highlighted, followed by both score bars and explanations.
+* **Filters**: search text (path, label, event id, method), verdict, source (`proxy`, `console`, `import`, `replay`),
+  date range, and expandable **More filters** (`Action`, `Rule id`). Filters live in the address bar, so Back/Forward and bookmarks work.
+* Results are paged 50 at a time (**‹ Previous / Next ›**) and show a single unified **Outcome** badge per row.
+* **Compare**: tick **two** events and press **Compare (2/2)**. The compare view highlights all differing fields (`≠`) at the top and groups identical fields into an expandable **Unchanged fields** section.
+* **Export**: choose `html`, `csv` or `json` in the **Events** header and press **⇩ Export** to download a report for either the selected events or the current filter set (or use `#/reports` for a standalone export form).
 
 ## 8. Requesting an exception (tuning a false positive)
 

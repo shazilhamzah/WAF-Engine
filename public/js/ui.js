@@ -1,5 +1,6 @@
 import { h, s, mount, clear, uid, code } from './dom.js';
 import { verdictInfo, actionInfo, severityInfo, statusInfo, modeInfo, formatNumber } from './lib/format.js';
+import { eventOutcome } from './lib/dashboard.js';
 import { rolesForRoute } from './lib/roles.js';
 import { icon } from './icons.js';
 
@@ -13,6 +14,7 @@ export const actionBadge = (a) => badgeFrom(actionInfo(a));
 export const severityBadge = (sv) => badgeFrom(severityInfo(sv));
 export const statusBadge = (st) => badgeFrom(statusInfo(st));
 export const modeBadge = (m) => badgeFrom(modeInfo(m), 'badge-mode');
+export const outcomeBadge = (event) => badgeFrom(eventOutcome(event || {}));
 export function chip(text, tone = 'muted') {
   return h('span', { class: ['chip', `tone-${tone}`] }, text);
 }

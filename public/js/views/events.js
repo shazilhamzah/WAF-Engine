@@ -3,7 +3,8 @@ import { api } from '../api.js';
 import { can } from '../lib/roles.js';
 import { hashFor } from '../lib/query.js';
 import { formatTs, truncate, formatMs, dateInputToIso } from '../lib/format.js';
-import { pageHeader, card, field, select, table, pagination, verdictBadge, actionBadge, loading, errorPanel, showStatus } from '../ui.js';
+import { icon } from '../icons.js';
+import { pageHeader, card, field, select, table, pagination, outcomeBadge, loading, errorPanel, showStatus, busy } from '../ui.js';
 
 const PAGE = 50;
 const FILTER_KEYS = ['verdict', 'action', 'source', 'ruleId', 'q', 'from', 'to'];
@@ -21,6 +22,7 @@ export async function render(ctx) {
   const offset = Math.max(0, parseInt(q.offset, 10) || 0);
   const canDetail = can(ctx.role, 'events.detail');
   const canCompare = can(ctx.role, 'events.compare');
+  const canExport = can(ctx.role, 'reports.export');
   const selected = [];
 
   const verdict = select([{ value: '', label: 'Any' }, 'allow', 'flag', 'block'], q.verdict || '');
@@ -30,7 +32,9 @@ export async function render(ctx) {
   const text = h('input', { type: 'search', maxlength: 200, value: q.q || '', placeholder: 'path or label' });
   const from = h('input', { type: 'date', value: isoToDateInput(q.from) });
   const to = h('input', { type: 'date', value: isoToDateInput(q.to) });
-  const compareBtn = h('button', { type: 'button', class: 'btn btn-primary', disabled: true, on: { click: goCompare } }, 'Compare selected (0/2)');
+  const compareBtn = h('button', { type: 'button', class: 'btn btn-primary', disabled: true, on: { click: goCompare } }, 'Compare (0/2)');
+  const fmt = select(['html', 'csv', 'json'], 'html', { 'aria-label': 'Export format' });
+  const exportBtn = h('button', { type: 'button', class: 'btn', on: { click: doExport } }, icon('download'), 'Export');
 
   function currentFilters() {
     const f = {};
@@ -57,12 +61,22 @@ export async function render(ctx) {
     if (selected.length === 2) ctx.navigate(hashFor('/compare', { a: selected[0], b: selected[1] }));
   }
 
+  async function doExport() {
+    await busy(exportBtn, async () => {
+      const params = selected.length
+        ? { format: fmt.value, ids: selected }
+        : { format: fmt.value, from: q.from || dateInputToIso(from.value), to: q.to || dateInputToIso(to.value, true), verdict: q.verdict || verdict.value };
+      const r = await api.exportReport(params);
+      showStatus(`Downloaded ${r.name}.`, 'success');
+    });
+  }
+
   function toggle(id, checkbox) {
     const i = selected.indexOf(id);
     if (checkbox.checked && i < 0) selected.push(id);
     if (!checkbox.checked && i >= 0) selected.splice(i, 1);
     compareBtn.disabled = selected.length !== 2;
-    compareBtn.textContent = `Compare selected (${selected.length}/2)`;
+    compareBtn.textContent = `Compare (${selected.length}/2)`;
     for (const cb of ctx.el.querySelectorAll('input.pick')) {
       cb.disabled = !cb.checked && selected.length >= 2;
     }
@@ -70,18 +84,23 @@ export async function render(ctx) {
 
   const filters = h('form', { class: 'form', role: 'search', 'aria-label': 'Filter events', on: { submit: apply } },
     h('div', { class: 'form-row' },
-      field('Verdict', verdict), field('Action', action), field('Source', source),
-      field('Rule id', ruleId), field('Text', text)),
-    h('div', { class: 'form-row' },
+      field('Search', text), field('Verdict', verdict), field('Source', source),
       field('From', from), field('To', to),
       h('div', { class: 'btn-group' },
-        h('button', { type: 'submit', class: 'btn btn-primary' }, 'Apply filters'),
-        h('a', { class: 'btn', href: '#/events' }, 'Reset'))));
+        h('button', { type: 'submit', class: 'btn btn-primary' }, 'Filter'),
+        h('a', { class: 'btn', href: '#/events' }, 'Reset'))),
+    h('details', { class: 'filter-more', open: Boolean(q.action || q.ruleId) },
+      h('summary', null, 'More filters'),
+      h('div', { class: 'form-row' }, field('Action', action), field('Rule id', ruleId))));
+
+  const headerActions = [];
+  if (canExport) headerActions.push(h('span', { class: 'btn-group' }, fmt, exportBtn));
+  if (canCompare) headerActions.push(compareBtn);
 
   const results = h('div', null, loading());
   mount(ctx.el,
-    pageHeader('Events', canCompare ? compareBtn : null),
-    card('Filters', filters),
+    pageHeader('Events', ...headerActions),
+    card(null, filters),
     card(null, results));
 
   let data;
@@ -97,7 +116,7 @@ export async function render(ctx) {
   const columns = [];
   if (canCompare) {
     columns.push({
-      key: 'pick', label: 'Select',
+      key: 'pick', label: '',
       render: (e) => {
         const cb = h('input', { type: 'checkbox', class: 'pick', 'aria-label': `Select event ${e.id} for comparison` });
         cb.addEventListener('change', () => toggle(e.id, cb));
@@ -111,16 +130,13 @@ export async function render(ctx) {
     { key: 'req', label: 'Request', className: 'wrap-anywhere', render: (e) => (canDetail
       ? h('a', { href: `#/events/${encodeURIComponent(e.id)}`, 'aria-label': `Details for ${e.method} ${truncate(e.path, 60)}` }, code(`${e.method} ${truncate(e.path, 80)}`))
       : code(`${e.method} ${truncate(e.path, 80)}`)) },
-    { key: 'verdict', label: 'Verdict', render: (e) => verdictBadge(e.verdict) },
-    { key: 'action', label: 'Action', render: (e) => actionBadge(e.action) },
+    { key: 'outcome', label: 'Outcome', render: outcomeBadge },
     { key: 'score', label: 'Score', className: 'num' },
-    { key: 'mode', label: 'Mode' },
     { key: 'rules', label: 'Rules', render: (e) => (Array.isArray(e.matchedRuleIds) && e.matchedRuleIds.length ? e.matchedRuleIds.join(', ') : '—') },
     { key: 'lat', label: 'Latency', className: 'num', render: (e) => formatMs(e.latencyMs) },
   );
 
   mount(results,
-    ctx.role === 'viewer' ? h('p', { class: 'note' }, 'Viewers see sanitized summaries only. Evidence, comparison and replay need the operator role.') : null,
     table({ caption: 'Events', columns, rows: data.items || [], empty: 'No events match these filters.' }),
     pagination({
       total: data.total || 0, limit: PAGE, offset,

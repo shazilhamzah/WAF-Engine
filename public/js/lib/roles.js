@@ -34,9 +34,7 @@ export function can(role, capability) {
 export const NAV = Object.freeze([
   { route: 'dashboard', label: 'Overview', group: 'Activity', cap: 'dashboard.view' },
   { route: 'events', label: 'Events', group: 'Activity', cap: 'events.list' },
-  { route: 'reports', label: 'Reports', group: 'Activity', cap: 'reports.export' },
-  { route: 'analyze', label: 'Analyze request', group: 'Tools', cap: 'samples.submit' },
-  { route: 'import', label: 'Import samples', group: 'Tools', cap: 'samples.submit' },
+  { route: 'analyze', label: 'Analyze', group: 'Tools', cap: 'samples.submit' },
   { route: 'rules', label: 'Rules', group: 'Policy', cap: 'rules.read' },
   { route: 'config', label: 'Configuration', group: 'Policy', cap: 'config.read' },
   { route: 'exceptions', label: 'Exceptions', group: 'Policy', cap: 'exceptions.request' },

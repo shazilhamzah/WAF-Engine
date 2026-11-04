@@ -2,9 +2,8 @@ import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { hashFor } from '../lib/query.js';
 import { formatTs } from '../lib/format.js';
-import { compareEventRows, summarizeDiff, displayValue } from '../lib/diff.js';
+import { compareEventRows, displayValue } from '../lib/diff.js';
 import { pageHeader, card, field, table, verdictBadge, actionBadge, loading, errorPanel, emptyState, showStatus } from '../ui.js';
-import { scoreBar } from '../decision.js';
 
 function cell(row, side) {
   const v = row[side];
@@ -16,7 +15,14 @@ function cell(row, side) {
   return displayValue(v);
 }
 
+const COLUMNS = [
+  { key: 'label', label: 'Field', rowHeader: true, render: (r) => (r.changed ? h('span', null, r.label, ' ', h('span', { class: 'changed-mark' }, '≠')) : r.label) },
+  { key: 'a', label: 'Event A', className: 'wrap-anywhere', render: (r) => cell(r, 'a') },
+  { key: 'b', label: 'Event B', className: 'wrap-anywhere', render: (r) => cell(r, 'b') },
+];
+
 export async function render(ctx) {
+  const hasBoth = Boolean(ctx.query.a && ctx.query.b);
   const a = h('input', { type: 'text', value: ctx.query.a || '', maxlength: 100, spellcheck: 'false', placeholder: 'evt_…' });
   const b = h('input', { type: 'text', value: ctx.query.b || '', maxlength: 100, spellcheck: 'false', placeholder: 'evt_…' });
   const out = h('div');
@@ -26,14 +32,16 @@ export async function render(ctx) {
     ctx.navigate(hashFor('/compare', { a: a.value.trim(), b: b.value.trim() }));
   } } },
   h('div', { class: 'form-row' }, field('Event A', a), field('Event B', b),
-    h('div', null, h('button', { type: 'submit', class: 'btn btn-primary' }, 'Compare'))));
+    h('div', { class: 'btn-group' }, h('button', { type: 'submit', class: 'btn btn-primary' }, 'Compare'))));
 
-  mount(ctx.el, pageHeader('Compare events'),
-    card(null, form, h('p', { class: 'muted small' }, 'Tip: tick two events in ', h('a', { href: '#/events' }, 'Events'), ' and press “Compare selected”.')),
-    out);
+  const picker = hasBoth
+    ? h('details', { class: 'card' }, h('summary', null, `Change events (${ctx.query.a} vs ${ctx.query.b})`), form)
+    : card(null, form);
 
-  if (!ctx.query.a || !ctx.query.b) {
-    mount(out, emptyState('Choose two events to compare.'));
+  mount(ctx.el, pageHeader('Compare events', h('a', { class: 'btn', href: '#/events' }, 'Back to events')), picker, out);
+
+  if (!hasBoth) {
+    mount(out, emptyState('Select two events from the Events list or enter their IDs above.'));
     return;
   }
   mount(out, loading('Comparing…'));
@@ -47,32 +55,19 @@ export async function render(ctx) {
   }
   if (!ctx.isCurrent()) return;
   const rows = compareEventRows(res.a, res.b);
+  const primary = rows.filter((r) => r.changed || r.field === 'id' || r.field === 'request');
+  const unchanged = rows.filter((r) => !r.changed && r.field !== 'id' && r.field !== 'request');
   const changes = rows.filter((r) => r.changed).length;
-  const summary = summarizeDiff(res.diff, res.a, res.b);
 
   mount(out,
-    card('Summary of differences',
-      h('p', null, h('strong', null, `${changes} field${changes === 1 ? '' : 's'} differ.`)),
-      h('ul', { class: 'diff-summary' }, ...summary.map((t) => h('li', null, t)))),
-    card('Side by side', table({
-      caption: 'Event A versus event B',
-      columns: [
-        { key: 'label', label: 'Field', rowHeader: true, render: (r) => (r.changed ? h('span', null, r.label, ' ', h('span', { class: 'changed-mark' }, '≠ changed')) : r.label) },
-        { key: 'a', label: 'A', className: 'wrap-anywhere', render: (r) => cell(r, 'a') },
-        { key: 'b', label: 'B', className: 'wrap-anywhere', render: (r) => cell(r, 'b') },
-      ],
-      rows,
-      rowClass: (r) => (r.changed ? 'row-changed' : null),
-    })),
-    h('div', { class: 'grid-2' },
-      card('Score A', scoreBar(res.a.decision && res.a.decision.score)),
-      card('Score B', scoreBar(res.b.decision && res.b.decision.score))),
-    h('div', { class: 'grid-2' },
-      card('Explanation A', explanation(res.a)),
-      card('Explanation B', explanation(res.b))));
-}
-
-function explanation(evt) {
-  const list = (evt.decision && evt.decision.explanation) || [];
-  return list.length ? h('ol', { class: 'explanation' }, ...list.map((t) => h('li', null, String(t)))) : emptyState('No rule matched.');
+    card(`${changes} difference${changes === 1 ? '' : 's'}`,
+      table({
+        caption: 'Differences between Event A and Event B',
+        columns: COLUMNS,
+        rows: primary,
+        rowClass: (r) => (r.changed ? 'row-changed' : null),
+      }),
+      unchanged.length ? h('details', null,
+        h('summary', null, `Unchanged fields (${unchanged.length})`),
+        table({ caption: 'Unchanged fields', columns: COLUMNS, rows: unchanged, className: 'table-compact' })) : null));
 }

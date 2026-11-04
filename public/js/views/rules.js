@@ -27,9 +27,10 @@ export async function render(ctx) {
   const isAdmin = can(ctx.role, 'rules.write');
   const listBox = h('div', null, loading());
   const editor = h('textarea', { class: 'editor', rows: 14, spellcheck: 'false', autocomplete: 'off', 'aria-describedby': 'rule-editor-help' });
-  const editorTitle = h('h2', { class: 'card-title', id: 'rule-editor-title' }, 'Rule editor');
+  const editorTitle = h('summary', { id: 'rule-editor-title' }, isAdmin ? 'Rule editor' : 'Validate DSL');
   const validation = h('div', { 'aria-live': 'polite' });
   const historyBox = h('div');
+  const editorCard = h('details', { class: 'card' });
   let editing = null;
 
   const validateBtn = h('button', { type: 'button', class: 'btn', on: { click: () => busy(validateBtn, validate) } }, 'Validate');
@@ -41,6 +42,7 @@ export async function render(ctx) {
     editor.value = NEW_RULE_TEMPLATE;
     editor.readOnly = false;
     editorTitle.textContent = 'New rule';
+    editorCard.open = true;
     mount(validation); mount(historyBox);
     editor.focus();
   }
@@ -50,6 +52,7 @@ export async function render(ctx) {
     editor.value = rule.source || '';
     editor.readOnly = !isAdmin;
     editorTitle.textContent = `${isAdmin ? 'Edit' : 'View'} rule ${rule.id} (v${rule.version})`;
+    editorCard.open = true;
     mount(validation);
     editor.focus();
   }
@@ -101,7 +104,7 @@ export async function render(ctx) {
     if (!enabled) {
       const { confirmed } = await confirmDialog({
         title: `Disable rule ${rule.id}?`,
-        body: h('p', null, `“${rule.name}” will stop matching immediately in the proxy and console. Requests that only matched this rule will no longer be flagged or blocked. This change is audited.`),
+        body: h('p', null, `“${rule.name}” will stop matching immediately in the proxy and console.`),
         confirmLabel: 'Disable rule', danger: true,
       });
       if (!confirmed) return;
@@ -116,8 +119,7 @@ export async function render(ctx) {
   async function remove(rule, btn) {
     const { confirmed } = await confirmDialog({
       title: `Delete rule ${rule.id}?`,
-      body: h('div', null, h('p', null, `“${rule.name}” will be removed from the active ruleset. Its version history is kept for the audit trail.`),
-        h('p', null, h('strong', null, 'Consider disabling instead if you may need it again.'))),
+      body: h('p', null, `“${rule.name}” will be removed from the active ruleset. Consider disabling instead if you may need it again.`),
       confirmLabel: 'Delete rule', danger: true,
     });
     if (!confirmed) return;
@@ -130,6 +132,7 @@ export async function render(ctx) {
   }
 
   async function showHistory(rule) {
+    editorCard.open = true;
     mount(historyBox, loading('Loading history…'));
     try {
       const res = await api.ruleHistory(rule.id);
@@ -196,21 +199,21 @@ export async function render(ctx) {
       }));
   }
 
+  mount(editorCard,
+    editorTitle,
+    h('label', { for: 'rule-editor', class: 'sr-only' }, 'Rule source (DSL)'),
+    editor,
+    h('p', { class: 'hint', id: 'rule-editor-help' }, 'One rule per editor (ID 1000–999999). Regexes are checked for catastrophic backtracking.'),
+    h('div', { class: 'btn-group' }, validateBtn, saveBtn),
+    validation,
+    historyBox);
+
   mount(ctx.el,
     pageHeader('Rules', newBtn),
-    isAdmin ? null : h('p', { class: 'note' }, 'You can read rules and validate DSL. Only administrators can create, change, enable/disable or delete rules.'),
-    card('Ruleset', listBox),
-    h('section', { class: 'card', 'aria-labelledby': 'rule-editor-title' },
-      editorTitle,
-      h('label', { for: 'rule-editor', class: 'sr-only' }, 'Rule source (DSL)'),
-      editor,
-      h('p', { class: 'hint', id: 'rule-editor-help' }, 'One rule per editor. Ids are integers 1000–999999. See docs/rule-dsl.md for targets and operators. Regexes are checked for catastrophic backtracking.'),
-      h('div', { class: 'btn-group' }, validateBtn, saveBtn),
-      validation,
-      historyBox));
+    card(null, listBox),
+    editorCard);
   editor.id = 'rule-editor';
   editor.value = NEW_RULE_TEMPLATE;
-  if (!isAdmin) editorTitle.textContent = 'Validate DSL';
   await loadList();
 }
 

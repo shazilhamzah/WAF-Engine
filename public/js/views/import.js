@@ -2,13 +2,13 @@ import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { LIMITS, parseImportText, importPayload } from '../lib/samples.js';
 import { formatBytes, truncate, formatTs } from '../lib/format.js';
-import { pageHeader, card, field, table, showStatus, verdictBadge, actionBadge, emptyState, message } from '../ui.js';
+import { pageHeader, card, field, table, outcomeBadge, message } from '../ui.js';
 
-export function render(ctx) {
+export function buildImportPanel() {
   const fileInput = h('input', { type: 'file', accept: '.json,application/json' });
   const summary = h('div', { 'aria-live': 'polite' });
-  const preview = h('div');
-  const outcome = h('div', { 'aria-live': 'polite' });
+  const previewSlot = h('div');
+  const outcomeSlot = h('div', { 'aria-live': 'polite' });
   const submit = h('button', { type: 'button', class: 'btn btn-primary', disabled: true }, 'Import');
   let parsed = null;
   let filename = null;
@@ -16,7 +16,7 @@ export function render(ctx) {
   async function onFile() {
     parsed = null;
     submit.disabled = true;
-    mount(preview); mount(outcome);
+    mount(previewSlot); mount(outcomeSlot);
     const file = fileInput.files && fileInput.files[0];
     if (!file) { mount(summary); return; }
     filename = file.name;
@@ -39,10 +39,10 @@ export function render(ctx) {
     submit.disabled = false;
     submit.textContent = `Import ${res.samples.length} sample${res.samples.length === 1 ? '' : 's'}`;
     mount(summary,
-      message('success', `${file.name} (${formatBytes(file.size)}) — ${res.samples.length} valid sample(s)` +
-        (res.invalid.length ? `, ${res.invalid.length} invalid (will be skipped)` : '')),
+      message('success', `${file.name} (${formatBytes(file.size)}) — ${res.samples.length} valid` +
+        (res.invalid.length ? `, ${res.invalid.length} invalid (skipped)` : '')),
       res.invalid.length ? invalidList(res.invalid) : null);
-    mount(preview, table({
+    mount(previewSlot, card('Preview', table({
       caption: 'Samples to import',
       className: 'table-compact',
       columns: [
@@ -54,7 +54,7 @@ export function render(ctx) {
         { key: 'body', label: 'Body', render: (r) => (r.s.body ? formatBytes(new TextEncoder().encode(r.s.body).length) : '—') },
       ],
       rows: res.samples.slice(0, 100).map((s, i) => ({ s, i, label: res.labels[i] })),
-    }));
+    })));
   }
 
   function invalidList(invalid) {
@@ -68,29 +68,28 @@ export function render(ctx) {
     try {
       const res = await api.importSamples(filename, importPayload(parsed));
       const events = res.events || [];
-      mount(outcome,
-        message('success', `Imported ${res.imported ?? events.length} · rejected by server ${(res.rejected || []).length}`),
+      mount(outcomeSlot, card('Result',
+        message('success', `Imported ${res.imported ?? events.length}` +
+          ((res.rejected && res.rejected.length) ? ` · rejected ${res.rejected.length}` : '')),
         (res.rejected && res.rejected.length) ? h('ul', null, ...res.rejected.map((r) => h('li', null, `#${(r.index ?? 0) + 1}: ${r.code || ''} ${r.message || ''}`))) : null,
         table({
           caption: 'Imported events',
           columns: [
             { key: 'ts', label: 'Time', render: (e) => formatTs(e.ts) },
             { key: 'req', label: 'Request', render: (e) => h('a', { href: `#/events/${encodeURIComponent(e.id)}` }, code(`${e.method} ${truncate(e.path, 60)}`)) },
-            { key: 'verdict', label: 'Verdict', render: (e) => verdictBadge(e.verdict) },
-            { key: 'action', label: 'Action', render: (e) => actionBadge(e.action) },
+            { key: 'outcome', label: 'Outcome', render: outcomeBadge },
             { key: 'score', label: 'Score', className: 'num' },
           ],
           rows: events,
           empty: 'No events were created.',
-        }));
-      showStatus(`Imported ${res.imported ?? events.length} sample(s).`, 'success');
+        })));
       parsed = null;
       fileInput.value = '';
-      mount(preview);
+      mount(previewSlot);
       mount(summary);
     } catch (err) {
       if (err && err.status !== 401) {
-        mount(outcome, message('error', `${err.friendly}`));
+        mount(outcomeSlot, card('Result', message('error', `${err.friendly}`)));
         submit.disabled = false;
       }
     }
@@ -99,20 +98,22 @@ export function render(ctx) {
   fileInput.addEventListener('change', onFile);
   submit.addEventListener('click', doImport);
 
-  mount(ctx.el,
-    pageHeader('Import samples'),
-    card('File',
-      h('p', { class: 'muted small' },
-        'A JSON file (≤ 256 KB, ≤ 100 samples) containing either an array of samples or {"samples": [...]}. Each sample: ',
-        code('{ "method": "GET", "path": "/search?q=shoes", "headers": {}, "body": null }'), '.'),
-      field('Samples file (.json)', fileInput),
+  return h('div', null,
+    card(null,
+      field('Samples file (.json, ≤ 256 KB, ≤ 100 samples)', fileInput,
+        'Array of { "method", "path", "headers", "body" } objects or { "samples": [...] }.'),
       summary,
       h('div', { class: 'btn-group' }, submit)),
-    card('Preview', h('div', null, preview, emptyState('Choose a file to preview its samples.'))),
-    card('Result', outcome));
+    previewSlot,
+    outcomeSlot);
+}
 
-  const placeholder = preview.nextSibling;
-  const obs = new MutationObserver(() => { if (placeholder) placeholder.hidden = preview.childNodes.length > 0; });
-  obs.observe(preview, { childList: true });
-  return () => obs.disconnect();
+export function render(ctx) {
+  const tabs = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Analysis mode' },
+    h('a', { class: 'tab', role: 'tab', href: '#/analyze', 'aria-selected': 'false' }, 'Single request'),
+    h('a', { class: 'tab', role: 'tab', href: '#/import', 'aria-selected': 'true' }, 'Batch import (.json)'));
+  mount(ctx.el,
+    pageHeader('Analyze'),
+    tabs,
+    buildImportPanel());
 }

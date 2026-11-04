@@ -112,7 +112,7 @@ export async function render(ctx) {
         { key: 'createdAt', label: 'Created', render: (u) => formatTs(u.createdAt) },
         { key: 'id', label: 'Id', render: (u) => code(u.id) },
         { key: 'act', label: 'Actions', render: (u) => {
-          if (u.id === ctx.user.id) return h('a', { href: '#/account', class: 'btn btn-small' }, 'Account');
+          if (u.id === ctx.user.id) return '—';
           const dis = h('button', { type: 'button', class: ['btn', 'btn-small', u.disabled ? null : 'btn-danger'] }, u.disabled ? 'Enable' : 'Disable');
           dis.addEventListener('click', () => toggleDisabled(u, dis));
           const pw = h('button', { type: 'button', class: 'btn btn-small' }, 'Set password');
@@ -125,17 +125,23 @@ export async function render(ctx) {
     }));
   }
 
+  const createDisclosure = h('details', { class: 'card' },
+    h('summary', null, 'Create a user'),
+    h('form', { class: 'form', novalidate: true, on: { submit: create } },
+      h('div', { class: 'form-row' },
+        field('Username', username),
+        field('Initial password', password, `At least ${MIN_PASSWORD} characters.`),
+        field('Role', role)),
+      errors,
+      h('div', null, createBtn)));
+  const newBtn = h('button', {
+    type: 'button', class: 'btn',
+    on: { click: () => { createDisclosure.open = true; username.focus(); } },
+  }, '+ New user');
+
   mount(ctx.el,
-    pageHeader('Users'),
-    card('Create a user',
-      h('form', { class: 'form', novalidate: true, on: { submit: create } },
-        h('div', { class: 'form-row' },
-          field('Username', username),
-          field('Initial password', password, `At least ${MIN_PASSWORD} characters.`),
-          field('Role', role)),
-        errors,
-        h('div', null, createBtn)),
-      h('p', { class: 'muted small' }, 'Roles: admin (configures, approves, audits), operator (analyzes, requests exceptions, exports), viewer (dashboard and sanitized summaries only). Grant the least privilege needed.')),
-    card('Accounts', listBox));
+    pageHeader('Users', newBtn),
+    createDisclosure,
+    card(null, listBox));
   await load();
 }

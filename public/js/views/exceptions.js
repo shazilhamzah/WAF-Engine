@@ -4,7 +4,7 @@ import { can } from '../lib/roles.js';
 import { hashFor } from '../lib/query.js';
 import { formatTs, truncate, dateInputToIso } from '../lib/format.js';
 import { METHODS } from '../lib/samples.js';
-import { pageHeader, card, field, select, table, statusBadge, verdictBadge, loading, errorPanel, showStatus, confirmDialog, fieldErrors, busy } from '../ui.js';
+import { pageHeader, card, field, select, table, statusBadge, outcomeBadge, loading, errorPanel, showStatus, confirmDialog, fieldErrors, busy } from '../ui.js';
 
 const STATUSES = ['pending', 'approved', 'rejected', 'revoked'];
 
@@ -83,7 +83,7 @@ export async function render(ctx) {
         columns: [
           { key: 'ts', label: 'Time', render: (e) => formatTs(e.ts) },
           { key: 'req', label: 'Request', render: (e) => h('a', { href: `#/events/${encodeURIComponent(e.id)}` }, code(`${e.method} ${truncate(e.path, 60)}`)) },
-          { key: 'verdict', label: 'Verdict', render: (e) => verdictBadge(e.verdict) },
+          { key: 'outcome', label: 'Outcome', render: outcomeBadge },
           { key: 'score', label: 'Score', className: 'num' },
         ],
         rows: sample,
@@ -142,7 +142,7 @@ export async function render(ctx) {
       body: h('div', null,
         h('p', null, `Rule ${exc.ruleId} — ${scopeText(sc)}`),
         h('p', null, 'Requested reason: ', String(exc.reason || '—')),
-        kind === 'approve' ? h('p', { class: 'warn-note' }, 'Once approved, matching requests will no longer score for this rule in the proxy and console. The approval is audited.') : null,
+        kind === 'approve' ? h('p', { class: 'warn-note' }, 'Once approved, matching requests will no longer score for this rule in the proxy and console.') : null,
         kind === 'revoke' ? h('p', null, 'The rule will apply again to matching requests immediately.') : null),
       confirmLabel: titles[kind].split(' ')[0],
       danger: kind !== 'approve',
@@ -207,10 +207,18 @@ export async function render(ctx) {
     }));
   }
 
+  const requestDisclosure = h('details', { class: 'card', open: Boolean(q.new) },
+    h('summary', null, q.new ? 'Request an exception (pre-filled from event)' : 'Request an exception'),
+    requestForm);
+  const newBtn = h('button', {
+    type: 'button', class: 'btn',
+    on: { click: () => { requestDisclosure.open = true; (ruleId.value ? reason : ruleId).focus(); } },
+  }, '+ Request exception');
+
   mount(ctx.el,
-    pageHeader('Exceptions'),
-    card(q.new ? 'Request an exception (pre-filled from event)' : 'Request an exception', requestForm),
-    card('Exception requests', tabs, listBox));
+    pageHeader('Exceptions', newBtn),
+    requestDisclosure,
+    card(null, tabs, listBox));
   if (q.new) reason.focus();
   await loadList();
 }
