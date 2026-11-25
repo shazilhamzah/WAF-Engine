@@ -1,0 +1,290 @@
+\documentclass{FastFyp}
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta}
+\definecolor{wnavy}{HTML}{1F4E79}
+\definecolor{wblue}{HTML}{2E75B6}
+\definecolor{worange}{HTML}{C55A11}
+\definecolor{wtint}{HTML}{EAF1F8}
+% tables: same grid style as the template, set slightly tighter so the report fits in ten pages
+\newenvironment{rtab}{\small\singlespacing\renewcommand{\arraystretch}{1.3}}{}
+% keep figures next to their text instead of on pages of their own
+\renewcommand{\topfraction}{0.9}
+\renewcommand{\bottomfraction}{0.8}
+\renewcommand{\textfraction}{0.1}
+\renewcommand{\floatpagefraction}{0.85}
+% references close the last chapter instead of opening a new one
+\renewcommand{\bibsection}{\section*{References}}
+
+\begin{document}
+\newcommand{\university}{National University of Computer and Emerging Sciences, Lahore}
+\newcommand{\fyptitle}{WAF Studio: An Explainable Reverse-Proxy Web Application Firewall}
+\newcommand{\Studentone}{Shazil Hamzah}
+\newcommand{\Studenttwo}{Nufil Anwar}
+\newcommand{\Studentthree}{Muhammad Wahaj}
+\newcommand{\Studentfour}{Muhammad Saad}
+\date{\today}
+\renewcommand{\contentsname}{Table of Contents}
+
+\makeatletter
+    \begin{titlepage}
+        \includegraphics[width=0.2\linewidth]{Figures/nulogo.png}\hfill
+        \includegraphics[width=0.2\linewidth]{Figures/fast.png}\\
+        \begin{center}
+            {\large\bfseries \university}\\[7ex]
+            \includegraphics[width=0.4\linewidth]{Figures/fastlogo.png}\\[8ex]
+            {\huge \bfseries \fyptitle }\\[10ex]
+            {\Studentone}\\{\Studenttwo}\\{\Studentthree}\\{\Studentfour}\\[10ex]
+            {Information Security Project Report}\\
+            {Proposal 44, Class 3, Group 12}\\
+            {\large \@date}
+        \end{center}
+    \end{titlepage}
+\makeatother
+\frontmatter
+
+\pagestyle{empty}
+\section*{Abstract}
+WAF Studio is a teaching web application firewall that runs as a reverse proxy in front of a deliberately vulnerable test shop. It parses and normalizes every request, matches it against a validated rule language, adds up a score, and forwards, flags or blocks the request while storing the evidence that explains the decision. A role-based browser console supports analysis, tuning through scoped exceptions, reporting and a tamper-evident audit log. In the final evaluation the system passed 119 of 123 mandatory checks, raised no false positives on 68 benign requests, caught 77 of 80 attacks in a controlled corpus, and added under 2~ms per request at the 95th percentile.
+
+\section*{Executive Summary}
+Most firewall demonstrations only show that a request was blocked. WAF Studio was built so that a learner can also see \emph{why}: which rules matched, where in the request they matched, what decoding was needed to find them, and how the points added up to the outcome.
+
+The system has four parts that all listen on 127.0.0.1: an inspecting reverse proxy (port 8080), a security engine shared by the proxy and the console, a role-based console with a JSON API backed by SQLite (port 3000), and a vulnerable test shop with fake data (port 3001). The engine ships with 41 rules, flags a request at a score of 3 and blocks it at 5, and can run in a monitor mode that only records. Administrators change versioned rules and configuration; operators request narrowly scoped exceptions that a different administrator must approve.
+
+The final acceptance run passed all 806 automated tests and found no known vulnerabilities in the production dependencies. Four evasion attempts that split or wrap a payload are still missed; they are reported as failures, not hidden. All results come from a synthetic corpus on one laptop and are not a claim about internet traffic.
+
+\pagestyle{fancy}
+\pagebreak
+\tableofcontents
+
+\mainmatter
+
+%==================================================================
+\chapter{Introduction}
+This chapter states the problem, the objectives and scope of the project, and how the work was divided.
+
+\section{Problem Statement}
+Web applications are attacked through their inputs: SQL injection, cross-site scripting, path traversal and command injection remain among the most common risks \cite{ref:owasptop10}. Production firewalls such as ModSecurity with the OWASP Core Rule Set \cite{ref:modsecurity,ref:crs} block many of these attacks, but they are hard to learn from: a blocked request usually returns a bare 403, and understanding the decision means reading rule files and logs by hand. The project therefore asks for a working firewall that can be studied end to end in a closed lab and that explains every decision it makes.
+
+\section{Objectives and Scope}
+WAF Studio aims to (i) accept traffic both from a real HTTP proxy and from a console, (ii) make an explainable decision for every request, (iii) keep reproducible evidence of each decision, and (iv) protect its own users and data. All seven modules required by the proposal are implemented: request parsing, a rule language, scoring, block and monitor modes, rate limits, an audit console, and tuning with exceptions. Hosting, TLS, external targets and real attack deployment are out of scope.
+
+\section{Team and Work Division}
+The work was split into four workstreams (Table~\ref{tab:team}). Development used Claude, an AI coding assistant, throughout, as the log in \texttt{docs/PROGRESS.md} records.
+
+\begin{table}[!h]
+\centering
+\caption{Workstreams and owners.}
+\begin{rtab}
+\begin{tabular}{|p{3.2cm}|p{10.3cm}|}
+\hline
+\textbf{Member} & \textbf{Workstream} \\
+\hline
+Shazil Hamzah (A) & Backend, data and authentication: API, SQLite repositories, sessions, reverse proxy \\
+\hline
+Nufil Anwar (B) & Security engine and evaluation fixtures: parser, rule language, scoring, 41 rules \\
+\hline
+Muhammad Wahaj (C) & Frontend, reporting and integration: console, report export, user guide \\
+\hline
+Muhammad Saad (D) & Automation, security testing and QA: test shop, test suites, evaluation, threat model \\
+\hline
+\end{tabular}
+\end{rtab}
+\label{tab:team}
+\end{table}
+
+Chapter~2 covers design and implementation, Chapter~3 testing and results, and Chapter~4 the conclusions.
+
+%==================================================================
+\chapter{System Design and Implementation}
+This chapter presents the architecture, the request pipeline, the engine, the console and the controls that protect the application itself. The system runs on Node.js 22.13 or newer; its only production dependencies are Express and http-proxy, and storage uses the SQLite module built into Node.
+
+\section{System Architecture}
+Figure~\ref{fig:arch} shows the two ways a request reaches the engine. A signed-in user works in the console, which calls the API; any HTTP client can instead send traffic to the reverse proxy. Both paths call the same engine with the same active policy, so a request analysed in the console gets the decision it would get through the proxy. Events, policy versions and the audit chain are stored in SQLite, and allowed requests are forwarded to the test shop. If the shop is down the proxy returns a safe 502; if inspection itself fails the request fails closed with a 503. The block page shows only an event identifier, never the rule that fired.
+
+\begin{figure}[!htb]
+\centering
+\begin{tikzpicture}[font=\small, >={Stealth[length=2.2mm]},
+  box/.style={draw=wnavy, thick, fill=white, align=center, minimum height=1.1cm, text=black},
+  big/.style={draw=wnavy, thick, fill=wnavy, align=center, text=white}]
+  \node[box, minimum width=3.2cm] (br) at (1.6,3.4) {\textbf{Browser console}\\port 3000};
+  \node[box, minimum width=3.7cm] (api) at (6.1,3.4) {\textbf{API and services}\\roles, CSRF, validation};
+  \node[box, minimum width=3.2cm] (cl) at (1.6,1.0) {\textbf{Client traffic}\\any HTTP sender};
+  \node[box, minimum width=3.7cm] (px) at (6.1,1.0) {\textbf{Reverse proxy}\\port 8080};
+  \node[big, minimum width=4.2cm, minimum height=3.7cm] (en) at (11.6,2.2) {\textbf{Security engine}\\[1mm]parse and normalize\\41 rules and scoring\\block or monitor mode\\rate limits, exceptions};
+  \node[box, minimum width=3.7cm] (sh) at (6.1,-1.4) {\textbf{Test shop}\\port 3001};
+  \node[box, minimum width=4.2cm] (db) at (11.6,-1.4) {\textbf{SQLite}\\events, policies, audit chain};
+  \draw[->, thick, wblue] (br) -- (api);
+  \draw[->, thick, wblue] (api.east) -- (en.west |- api.east);
+  \draw[->, thick, wblue] (cl) -- (px);
+  \draw[->, thick, wblue] (px.east) -- (en.west |- px.east);
+  \draw[->, thick, wblue] (px) -- node[right, font=\footnotesize] {allowed requests} (sh);
+  \draw[->, thick, wblue] (en) -- (db);
+\end{tikzpicture}
+\caption{The proxy path and the console path share one security engine and one database. Boxes are components with their local port; arrows show the direction requests travel.}
+\label{fig:arch}
+\end{figure}
+
+\section{Request Pipeline and Security Engine}
+Every request passes through the six steps in Figure~\ref{fig:pipeline}. The parser enforces limits of 4,096 URL characters, 100 headers, 200 arguments and a 1~MiB body, and inspects the first 64~KiB. Each value is kept in several normalized forms (repeated URL decoding, \%u escapes, HTML entities, Unicode NFKC, removal of null and invisible characters, SQL comment and whitespace handling) so that disguised payloads still match. Each matching rule adds its points once, with the location, a short excerpt and the decoding steps that exposed it; parser anomalies add points to the same total. A total of 3 or 4 flags the request and 5 or more blocks it with a 403. In monitor mode a request that would be blocked is forwarded and the event records the would-be block. The proxy also limits each client pseudonym to 300 requests per minute.
+
+\begin{figure}[!htb]
+\centering
+\begin{tikzpicture}[font=\small, >={Stealth[length=2mm]},
+  st/.style={draw=wnavy, thick, fill=white, minimum width=2.1cm, minimum height=0.9cm, align=center}]
+  \foreach \i/\t/\d in {0/Parse/{validate size\\and shape},1/Normalize/{decode URL,\\entities, Unicode},2/Match/{41 rules in\\the rule language},3/Score/{points add up\\per request},4/Mode/{block enforces,\\monitor records},5/Record/{event and\\evidence stored}} {
+    \pgfmathsetmacro{\x}{\i*2.5}
+    \ifnum\i=3 \node[st, fill=wnavy, text=white] (n\i) at (\x,0) {\textbf{\t}};
+    \else \node[st] (n\i) at (\x,0) {\textbf{\t}}; \fi
+    \node[font=\footnotesize, align=center] at (\x,-1.0) {\d};
+  }
+  \foreach \i/\j in {0/1,1/2,2/3,3/4,4/5} \draw[->, thick, wblue] (n\i) -- (n\j);
+  \node[minimum width=4.2cm, minimum height=0.8cm, fill=wtint, align=center] at (2.0,-2.5) {\textbf{allow}: score below 3};
+  \node[minimum width=4.6cm, minimum height=0.8cm, fill=wblue, text=white, align=center] at (6.6,-2.5) {\textbf{flag}: 3 or 4, forwarded};
+  \node[minimum width=4.2cm, minimum height=0.8cm, fill=worange, text=white, align=center] at (11.0,-2.5) {\textbf{block}: 5 or more};
+\end{tikzpicture}
+\caption{The six inspection steps. The total score from the Score step selects one of the three outcomes shown in the bottom row.}
+\label{fig:pipeline}
+\end{figure}
+
+Rules are written in a small language. Invalid rules are rejected with a line and column, regular expressions that could backtrack catastrophically are refused, and every stored rule is versioned. The 41 default rules cover SQL injection (10), cross-site scripting (10), protocol violations (6), path traversal (5), command injection (5) and scanners (5). One rule, with its pattern shortened:
+
+{\small\singlespacing
+\begin{verbatim}
+rule 942100 "SQLi boolean tautology" {
+  when args, cookies matches /\b(?:or|and)\b ... (?:0x[0-9a-f]{1,16}|\d{1,10}) .../i
+  severity critical   score 5   category sqli
+}
+\end{verbatim}}
+
+\section{Console and Roles}
+The console is written in plain JavaScript modules with no framework and loads nothing from the network, which allows a strict Content Security Policy. Screens are grouped by task, and a command menu (Ctrl+K) reaches every action the role allows. The Overview (Figure~\ref{fig:dash}) shows how many requests were inspected, blocked and passed. Opening an event shows each matched rule with its points and location, the total score against the thresholds, and how to request a scoped exception instead of disabling a rule. Create requests carry an idempotency key, so a retried submission never makes a duplicate.
+
+Three roles are enforced on the server. A \textbf{viewer} sees the overview and sanitized event summaries. An \textbf{operator} can also open evidence, compare and replay events, analyse or import samples, request exceptions and export reports. An \textbf{administrator} can also edit rules and configuration, approve exceptions, read the audit log and manage users. An exception is scoped to a path prefix, method and location, and must be approved by an administrator other than the requester.
+
+\begin{figure}[!htb]
+\centering
+\includegraphics[width=0.72\textwidth, trim=0 600 0 0, clip]{Figures/dashboard.png}
+\caption{The Overview screen after a test run of 188 requests: outcome cards, the recommended action, hourly activity by outcome and the most frequent detection categories.}
+\label{fig:dash}
+\end{figure}
+
+\section{Security of the Application}
+Because the console displays attack payloads as evidence, its own security was treated as a requirement. A STRIDE threat model \cite{ref:shostack} covers five trust boundaries and 13 data flows and maps 20 threats to mitigations, code and tests. Table~\ref{tab:controls} lists the main controls.
+
+\begin{table}[!htb]
+\centering
+\caption{Main security controls of the application and what each one prevents.}
+\begin{rtab}
+\begin{tabular}{|p{7.0cm}|p{6.5cm}|}
+\hline
+\textbf{Control} & \textbf{What it prevents} \\
+\hline
+Server-enforced roles, separation of duties & A viewer or operator reaching admin actions \\
+\hline
+scrypt password hashes, hashed session tokens, CSRF tokens, 30-minute idle and 8-hour absolute expiry & Use of stolen database contents, session reuse, forged requests \\
+\hline
+Parameterized SQL and strict input schemas & Injection into the application's own database \\
+\hline
+Text-only DOM construction and strict CSP & Attack samples running inside the console \\
+\hline
+Redaction and HMAC client pseudonyms & Secrets and raw IP addresses in stored evidence \\
+\hline
+Append-only, hash-chained audit log & Unnoticed edits to the record \\
+\hline
+\end{tabular}
+\end{rtab}
+\label{tab:controls}
+\end{table}
+
+%==================================================================
+\chapter{Testing and Results}
+This chapter explains how the system was evaluated and reports the measured results.
+
+\section{Method}
+The evaluation starts the full stack on temporary localhost ports with a fresh database, sends fixture requests through the real proxy to the test shop, and reads each stored event back through the API. Expected outcomes were fixed as protection goals before measurement; a missed evasion keeps its expected ``block'' and counts as a failure. Runs used Node v24.19.0 on Windows with an Intel Core Ultra 7 255H (16 logical processors), engine 1.0.0 and the default thresholds. Separately, the strict acceptance run passed \textbf{806 of 806} automated tests in 39 suites, and \texttt{npm audit} reported no vulnerabilities in the production dependencies.
+
+\section{Mandatory Cases}
+The mandatory evaluation passed 119 of 123 checks (Table~\ref{tab:cases}). Two evasion cases fixed during the project, a hexadecimal tautology and a \texttt{||}-concatenated tautology, are now blocked, with unit and end-to-end tests that also confirm look-alike benign inputs still pass.
+
+\begin{table}[!htb]
+\centering
+\caption{Mandatory evaluation cases and results.}
+\begin{rtab}
+\begin{tabular}{|p{6.2cm}|p{2.6cm}|p{4.7cm}|}
+\hline
+\textbf{Case} & \textbf{Passed} & \textbf{Note} \\
+\hline
+T1 Injection strings (SQLi, XSS, traversal) & 28 of 28 & All blocked \\
+\hline
+T2 Encoding and normalization variants & 20 of 20 & All blocked \\
+\hline
+T3 Difficult benign inputs & 38 of 38 & All allowed \\
+\hline
+T4 Large bodies and size limits & 6 of 6 & Inspection window observed \\
+\hline
+T5 Evasion attempts & 14 of 18 & Four misses kept as failures \\
+\hline
+T6 Latency overhead & 2 of 2 & Below 25 ms \\
+\hline
+T-final Failure, denial and restart & 11 of 11 & Safe behaviour, state persisted \\
+\hline
+\textbf{Total} & \textbf{119 of 123} & \textbf{96.7\%} \\
+\hline
+\end{tabular}
+\end{rtab}
+\label{tab:cases}
+\end{table}
+
+\section{Detection and Latency}
+A separate corpus of 80 attacks and 68 benign requests gave 77 true positives, 3 false negatives, 68 true negatives and no false positives: precision 1.00, recall 0.9625 and F1 0.981. Figure~\ref{fig:cov} shows coverage by category. The engine decided in 0.126~ms at the median and 0.277~ms at the 95th percentile. In the latency benchmark (300 interleaved request pairs per scenario after 30 warm-ups) the proxy added 1.721~ms to a GET and 1.886~ms to a 2~KiB form POST at the 95th percentile (Table~\ref{tab:latency}), with no failed requests.
+
+\begin{figure}[!htb]
+\centering
+\begin{tikzpicture}[font=\small]
+  \foreach \i/\n/\v/\c in {0/{SQL injection (27)}/92.6/worange, 1/{Cross-site scripting (25)}/96.0/wblue, 2/{Path traversal (16)}/100/wblue, 3/{Command injection (8)}/100/wblue, 4/{Scanners (4)}/100/wblue} {
+    \pgfmathsetmacro{\y}{-\i*0.7}
+    \pgfmathsetmacro{\w}{\v*0.075}
+    \node[anchor=east] at (0,\y) {\n};
+    \fill[\c] (0.1,\y-0.24) rectangle (0.1+\w,\y+0.24);
+    \node[anchor=west] at (0.2+\w,\y) {\v\%};
+  }
+  \draw[gray] (0.1,0.45) -- (0.1,-3.25);
+\end{tikzpicture}
+\caption{Share of corpus attacks detected in each category; the number of attack samples is in brackets. The top bar, SQL injection, contains two of the three remaining split-payload misses.}
+\label{fig:cov}
+\end{figure}
+
+\begin{table}[!htb]
+\centering
+\caption{Response time at the 95th percentile, in milliseconds.}
+\begin{rtab}
+\begin{tabular}{|p{4.2cm}|p{2.4cm}|p{2.9cm}|p{2.4cm}|}
+\hline
+\textbf{Scenario} & \textbf{Direct} & \textbf{Through WAF} & \textbf{Added} \\
+\hline
+GET search & 0.317 & 2.038 & 1.721 \\
+\hline
+POST 2 KiB form & 0.238 & 2.124 & 1.886 \\
+\hline
+\end{tabular}
+\end{rtab}
+\label{tab:latency}
+\end{table}
+
+%==================================================================
+\chapter{Conclusions}
+This chapter states the known limitations and concludes the report.
+
+\section{Limitations}
+Four evasion attempts are still missed: SQL tokens split across query parameters, SQL tokens split across JSON fields, base64-wrapped markup, and markup split across duplicate parameters. Matching each value on its own cannot rebuild a payload that only the application joins together. Other limits are the 64~KiB inspection window, a heuristic regular-expression guard, in-memory rate-limit windows, no response inspection, no TLS on the loopback interface, and an audit chain that is not anchored outside the database. The corpus is small, synthetic and shares signature families with the tests, so the figures describe behaviour in this lab only.
+
+\section{Conclusion and Future Work}
+WAF Studio meets the objectives of the proposal. It makes explainable decisions through both a reverse proxy and a console, supports safe tuning with two-person approval of exceptions, keeps tamper-evident evidence, and protects its own users and data, while reporting its misses openly. Future work could add cross-parameter reconstruction for split payloads, response inspection, TLS termination, an externally anchored audit chain and an independent test corpus.
+
+{
+\bibliographystyle{ieeetr}
+\bibliography{fypbib}
+}
+
+\end{document}
