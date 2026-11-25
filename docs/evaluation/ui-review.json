@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-10-19T20:34:07.801Z",
+  "url": "http://127.0.0.1:3000/#/dashboard",
+  "method": "Live browser review of the existing localhost app using the browser accessibility tree, screenshots and read-only DOM inspection; no policy changes were submitted.",
+  "viewports": [
+    {
+      "width": 1440,
+      "height": 1000,
+      "pageOverflow": false,
+      "mobileMenuVisible": false
+    },
+    {
+      "width": 390,
+      "height": 844,
+      "pageOverflow": false,
+      "mobileMenuWorks": true
+    }
+  ],
+  "checks": {
+    "threeSummaryCards": true,
+    "singleProtectionIndicator": true,
+    "singleAccountLink": true,
+    "policyConfigurationReachable": true,
+    "keyboardRuleAndSystemDisclosures": true,
+    "sevendayDateLabels": true,
+    "recentEventWindowFilter": true,
+    "compactSingleOutcomeColumn": true,
+    "browserErrorLog": []
+  },
+  "regression": {
+    "tests": 782,
+    "pass": 782,
+    "fail": 0,
+    "skipped": 0,
+    "productionAdvisories": 0
+  },
+  "screenshots": [
+    "../images/dashboard-desktop.png",
+    "../images/dashboard-mobile.png"
+  ],
+  "scope": "Visual/interaction review plus automated tests; no formal WCAG conformance or independent usability study is claimed."
+}
