@@ -1,13 +1,12 @@
-import { h, mount, code } from '../dom.js';
+import { h, mount, code, uid } from '../dom.js';
 import { api, actionKey } from '../api.js';
 import { can } from '../lib/roles.js';
 import { hashFor } from '../lib/query.js';
 import { truncate } from '../lib/format.js';
+import { replayUnavailableReason } from '../lib/dashboard.js';
 import { icon } from '../icons.js';
 import { pageHeader, outcomeBadge, chip, showStatus, select, busy, card, skeleton, skeletonLine } from '../ui.js';
 import { evidenceSections } from '../decision.js';
-
-const REPLAYABLE = new Set(['console', 'import', 'replay']);
 
 export async function render(ctx) {
   const id = ctx.params.id;
@@ -30,12 +29,14 @@ export async function render(ctx) {
   if (!ctx.isCurrent()) return;
   const event = res.event;
   const d = event.decision || {};
-  const canReplay = can(ctx.role, 'events.replay') && REPLAYABLE.has(event.source) && event.sample !== null;
+  const replayReason = can(ctx.role, 'events.replay') ? replayUnavailableReason(event) : 'Replay is not available for your role.';
+  const canReplay = !replayReason;
   const canRequest = can(ctx.role, 'exceptions.request');
+  const replayNoteId = uid('replay-note');
 
   const replayBtn = h('button', {
     type: 'button', class: 'btn btn-primary', disabled: !canReplay,
-    title: !canReplay ? 'Replay is only available for console and imported samples' : null,
+    'aria-describedby': canReplay ? null : replayNoteId,
     on: { click: replay },
   }, icon('refresh'), 'Replay');
   const fmt = select(['html', 'csv', 'json'], 'html', { 'aria-label': 'Export format' });
@@ -70,5 +71,6 @@ export async function render(ctx) {
       d.statusCode ? chip(`HTTP ${d.statusCode}`, 'bad') : null,
       h('span', { class: 'muted' }, `${event.source}${event.label ? ` · “${event.label}”` : ''}`),
       code(`${event.method} ${truncate(event.path, 120)}`, 'code vt-event-request')),
+    canReplay ? null : h('p', { class: 'hint replay-note', id: replayNoteId }, replayReason),
     ...evidenceSections(event, { canRequest }).filter(Boolean));
 }

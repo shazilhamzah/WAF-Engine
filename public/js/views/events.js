@@ -1,7 +1,7 @@
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { can } from '../lib/roles.js';
-import { hashFor, buildQuery } from '../lib/query.js';
+import { pageInfo, hashFor, buildQuery } from '../lib/query.js';
 import { swr } from '../cache.js';
 import { formatTs, truncate, formatMs, dateInputToIso } from '../lib/format.js';
 import { icon } from '../icons.js';
@@ -130,7 +130,8 @@ export async function render(ctx) {
     card(null, results));
 
   const paint = (data) => mount(results,
-    table({ caption: 'Events', columns, rows: data.items || [], empty: 'No events match these filters.' }),
+    table({ caption: 'Events', columns, rows: data.items || [],
+      empty: pageInfo(data.total, PAGE, offset).beyond ? 'This page is past the end of the results.' : 'No events match these filters.' }),
     pagination({
       total: data.total || 0, limit: PAGE, offset,
       onPage: (o) => ctx.navigate(hashFor('/events', { ...currentFilters(), offset: o || '' })),
