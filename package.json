@@ -20,7 +20,8 @@
     "evaluate": "node scripts/evaluate.js",
     "bench": "node scripts/bench-latency.js",
     "check": "node scripts/check.js",
-    "docs:pdf": "node scripts/build-pdf.js"
+    "docs:pdf": "node scripts/build-pdf.js",
+    "manifest": "node scripts/build-manifest.js"
   },
   "license": "MIT",
   "author": "Class 3, Group 12",
