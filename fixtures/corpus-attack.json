@@ -1,7 +1,7 @@
 {
   "case": "corpus-attack",
   "title": "Controlled adverse corpus",
-  "description": "80 synthetic adverse requests across SQLi, XSS, traversal, command signatures, scanners and four known bypass classes. Shares signature families with T1/T2/T5; not an independent holdout or a real-world accuracy estimate.",
+  "description": "80 synthetic adverse requests across SQLi, XSS, traversal, command signatures, scanners and four T5 bypass classes (three still known limitations). Shares signature families with T1/T2/T5; not an independent holdout or a real-world accuracy estimate.",
   "samples": [
     {
       "id": "CA-001",
@@ -1477,8 +1477,7 @@
         "categories": [
           "sqli"
         ]
-      },
-      "knownLimitation": "Numeric tautology signature covers decimal numbers, not hexadecimal expressions."
+      }
     }
   ]
 }

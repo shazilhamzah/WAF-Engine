@@ -79,8 +79,9 @@ function buildFixtures() {
     ['Cross-parameter keyword reconstruction', 'sqli', raw('/search?a=UN&b=ION&c=SEL&d=ECT&e=1'), 'Values are matched separately; an application concatenating them could reconstruct SQL.'],
     ['Split JSON fields reconstructed by an application', 'sqli', post('{"a":"UN","b":"ION","c":"SEL","d":"ECT"}'), 'No cross-field data-flow analysis.'],
     ['Base64 payload inside an application-specific wrapper', 'xss', get(Buffer.from('<script>alert(1)</script>').toString('base64'), '/search', 'encoded'), 'The WAF does not decode arbitrary application-level base64.'],
-    ['Hexadecimal numeric boolean comparison', 'sqli', get('1 OR 0x31=0x31'), 'Numeric tautology signature covers decimal numbers, not hexadecimal expressions.'],
-    ['String-concatenated boolean comparison', 'sqli', get("' OR ('a'||'b')=('a'||'b')"), 'No SQL expression interpreter or semantic constant folding.'],
+    // T5-16 and T5-17 were documented misses until 942100/942110 learned hex literals and || concatenation
+    ['Hexadecimal numeric boolean comparison', 'sqli', get('1 OR 0x31=0x31')],
+    ['String-concatenated boolean comparison', 'sqli', get("' OR ('a'||'b')=('a'||'b')")],
     ['XSS split between duplicate parameters', 'xss', raw('/search?q=%3Cscr&q=ipt%3EdoSomething()%3C%2Fscr&q=ipt%3E'), 'An application joining duplicate values could reconstruct markup.']
   ];
   const t5 = t5defs.map(([d, c, r, limitation], i) => sample(`T5-${String(i + 1).padStart(2, '0')}`, d, c, r, limitation ? { knownLimitation: limitation } : {}));
@@ -95,12 +96,13 @@ function buildFixtures() {
   for (const [d, p] of traversal) { add(d + ' in query', 'traversal', get(p, '/files', 'name')); add(d + ' double-encoded', 'traversal', get(encodeURIComponent(p), '/files', 'name')); }
   for (const p of ['127.0.0.1; cat /etc/passwd', '127.0.0.1 | whoami', '$(id)', '`whoami`']) { add('Command signature in query', 'cmdi', get(p)); add('Command signature in JSON', 'cmdi', post(JSON.stringify({ host: p }))); }
   for (const ua of ['sqlmap/1.8', 'nikto/2.5', 'Nmap Scripting Engine', 'masscan/1.3']) add('Scanner user-agent ' + ua, 'scanner', raw('/', { 'user-agent': ua }));
-  for (const s of t5.filter((s) => s.knownLimitation).slice(0, 4)) add(s.description, s.expected.categories[0], s.request, { knownLimitation: s.knownLimitation });
+  // pinned by id so fixing a bypass changes the score, not which requests are in the corpus
+  for (const s of t5.filter((s) => ['T5-13', 'T5-14', 'T5-15', 'T5-16'].includes(s.id))) add(s.description, s.expected.categories[0], s.request, s.knownLimitation ? { knownLimitation: s.knownLimitation } : {});
   return {
     't1-attacks.json': file('T1', 'SQLi, XSS and traversal strings', 'Synthetic signature examples, sent only to the local lab. Expected protection: block.', t1),
     't2-encoding.json': file('T2', 'Encoding and normalization variants', 'URL, repeated URL, %u, entities, case, NFKC, null/invisible characters, SQL comments, backslashes and malformed UTF-8.', t2),
     't5-bypass.json': file('T5', 'Evasion and bypass attempts', 'Expected verdict remains block even for documented misses. Cross-field/base64 examples are conditional on application interpretation, not confirmed exploits of Vulnerable Shop.', t5),
-    'corpus-attack.json': file('corpus-attack', 'Controlled adverse corpus', '80 synthetic adverse requests across SQLi, XSS, traversal, command signatures, scanners and four known bypass classes. Shares signature families with T1/T2/T5; not an independent holdout or a real-world accuracy estimate.', corpus)
+    'corpus-attack.json': file('corpus-attack', 'Controlled adverse corpus', '80 synthetic adverse requests across SQLi, XSS, traversal, command signatures, scanners and four T5 bypass classes (three still known limitations). Shares signature families with T1/T2/T5; not an independent holdout or a real-world accuracy estimate.', corpus)
   };
 }
 
