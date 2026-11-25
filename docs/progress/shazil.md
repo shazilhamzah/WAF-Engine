@@ -17,7 +17,7 @@ Scope: `src/index.js`, `src/config.js`, `src/db/**`, `src/auth/**`, `src/service
 | 2026-10-19 | Reverse proxy: bounded body buffering (`maxBodyBytes + 1`), inspect with shared state, event storage, block page with event id only (HTML/JSON), forwarding with re-streamed body, hop-by-hop stripping, XFF, 502/503 safe pages, `system.error` audit, upgrades refused. Bootstrap `startAll()` + direct run with graceful shutdown. |
 | 2026-10-19 | `scripts/setup.js` (idempotent; env or generated passwords printed once; `--reset-passwords`) and `scripts/reset.js` (`--yes`, `--new-secret`). |
 | 2026-10-19 | Tests: 224 in `test/unit/{db,auth,api}` (fake engine harness, 120-case role × endpoint matrix, proxy against a stub upstream, real-engine smoke) — all pass. |
-| 2026-10-19 | Ran Nufil's integration + security suites against the full stack with Saad's engine and Nufil's target: 235/236 pass; the remaining failure (`/files?name=../secret/flag.txt` scores 3 < block 5) is a default-rule scoring issue in `src/rules/default.rules` (engine owner). Evaluation harness test: 11/11. |
+| 2026-10-19 | Ran Saad's integration + security suites against the full stack with Nufil's engine and Saad's target: 235/236 pass; the remaining failure (`/files?name=../secret/flag.txt` scores 3 < block 5) is a default-rule scoring issue in `src/rules/default.rules` (engine owner). Evaluation harness test: 11/11. |
 | 2026-10-19 | Fixes found by integration: console samples now mask secret-looking **query parameters** in the stored path (canary test); migration failure releases the DB file handle; sample paths reject control characters (aligned with the UI validator). |
 | 2026-10-19 | Docs: `docs/data-model.md`, `docs/api.md`, `docs/security-controls.md`. |
 
@@ -47,6 +47,6 @@ now scores 5 and the single-level traversal proxy test passes; the SQL-comment/w
 parser test also passes. All 779 tests and current secret-redaction security checks pass. The harmless
 http-proxy deprecation warning remains. See `../test-results.md` and `../evaluation/check-summary.json`.
 
-* `src/rules/default.rules`: path traversal `../secret/flag.txt` currently scores 3 (flag) — integration test expects a block (Saad).
-* `test/unit/engine/parser.test.js` "SQL comment, whitespace, lowercase and backslash variants" fails at the time of writing (Saad).
+* `src/rules/default.rules`: path traversal `../secret/flag.txt` currently scores 3 (flag) — integration test expects a block (Nufil).
+* `test/unit/engine/parser.test.js` "SQL comment, whitespace, lowercase and backslash variants" fails at the time of writing (Nufil).
 * ~~http-proxy 1.18.1 prints a Node `DEP0060 util._extend` deprecation warning~~ — resolved 2026-11-25: filtered (DEP0060 only) in `src/proxy/silenceDep0060.js`.

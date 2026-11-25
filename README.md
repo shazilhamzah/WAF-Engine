@@ -118,8 +118,8 @@ docs/       requirements, architecture, threat model, test plan/results, guides,
 | Member | Role | Owns |
 |---|---|---|
 | Shazil | A — backend / data / authentication | Repository + audit store, auth, API, reverse proxy, bootstrap, setup/reset |
-| Saad | B — security engine / evaluation fixtures | Parser, rule DSL, scoring, modes, rate limiter, exceptions, redaction, default rules, fixtures |
+| Nufil | B — security engine / evaluation fixtures | Parser, rule DSL, scoring, modes, rate limiter, exceptions, redaction, default rules, fixtures |
 | Wahaj | C — frontend / reporting / integration | Web console, report export, wireframes, user + admin guides |
-| Nufil | D — automation / security testing / packaging / QA | Vulnerable target, integration + security tests, evaluation harness, benchmark, check + PDF scripts, threat model, test plan/results, ethics, setup guide |
+| Saad | D — automation / security testing / packaging / QA | Vulnerable target, integration + security tests, evaluation harness, benchmark, check + PDF scripts, threat model, test plan/results, ethics, setup guide |
 
 Stack: Node.js, Express 4, http-proxy, built-in SQLite (`node:sqlite`), vanilla JavaScript. Licence: MIT.

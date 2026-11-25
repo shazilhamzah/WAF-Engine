@@ -1,6 +1,6 @@
 # WAF Studio Security Engine
 
-Owner: Saad (member B). Code: `src/engine/` (layer 3 of the architecture). Default rules:
+Owner: Nufil (member B). Code: `src/engine/` (layer 3 of the architecture). Default rules:
 `src/rules/default.rules`. Contract: `docs/02-architecture.md` §1.2 and §3. DSL reference:
 `docs/rule-dsl.md`.
 
@@ -259,7 +259,7 @@ All default regexes use bounded repetition; adversarial 64 KiB inputs finish wel
 
 ## 14. Contract clarifications
 
-Choices made where the contract left room (also recorded in `docs/progress/saad.md`):
+Choices made where the contract left room (also recorded in `docs/progress/nufil.md`):
 
 1. **`excerpt(str, index, len)`**: `len` is the length of the matched region; the result is always
    ≤ 120 characters.

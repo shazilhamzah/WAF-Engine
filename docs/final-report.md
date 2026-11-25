@@ -2,7 +2,7 @@
 
 **Proposal 44 | Class 3, Group 12**  
 **Domain:** Web and Infrastructure Security  
-**Workstreams:** Shazil (A), Saad (B), Wahaj (C), Nufil (D)  
+**Workstreams:** Shazil (A), Nufil (B), Wahaj (C), Saad (D)  
 **Final integration:** 20 October 2026, Asia/Karachi
 
 ## 1. Executive summary
@@ -317,9 +317,9 @@ verified by TF-11. Do not expose the lab to the network or use its fixtures agai
 | Assigned workstream | Delivered responsibility |
 |---|---|
 | Shazil - A | Config, repository, auth, services/API, proxy, setup/reset and backend tests/guides |
-| Saad - B | Security engine, default rules, fixtures, engine tests and DSL/engine documentation |
+| Nufil - B | Security engine, default rules, fixtures, engine tests and DSL/engine documentation |
 | Wahaj - C | Responsive console, safe DOM helpers, reports, UI/report tests and user/admin guides |
-| Nufil - D | Vulnerable target, integration/security suites, harness, benchmark/PDF/check tooling, threat model and QA docs |
+| Saad - D | Vulnerable target, integration/security suites, harness, benchmark/PDF/check tooling, threat model and QA docs |
 | Integration continuation | Missing adverse fixtures, measured final runs, reconciled documentation, traceability and final report/PDF |
 
 These names retain the workstream labels in Claude's plan; the logs document automated agent work,

@@ -1,6 +1,6 @@
 # WAF Studio — Setup Guide
 
-> Owner: Nufil. Everything runs locally from VS Code on an ordinary laptop with **Node.js only** — no
+> Owner: Saad. Everything runs locally from VS Code on an ordinary laptop with **Node.js only** — no
 > Docker, no database server, no paid services, no internet access needed after `npm install`.
 > Role guides: [user guide](user-guide.md) (operator/viewer), [admin guide](admin-guide.md).
 

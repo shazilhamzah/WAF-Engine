@@ -1,6 +1,6 @@
 # WAF Studio — Limitations and Ethics Statement
 
-> Owner: Nufil. Applies to the whole project (source, fixtures, vulnerable target, evaluation data and
+> Owner: Saad. Applies to the whole project (source, fixtures, vulnerable target, evaluation data and
 > reports). Proposal scope: "Production hosting, paid services, native mobile development, real-world
 > attack deployment, and unapproved external targets are out of scope."
 

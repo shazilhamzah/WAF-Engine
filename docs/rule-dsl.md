@@ -1,6 +1,6 @@
 # WAF Studio Rule DSL
 
-Owner: Saad (member B). Implements **FR-2**: rules are written in this documented language, invalid
+Owner: Nufil (member B). Implements **FR-2**: rules are written in this documented language, invalid
 rules are rejected with line/column errors, unsafe regular expressions are refused, and every rule
 carries a version (the `version` of its stored record, see `rule_versions` in the data model).
 

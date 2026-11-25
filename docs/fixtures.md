@@ -1,6 +1,6 @@
 # Fixtures — safe sample data
 
-Owner: Saad (member B). Directory: `fixtures/` (layer 5 of the architecture, "Test fixtures (safe
+Owner: Nufil (member B). Directory: `fixtures/` (layer 5 of the architecture, "Test fixtures (safe
 sample inputs)").
 
 ## Synthetic-data statement
