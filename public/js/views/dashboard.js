@@ -4,8 +4,9 @@ import { can } from '../lib/roles.js';
 import { hashFor } from '../lib/query.js';
 import { summarizeOutcomes, CATEGORY_NAMES, SOURCE_NAMES } from '../lib/dashboard.js';
 import { formatNumber, formatMs, hourLabel, formatTs, truncate } from '../lib/format.js';
-import { pageHeader, card, table, hbar, loading, errorPanel, emptyState, select, busy, outcomeBadge } from '../ui.js';
+import { pageHeader, card, table, hbar, errorPanel, emptyState, select, busy, outcomeBadge, skeleton, skeletonLine, placeholderTable, markSharedRequest, staleWarning } from '../ui.js';
 import { icon } from '../icons.js';
+import { swr } from '../cache.js';
 
 const WINDOWS = [
   { value: '1', label: 'Last hour' }, { value: '6', label: 'Last 6 hours' },
@@ -13,11 +14,24 @@ const WINDOWS = [
   { value: '168', label: 'Last 7 days' },
 ];
 
+// a null value or description renders the skeleton version of the same tile
 function metric(label, value, description, kind = '') {
   return h('div', { class: ['overview-metric', kind] },
     h('span', { class: 'metric-label' }, label),
-    h('span', { class: 'metric-value' }, formatNumber(value)),
-    h('span', { class: 'metric-description' }, description));
+    h('span', { class: 'metric-value' }, value === null ? skeletonLine('value') : formatNumber(value)),
+    h('span', { class: 'metric-description' }, description === null ? skeletonLine('short') : description));
+}
+
+const ACTIVITY_DESCRIPTION = 'Recorded outcomes by hour · Local time';
+const PATTERNS_DESCRIPTION = 'Inspections matching each category. One inspection can match several.';
+
+function recentCard(eventsUrl, tableEl) {
+  return h('section', { class: 'card overview-events', 'aria-labelledby': 'recent-title' },
+    h('div', { class: 'section-heading' },
+      h('div', null, h('h2', { id: 'recent-title', class: 'card-title' }, 'Recent inspections'),
+        h('p', { class: 'card-description' }, 'Latest five in the selected time range')),
+      h('a', { href: eventsUrl, class: 'link-arrow' }, 'View all events', icon('arrow-right'))),
+    tableEl);
 }
 
 function bucketLabel(hour, hours) {
@@ -76,29 +90,56 @@ function timeline(buckets, hours) {
 
 export async function render(ctx) {
   let hours = '24'; let loadSeq = 0; let rulesExpanded = false; let systemExpanded = false;
-  const body = h('div', null, loading());
+  const canDetail = can(ctx.role, 'events.detail');
+  const recentColumns = [
+    { key: 'ts', label: 'Time', render: (e) => formatTs(e.ts) },
+    { key: 'request', label: 'Request', render: (e) => h('div', { class: 'request-preview' },
+      canDetail ? h('a', { href: `#/events/${encodeURIComponent(e.id)}`, on: { click: markSharedRequest } }, code(`${e.method} ${truncate(e.path, 60)}`))
+        : code(`${e.method} ${truncate(e.path, 60)}`),
+      h('span', { class: 'muted small' }, SOURCE_NAMES[e.source] || e.source)),
+    },
+    { key: 'outcome', label: 'Outcome', render: outcomeBadge },
+    { key: 'score', label: 'Score', className: 'num' },
+  ];
+  const body = h('div', null, skeleton(
+    h('div', { class: 'overview-metrics' },
+      metric('Total inspections', null, 'All sources'),
+      metric('Blocked', null, 'Block decisions'),
+      metric('Passed', null, null)),
+    h('div', { class: 'overview-guidance' },
+      h('p', null, h('span', { class: 'guidance-label' }, 'Recommended action'), skeletonLine('short'))),
+    h('div', { class: 'overview-charts' },
+      card('Inspection activity', h('p', { class: 'card-description' }, ACTIVITY_DESCRIPTION), skeletonLine('chart')),
+      card('Detected patterns', h('p', { class: 'card-description' }, PATTERNS_DESCRIPTION), skeletonLine(), skeletonLine(), skeletonLine())),
+    recentCard('#/events', placeholderTable(recentColumns, 5, { caption: 'Recent inspections in the selected time range' })),
+    h('div', { class: 'overview-bottom' }, h('details', { class: 'overview-system' }, h('summary', null, 'System details')))));
   const windowSel = select(WINDOWS, hours, { id: 'overview-window', on: { change: () => { hours = windowSel.value; load(); } } });
-  const refreshBtn = h('button', { type: 'button', class: 'btn', on: { click: () => busy(refreshBtn, load) } }, icon('refresh'), 'Refresh');
+  const refreshBtn = h('button', { type: 'button', class: 'btn', on: { click: () => busy(refreshBtn, () => load({ skipCache: true })) } }, icon('refresh'), 'Refresh');
   const filter = h('label', { class: 'overview-window', for: 'overview-window' }, h('span', null, 'Time range'), windowSel);
   mount(ctx.el,
     pageHeader('Overview', filter, refreshBtn),
     body);
 
-  async function load() {
+  async function load({ skipCache = false } = {}) {
     const seq = ++loadSeq;
     const selectedHours = Number(hours);
     const from = new Date(Date.now() - selectedHours * 3600000).toISOString();
+    const isCurrent = () => seq === loadSeq && ctx.isCurrent();
     body.setAttribute('aria-busy', 'true');
-    let stats; let recent;
     try {
-      [stats, recent] = await Promise.all([api.stats(selectedHours), api.events({ limit: 5, offset: 0, from })]);
+      await swr(`dashboard:${selectedHours}`, async () => {
+        const [stats, recent] = await Promise.all([api.stats(selectedHours), api.events({ limit: 5, offset: 0, from })]);
+        return { stats, recent };
+      }, (data) => paint(data, selectedHours, from), { isCurrent, onStaleError: staleWarning, skipCache });
     } catch (err) {
-      if (seq !== loadSeq || !ctx.isCurrent() || (err && err.status === 401)) return;
-      mount(body, errorPanel(err, load));
-      body.setAttribute('aria-busy', 'false');
-      return;
+      if (!isCurrent() || (err && err.status === 401)) return;
+      mount(body, errorPanel(err, () => load()));
+    } finally {
+      if (isCurrent()) body.setAttribute('aria-busy', 'false');
     }
-    if (seq !== loadSeq || !ctx.isCurrent()) return;
+  }
+
+  function paint({ stats, recent }, selectedHours, from) {
     ctx.refreshMode(stats.mode);
     const totals = summarizeOutcomes(stats.totals);
     const lat = stats.latency || {};
@@ -106,7 +147,6 @@ export async function render(ctx) {
     const catMax = Math.max(1, ...categories.map(([, n]) => n));
     const top = stats.topRules || [];
     const topMax = Math.max(1, ...top.map((r) => r.count || 0));
-    const canDetail = can(ctx.role, 'events.detail');
     const eventsUrl = hashFor('/events', { from });
     const needsReview = totals.flagged || totals.blocked || totals.monitored;
     const reviewUrl = hashFor('/events', { from, ...(totals.flagged ? { verdict: 'flag' } : { action: totals.blocked ? 'blocked' : 'logged' }) });
@@ -130,31 +170,16 @@ export async function render(ctx) {
         h('dt', null, 'Inspection latency'), h('dd', null, `Average ${formatMs(lat.avgMs)} · Median ${formatMs(lat.p50Ms)} · p95 ${formatMs(lat.p95Ms)}`)));
 
     const activity = card('Inspection activity',
-      h('p', { class: 'card-description' }, 'Recorded outcomes by hour · Local time'),
+      h('p', { class: 'card-description' }, ACTIVITY_DESCRIPTION),
       timeline(stats.timeline || [], selectedHours));
     const detections = card('Detected patterns',
-      h('p', { class: 'card-description' }, 'Inspections matching each category. One inspection can match several.'),
+      h('p', { class: 'card-description' }, PATTERNS_DESCRIPTION),
       categories.length ? h('ul', { class: 'category-list' }, ...categories.map(([category, count]) => h('li', null,
         h('span', { class: 'category-name' }, CATEGORY_NAMES[category] || category), hbar(count, catMax))))
         : emptyState('No detection patterns in this window.'),
       rulesDetails);
-    const recentCard = h('section', { class: 'card overview-events', 'aria-labelledby': 'recent-title' },
-      h('div', { class: 'section-heading' },
-        h('div', null, h('h2', { id: 'recent-title', class: 'card-title' }, 'Recent inspections'),
-          h('p', { class: 'card-description' }, 'Latest five in the selected time range')),
-        h('a', { href: eventsUrl, class: 'link-arrow' }, 'View all events', icon('arrow-right'))),
-      table({ caption: 'Recent inspections in the selected time range', empty: 'No inspections in this time range.',
-        columns: [
-          { key: 'ts', label: 'Time', render: (e) => formatTs(e.ts) },
-          { key: 'request', label: 'Request', render: (e) => h('div', { class: 'request-preview' },
-            canDetail ? h('a', { href: `#/events/${encodeURIComponent(e.id)}` }, code(`${e.method} ${truncate(e.path, 60)}`))
-              : code(`${e.method} ${truncate(e.path, 60)}`),
-            h('span', { class: 'muted small' }, SOURCE_NAMES[e.source] || e.source)),
-          },
-          { key: 'outcome', label: 'Outcome', render: outcomeBadge },
-          { key: 'score', label: 'Score', className: 'num' },
-        ], rows: recent.items || [],
-      }));
+    const recentEl = recentCard(eventsUrl, table({ caption: 'Recent inspections in the selected time range', empty: 'No inspections in this time range.',
+      columns: recentColumns, rows: recent.items || [] }));
 
     mount(body,
       h('div', { class: 'overview-metrics' },
@@ -166,14 +191,14 @@ export async function render(ctx) {
         needsReview ? h('a', { href: reviewUrl, class: 'link-arrow' }, 'Review events', icon('arrow-right')) : can(ctx.role, 'samples.submit')
           ? h('a', { href: '#/analyze', class: 'link-arrow' }, 'Analyze a request', icon('arrow-right')) : null),
       h('div', { class: 'overview-charts' }, activity, detections),
-      recentCard,
+      recentEl,
       h('div', { class: 'overview-bottom' }, details));
-    body.setAttribute('aria-busy', 'false');
   }
   const breakpoint = window.matchMedia('(max-width: 720px)');
   const resize = () => load();
   await load();
   if (!ctx.isCurrent()) return;
+  ctx.onRevalidate(load);
   breakpoint.addEventListener('change', resize);
   return () => breakpoint.removeEventListener('change', resize);
 }

@@ -1,9 +1,10 @@
 import { h, mount, code } from '../dom.js';
-import { api } from '../api.js';
+import { api, actionKey } from '../api.js';
 import { can } from '../lib/roles.js';
 import { formatTs, shortHash, truncate } from '../lib/format.js';
-import { pageHeader, card, table, severityBadge, loading, errorPanel, showStatus, confirmDialog, busy, message, statusLabel } from '../ui.js';
+import { pageHeader, card, table, severityBadge, loading, errorPanel, showStatus, confirmDialog, busy, message, statusLabel, skeleton, placeholderTable, skeletonLine, staleWarning } from '../ui.js';
 import { icon } from '../icons.js';
+import { swr } from '../cache.js';
 
 export const NEW_RULE_TEMPLATE = `rule 100100 "Describe what this rule detects" {
   when args contains "example-indicator"
@@ -25,13 +26,16 @@ export function offsetFor(text, line, col) {
 
 export async function render(ctx) {
   const isAdmin = can(ctx.role, 'rules.write');
-  const listBox = h('div', null, loading());
+  const listBox = h('div');
   const editor = h('textarea', { class: 'editor', rows: 14, spellcheck: 'false', autocomplete: 'off', 'aria-describedby': 'rule-editor-help' });
   const editorTitle = h('summary', { id: 'rule-editor-title' }, isAdmin ? 'Rule editor' : 'Validate DSL');
   const validation = h('div', { 'aria-live': 'polite' });
   const historyBox = h('div');
   const editorCard = h('details', { class: 'card' });
   let editing = null;
+  const createKey = actionKey();
+  let shown = null;
+  const pendingToggles = new Set();
 
   const validateBtn = h('button', { type: 'button', class: 'btn', on: { click: () => busy(validateBtn, validate) } }, 'Validate');
   const saveBtn = isAdmin ? h('button', { type: 'button', class: 'btn btn-primary', on: { click: () => busy(saveBtn, save) } }, 'Save rule') : null;
@@ -86,21 +90,24 @@ export async function render(ctx) {
   async function save() {
     try {
       if (editing === null) {
-        const res = await api.createRule(editor.value, true);
+        const res = await api.createRule(editor.value, true, createKey);
+        createKey.reset();
         showStatus(`Rule ${res.rule && res.rule.id} created and enabled.`, 'success');
         editing = res.rule && res.rule.id;
       } else {
         const res = await api.updateRule(editing, { source: editor.value });
         showStatus(`Rule ${editing} updated to version ${res.rule && res.rule.version}.`, 'success');
       }
-      await loadList();
+      await loadList({ skipCache: true });
     } catch (err) {
       if (err && err.code === 'VALIDATION_FAILED' && err.details.some((d) => d.line)) showErrors(err.details);
       else throw err;
     }
   }
 
-  async function setEnabled(rule, enabled, btn) {
+  // optimistic: the row flips as soon as the change is confirmed and flips back if the server refuses
+  async function setEnabled(rule, enabled) {
+    if (pendingToggles.has(rule.id)) return;
     if (!enabled) {
       const { confirmed } = await confirmDialog({
         title: `Disable rule ${rule.id}?`,
@@ -109,11 +116,27 @@ export async function render(ctx) {
       });
       if (!confirmed) return;
     }
-    await busy(btn, async () => {
+    const previous = rule.enabled;
+    rule.enabled = enabled;
+    pendingToggles.add(rule.id);
+    repaintList();
+    try {
       await api.updateRule(rule.id, enabled ? { enabled: true } : { enabled: false, confirm: true });
+      pendingToggles.delete(rule.id);
       showStatus(`Rule ${rule.id} ${enabled ? 'enabled' : 'disabled'}.`, 'success');
-      await loadList();
-    });
+      await loadList({ skipCache: true });
+    } catch (err) {
+      rule.enabled = previous;
+      pendingToggles.delete(rule.id);
+      repaintList();
+      if (!err || err.status !== 401) {
+        showStatus(`Rule ${rule.id} is still ${previous ? 'enabled' : 'disabled'}: ${(err && err.friendly) || 'the change failed.'}`, 'error');
+      }
+    }
+  }
+
+  function repaintList() {
+    if (shown && ctx.isCurrent()) paintList(shown);
   }
 
   async function remove(rule, btn) {
@@ -127,7 +150,7 @@ export async function render(ctx) {
       await api.deleteRule(rule.id);
       showStatus(`Rule ${rule.id} deleted.`, 'success');
       if (editing === rule.id) startNew();
-      await loadList();
+      await loadList({ skipCache: true });
     });
   }
 
@@ -155,16 +178,20 @@ export async function render(ctx) {
     }
   }
 
-  async function loadList() {
-    let res;
+  async function loadList({ skipCache = false } = {}) {
     try {
-      res = await api.rules();
+      await swr('rules', () => api.rules(), paintList, { isCurrent: ctx.isCurrent, onStaleError: staleWarning, skipCache });
     } catch (err) {
       if (err && err.status === 401) return;
-      mount(listBox, errorPanel(err, loadList));
-      return;
+      mount(listBox, errorPanel(err, () => loadList()));
     }
-    if (!ctx.isCurrent()) return;
+  }
+
+  function paintList(res) {
+    shown = res;
+    // keep keyboard focus on the same rule's toggle across repaints
+    const active = document.activeElement;
+    const focusToggle = active && listBox.contains(active) && active.dataset ? active.dataset.toggle : null;
     const items = (res.items || []).slice().sort((x, y) => Number(x.id) - Number(y.id));
     mount(listBox,
       h('p', { class: 'meta-line' }, h('span', null, 'Active ruleset ', code(shortHash(res.rulesetVersion, 20))),
@@ -172,32 +199,38 @@ export async function render(ctx) {
       (res.compileErrors && res.compileErrors.length) ? h('div', { class: 'warn-note' },
         h('p', null, icon('alert'), 'Some stored rules failed to compile and are not active:'),
         h('ul', null, ...res.compileErrors.map((e) => h('li', null, `Rule ${e.ruleId ?? '?'}: line ${e.line ?? '?'}, col ${e.col ?? '?'} — ${e.message || ''}`)))) : null,
-      table({
-        caption: 'Rules',
-        columns: [
-          { key: 'id', label: 'Id', render: (r) => code(r.id), rowHeader: true },
-          { key: 'name', label: 'Name', render: (r) => truncate(r.name, 60) },
-          { key: 'severity', label: 'Severity', render: (r) => severityBadge(r.severity) },
-          { key: 'category', label: 'Category' },
-          { key: 'version', label: 'Version', className: 'num' },
-          { key: 'enabled', label: 'Status', render: (r) => (r.enabled ? statusLabel('enabled', 'ok') : statusLabel('disabled', 'muted')) },
-          { key: 'actions', label: 'Actions', render: (r) => {
-            const btns = [h('button', { type: 'button', class: 'btn btn-small', on: { click: () => startEdit(r) } }, isAdmin ? 'Edit' : 'View'),
-              h('button', { type: 'button', class: 'btn btn-small', on: { click: () => showHistory(r) } }, 'History')];
-            if (isAdmin) {
-              const t = h('button', { type: 'button', class: 'btn btn-small', 'aria-pressed': String(Boolean(r.enabled)) }, r.enabled ? 'Disable' : 'Enable');
-              t.addEventListener('click', () => setEnabled(r, !r.enabled, t));
-              const d = h('button', { type: 'button', class: 'btn btn-small btn-danger' }, 'Delete');
-              d.addEventListener('click', () => remove(r, d));
-              btns.push(t, d);
-            }
-            return h('div', { class: 'btn-group' }, ...btns);
-          } },
-        ],
-        rows: items,
-        empty: 'No rules yet.',
-      }));
+      table({ caption: 'Rules', columns, rows: items, empty: 'No rules yet.' }));
+    if (focusToggle) {
+      const again = listBox.querySelector(`[data-toggle="${CSS.escape(focusToggle)}"]`);
+      if (again) again.focus();
+    }
   }
+
+  const columns = [
+    { key: 'id', label: 'Id', render: (r) => code(r.id), rowHeader: true },
+    { key: 'name', label: 'Name', render: (r) => truncate(r.name, 60) },
+    { key: 'severity', label: 'Severity', render: (r) => severityBadge(r.severity) },
+    { key: 'category', label: 'Category' },
+    { key: 'version', label: 'Version', className: 'num' },
+    { key: 'enabled', label: 'Status', render: (r) => (r.enabled ? statusLabel('enabled', 'ok') : statusLabel('disabled', 'muted')) },
+    { key: 'actions', label: 'Actions', render: (r) => {
+      const btns = [h('button', { type: 'button', class: 'btn btn-small', on: { click: () => startEdit(r) } }, isAdmin ? 'Edit' : 'View'),
+        h('button', { type: 'button', class: 'btn btn-small', on: { click: () => showHistory(r) } }, 'History')];
+      if (isAdmin) {
+        const pending = pendingToggles.has(r.id);
+        const t = h('button', {
+          type: 'button', class: 'btn btn-small', 'aria-pressed': String(Boolean(r.enabled)),
+          'aria-disabled': pending ? 'true' : null, dataset: { toggle: r.id },
+        }, r.enabled ? 'Disable' : 'Enable');
+        t.addEventListener('click', () => setEnabled(r, !r.enabled));
+        const d = h('button', { type: 'button', class: 'btn btn-small btn-danger' }, 'Delete');
+        d.addEventListener('click', () => remove(r, d));
+        btns.push(t, d);
+      }
+      return h('div', { class: 'btn-group' }, ...btns);
+    } },
+  ];
+  mount(listBox, skeleton(h('p', { class: 'meta-line' }, skeletonLine('short')), placeholderTable(columns, 8, { caption: 'Rules' })));
 
   mount(editorCard,
     editorTitle,
@@ -214,6 +247,8 @@ export async function render(ctx) {
     editorCard);
   editor.id = 'rule-editor';
   editor.value = NEW_RULE_TEMPLATE;
+  if (ctx.query.new && isAdmin) startNew();
   await loadList();
+  ctx.onRevalidate(loadList);
 }
 

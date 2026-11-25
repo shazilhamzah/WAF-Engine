@@ -174,6 +174,15 @@ This reproduces the scenario on page 3 of the proposal end to end.
 * Everything works with the keyboard: **Skip to content** is the first Tab stop, focus is always visible,
   dialogs trap focus, **Esc** closes them and focus returns to the button that opened them.
 * Status messages are announced (`aria-live`); errors are prefixed with "Error:".
+* **Ctrl+K** (⌘K on a Mac), or the **Search** button in the header, opens the command menu: type to filter every
+  page and action your role can use, arrows to move, Enter to open, Esc to close.
+* Shortcuts (shown in the command menu and in the sidebar tooltips): **G** then **O / E / A / R / C / X / L / U**
+  jumps to Overview, Events, Analyze, Rules, Configuration, Exceptions, Audit log or Users; **/** jumps to the
+  search field on Events and Audit; **Ctrl+Z** (⌘Z) undoes the last *Clear* or *Remove header* on Analyze while its
+  toast is showing. Shortcuts never fire while you are typing in a field.
+* High-impact changes (disabling or deleting a rule, mode and thresholds, approvals, user changes) still ask for
+  confirmation first; small reversible edits happen at once with an **Undo** toast instead.
+* Animations are short and stop entirely when your system asks for reduced motion.
 * Colour is never the only signal — every badge has an icon and a word, changed rows say "≠ changed".
 * The console follows your system's light/dark preference and works on phones down to 360 px wide
   (menu button, stacked cards instead of wide tables).

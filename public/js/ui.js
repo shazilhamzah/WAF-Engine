@@ -42,6 +42,70 @@ export function clearStatus() {
   const region = document.getElementById('status');
   if (region) clear(region);
 }
+// reversible actions happen at once and offer Undo for a few seconds instead of asking first.
+// the timer pauses while the toast is hovered or focused so nobody loses the chance to undo
+export const UNDO_MS = 8000;
+let activeToast = null;
+
+function toastHost() {
+  let host = document.getElementById('toast-host');
+  if (!host) {
+    host = h('div', { id: 'toast-host', class: 'toast-host' });
+    document.body.appendChild(host);
+  }
+  return host;
+}
+
+export function undoToast(text, { onUndo, onExpire, duration = UNDO_MS, shortcut = null } = {}) {
+  if (activeToast) activeToast.dismiss();
+  let timer = null;
+  let left = duration;
+  let startedAt = 0;
+  let done = false;
+  const undoBtn = h('button', { type: 'button', class: 'btn btn-small toast-undo', 'aria-keyshortcuts': shortcut ? shortcut.aria : null },
+    'Undo', shortcut ? h('kbd', { class: 'kbd', 'aria-hidden': 'true' }, shortcut.label) : null);
+  const closeBtn = h('button', { type: 'button', class: 'link-btn toast-close', 'aria-label': 'Dismiss' }, icon('x'));
+  const el = h('div', { class: 'toast', role: 'status', 'aria-live': 'polite' }, h('span', { class: 'toast-text' }, text), undoBtn, closeBtn);
+
+  function start() {
+    if (timer || done) return;
+    startedAt = Date.now();
+    timer = setTimeout(() => finish(false), left);
+  }
+  function pause() { if (timer) { clearTimeout(timer); timer = null; left -= Date.now() - startedAt; } }
+  function finish(undone) {
+    if (done) return;
+    done = true;
+    clearTimeout(timer);
+    if (activeToast === api) activeToast = null;
+    el.classList.add('toast-leaving');
+    // the exit is a transition so it can never trap input; removal does not wait on it if transitions are off
+    el.addEventListener('transitionend', () => el.remove(), { once: true });
+    setTimeout(() => el.remove(), 400);
+    if (undone && onUndo) onUndo();
+    if (!undone && onExpire) onExpire();
+  }
+  const api = { undo: () => finish(true), dismiss: () => finish(false), get open() { return !done; } };
+  undoBtn.addEventListener('click', api.undo);
+  closeBtn.addEventListener('click', api.dismiss);
+  el.addEventListener('pointerenter', pause);
+  el.addEventListener('pointerleave', () => { if (!done && !el.contains(document.activeElement)) start(); });
+  el.addEventListener('focusin', pause);
+  el.addEventListener('focusout', (e) => { if (!done && !el.contains(e.relatedTarget)) start(); });
+  toastHost().appendChild(el);
+  activeToast = api;
+  start();
+  return api;
+}
+
+export function currentToast() { return activeToast; }
+
+// a background refresh failed while cached data is on screen
+export function staleWarning(err) {
+  if (err && err.status === 401) return;
+  showStatus(`Could not refresh, showing the last loaded data. ${(err && err.friendly) || ''}`.trim(), 'warn');
+}
+
 export function showError(err) {
   showStatus((err && err.friendly) || (err && err.message) || 'Unexpected error.', 'error');
 }
@@ -59,6 +123,48 @@ export function card(title, ...children) {
 
 export function loading(text = 'Loading…') {
   return h('p', { class: 'loading', role: 'status' }, h('span', { class: 'spinner', 'aria-hidden': 'true' }), ' ', text);
+}
+
+// skeletons stay invisible for the first 300 ms so fast loads never flash grey blocks,
+// but they hold the final layout's space from the start so nothing jumps when data lands
+export const SKELETON_DELAY_MS = 300;
+
+export function skeletonLine(size) {
+  return h('span', { class: ['skeleton-line', size ? `skeleton-${size}` : null], 'aria-hidden': 'true' });
+}
+
+export function skeleton(...children) {
+  const el = h('div', { class: 'skeleton', 'aria-busy': 'true', 'data-pending': '' },
+    h('span', { class: 'sr-only', role: 'status' }, 'Loading…'), ...children);
+  setTimeout(() => el.removeAttribute('data-pending'), SKELETON_DELAY_MS);
+  return el;
+}
+
+// the same table component as the loaded state, with placeholder cells
+export function placeholderTable(columns, rows = 5, extra = {}) {
+  return table({
+    ...extra,
+    columns: columns.map((c) => ({ ...c, render: () => skeletonLine() })),
+    rows: Array.from({ length: rows }, () => ({})),
+  });
+}
+
+export function skeletonTable(columns, rows = 5, extra = {}) {
+  return skeleton(placeholderTable(columns, rows, extra));
+}
+
+export function pageSkeleton({ delay = SKELETON_DELAY_MS } = {}) {
+  const el = skeleton(
+    h('div', { class: 'page-head' }, h('div', { class: 'skeleton-heading' }, skeletonLine('title'))),
+    card(null, skeletonLine(), skeletonLine(), skeletonLine('short')));
+  if (!delay) el.removeAttribute('data-pending');
+  return el;
+}
+
+// the clicked request line morphs into the event page header during the view transition
+export function markSharedRequest(e) {
+  const el = e.currentTarget.querySelector('code');
+  if (el) el.classList.add('vt-event-request');
 }
 
 export function emptyState(text) {

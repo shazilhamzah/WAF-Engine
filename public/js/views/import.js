@@ -1,5 +1,5 @@
 import { h, mount, code } from '../dom.js';
-import { api } from '../api.js';
+import { api, actionKey } from '../api.js';
 import { LIMITS, parseImportText, importPayload } from '../lib/samples.js';
 import { formatBytes, truncate, formatTs } from '../lib/format.js';
 import { pageHeader, card, field, table, outcomeBadge, message } from '../ui.js';
@@ -62,11 +62,15 @@ export function buildImportPanel() {
       h('ul', null, ...invalid.slice(0, 50).map((x) => h('li', null, `#${x.index + 1}: ${x.message}`))));
   }
 
+  // a new file is a new intent; retrying the same file reuses the key
+  const importKey = actionKey();
+
   async function doImport() {
     if (!parsed) return;
     submit.disabled = true;
     try {
-      const res = await api.importSamples(filename, importPayload(parsed));
+      const res = await api.importSamples(filename, importPayload(parsed), importKey);
+      importKey.reset();
       const events = res.events || [];
       mount(outcomeSlot, card('Result',
         message('success', `Imported ${res.imported ?? events.length}` +

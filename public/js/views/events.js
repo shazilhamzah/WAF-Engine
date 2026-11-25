@@ -1,10 +1,11 @@
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { can } from '../lib/roles.js';
-import { hashFor } from '../lib/query.js';
+import { hashFor, buildQuery } from '../lib/query.js';
+import { swr } from '../cache.js';
 import { formatTs, truncate, formatMs, dateInputToIso } from '../lib/format.js';
 import { icon } from '../icons.js';
-import { pageHeader, card, field, select, table, pagination, outcomeBadge, loading, errorPanel, showStatus, busy } from '../ui.js';
+import { pageHeader, card, field, select, table, pagination, outcomeBadge, skeletonTable, errorPanel, showStatus, busy, markSharedRequest, staleWarning } from '../ui.js';
 
 const PAGE = 50;
 const FILTER_KEYS = ['verdict', 'action', 'source', 'ruleId', 'q', 'from', 'to'];
@@ -29,7 +30,7 @@ export async function render(ctx) {
   const action = select([{ value: '', label: 'Any' }, 'allowed', 'logged', 'blocked'], q.action || '');
   const source = select([{ value: '', label: 'Any' }, 'proxy', 'console', 'import', 'replay'], q.source || '');
   const ruleId = h('input', { type: 'text', inputmode: 'numeric', pattern: '[0-9]*', maxlength: 6, value: q.ruleId || '' });
-  const text = h('input', { type: 'search', maxlength: 200, value: q.q || '', placeholder: 'path or label' });
+  const text = h('input', { type: 'search', maxlength: 200, value: q.q || '', placeholder: 'path or label', dataset: { shortcut: 'search' }, 'aria-keyshortcuts': '/' });
   const from = h('input', { type: 'date', value: isoToDateInput(q.from) });
   const to = h('input', { type: 'date', value: isoToDateInput(q.to) });
   const compareBtn = h('button', { type: 'button', class: 'btn btn-primary', disabled: true, on: { click: goCompare } }, 'Compare (0/2)');
@@ -84,7 +85,7 @@ export async function render(ctx) {
 
   const filters = h('form', { class: 'form', role: 'search', 'aria-label': 'Filter events', on: { submit: apply } },
     h('div', { class: 'form-row' },
-      field('Search', text), field('Verdict', verdict), field('Source', source),
+      field(['Search ', h('kbd', { class: 'kbd', 'aria-hidden': 'true', title: 'Press / to jump here' }, '/')], text), field('Verdict', verdict), field('Source', source),
       field('From', from), field('To', to),
       h('div', { class: 'btn-group' },
         h('button', { type: 'submit', class: 'btn btn-primary' }, 'Filter'),
@@ -97,30 +98,16 @@ export async function render(ctx) {
   if (canExport) headerActions.push(h('span', { class: 'btn-group' }, fmt, exportBtn));
   if (canCompare) headerActions.push(compareBtn);
 
-  const results = h('div', null, loading());
-  mount(ctx.el,
-    pageHeader('Events', ...headerActions),
-    card(null, filters),
-    card(null, results));
-
-  let data;
-  try {
-    data = await api.events({ ...currentFilters(), limit: PAGE, offset });
-  } catch (err) {
-    if (err && err.status === 401) return;
-    mount(results, errorPanel(err, () => ctx.navigate(location.hash)));
-    return;
-  }
-  if (!ctx.isCurrent()) return;
-
   const columns = [];
   if (canCompare) {
     columns.push({
       key: 'pick', label: '',
       render: (e) => {
-        const cb = h('input', { type: 'checkbox', class: 'pick', 'aria-label': `Select event ${e.id} for comparison` });
+        const picked = selected.includes(e.id);
+        const cb = h('input', { type: 'checkbox', class: 'pick', checked: picked, disabled: !picked && selected.length >= 2, 'aria-label': `Select event ${e.id} for comparison` });
         cb.addEventListener('change', () => toggle(e.id, cb));
-        return cb;
+        // the label is the tap target so the small checkbox still gets a full-size hit area
+        return h('label', { class: 'pick-hit' }, cb);
       },
     });
   }
@@ -128,7 +115,7 @@ export async function render(ctx) {
     { key: 'ts', label: 'Time', render: (e) => formatTs(e.ts) },
     { key: 'source', label: 'Source', render: (e) => (e.label ? h('span', null, e.source, h('br'), h('span', { class: 'muted small' }, truncate(e.label, 40))) : e.source) },
     { key: 'req', label: 'Request', className: 'wrap-anywhere', render: (e) => (canDetail
-      ? h('a', { href: `#/events/${encodeURIComponent(e.id)}`, 'aria-label': `Details for ${e.method} ${truncate(e.path, 60)}` }, code(`${e.method} ${truncate(e.path, 80)}`))
+      ? h('a', { href: `#/events/${encodeURIComponent(e.id)}`, 'aria-label': `Details for ${e.method} ${truncate(e.path, 60)}`, on: { click: markSharedRequest } }, code(`${e.method} ${truncate(e.path, 80)}`))
       : code(`${e.method} ${truncate(e.path, 80)}`)) },
     { key: 'outcome', label: 'Outcome', render: outcomeBadge },
     { key: 'score', label: 'Score', className: 'num' },
@@ -136,10 +123,28 @@ export async function render(ctx) {
     { key: 'lat', label: 'Latency', className: 'num', render: (e) => formatMs(e.latencyMs) },
   );
 
-  mount(results,
+  const results = h('div', null, skeletonTable(columns, 8, { caption: 'Events' }));
+  mount(ctx.el,
+    pageHeader('Events', ...headerActions),
+    card(null, filters),
+    card(null, results));
+
+  const paint = (data) => mount(results,
     table({ caption: 'Events', columns, rows: data.items || [], empty: 'No events match these filters.' }),
     pagination({
       total: data.total || 0, limit: PAGE, offset,
       onPage: (o) => ctx.navigate(hashFor('/events', { ...currentFilters(), offset: o || '' })),
     }));
+  const query = { ...currentFilters(), limit: PAGE, offset };
+  const load = () => swr(`events${buildQuery(query)}`, () => api.events(query), paint,
+    { isCurrent: ctx.isCurrent, onStaleError: staleWarning });
+
+  try {
+    await load();
+  } catch (err) {
+    if (err && err.status === 401) return;
+    mount(results, errorPanel(err, () => ctx.navigate(location.hash)));
+    return;
+  }
+  ctx.onRevalidate(load);
 }

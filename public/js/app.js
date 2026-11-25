@@ -1,9 +1,12 @@
 import { h, mount, clear } from './dom.js';
 import { api, setCsrfToken, onUnauthorized, lastActivity } from './api.js';
 import { parseHash } from './lib/query.js';
-import { navGroupsFor, canOpenRoute } from './lib/roles.js';
-import { modeBadge, rolePanel, showStatus, clearStatus, loading, errorPanel } from './ui.js';
+import { navGroupsFor, canOpenRoute, navFor, can } from './lib/roles.js';
+import { modeBadge, rolePanel, showStatus, clearStatus, pageSkeleton, errorPanel, SKELETON_DELAY_MS, currentToast } from './ui.js';
 import { icon } from './icons.js';
+import { clearCache } from './cache.js';
+import { isModEvent, isTypingTarget, shortcut, sequence } from './keys.js';
+import { openCommandMenu, isCommandMenuOpen, closeCommandMenu } from './commands.js';
 
 const VIEWS = {
   login: () => import('./views/login.js'),
@@ -27,6 +30,12 @@ const NAV_ICONS = {
   rules: 'shield-check', config: 'sliders', exceptions: 'clipboard', audit: 'history', users: 'users',
 };
 
+// "g" then a letter jumps to a page, shown in nav tooltips and the command menu
+const GO_KEYS = { dashboard: 'o', events: 'e', analyze: 'a', rules: 'r', config: 'c', exceptions: 'x', audit: 'l', users: 'u' };
+const ROUTE_FOR_KEY = Object.fromEntries(Object.entries(GO_KEYS).map(([route, key]) => [key, route]));
+const MENU_KEY = shortcut('mod+k');
+const SEQUENCE_MS = 1200;
+
 const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const state = {
   session: null,
@@ -34,6 +43,7 @@ const state = {
   flash: null,
   controller: null,
   cleanup: null,
+  revalidate: null,
   renderSeq: 0,
 };
 
@@ -43,8 +53,11 @@ export function setSession(data) {
   if (!data || !data.user) {
     state.session = null;
     setCsrfToken(null);
+    clearCache();
     return;
   }
+  // cached screens belong to one signed-in user only
+  if (!state.session || state.session.user.id !== data.user.id) clearCache();
   state.session = { user: data.user, csrfToken: data.csrfToken, expiresAt: data.expiresAt || null };
   setCsrfToken(data.csrfToken);
 }
@@ -61,6 +74,7 @@ function flash(message, kind = 'success') {
 }
 
 function sessionEnded(notice) {
+  closeCommandMenu();
   setSession(null);
   state.loginNotice = notice || null;
   renderShell();
@@ -100,6 +114,10 @@ function renderShell() {
   nav.hidden = false;
   document.body.classList.add('signed-in');
   mount(userBox,
+    h('button', {
+      type: 'button', class: 'btn btn-small btn-plain cmdk-trigger', 'aria-keyshortcuts': MENU_KEY.aria,
+      title: `Search pages and actions (${MENU_KEY.label})`, on: { click: openMenu },
+    }, icon('search'), h('span', { class: 'cmdk-trigger-label' }, 'Search'), h('kbd', { class: 'kbd', 'aria-hidden': 'true' }, MENU_KEY.label)),
     h('a', { href: '#/account', class: 'user-link', 'aria-label': `Account settings for ${user.username} (${user.role})` },
       h('span', { class: 'monogram', 'aria-hidden': 'true' }, user.username.slice(0, 1).toUpperCase()),
       h('span', { class: 'user-name' }, user.username),
@@ -107,7 +125,11 @@ function renderShell() {
     h('button', { type: 'button', class: 'btn btn-small btn-plain', on: { click: logout } }, icon('log-out'), 'Log out'));
   mount(nav, ...navGroupsFor(user.role).map((group) => {
     const links = h('ul', { class: 'nav-list' }, ...group.items.map((item) => h('li', null,
-      h('a', { href: `#/${item.route}`, class: 'nav-link', dataset: { route: item.route } },
+      h('a', {
+        href: `#/${item.route}`, class: 'nav-link', dataset: { route: item.route },
+        title: GO_KEYS[item.route] ? `${item.label} (${sequence('g', GO_KEYS[item.route]).label})` : null,
+        'aria-keyshortcuts': GO_KEYS[item.route] ? sequence('g', GO_KEYS[item.route]).aria : null,
+      },
         icon(NAV_ICONS[item.route] || 'list'), h('span', null, item.label)))));
     return group.collapsible
       ? h('details', { class: 'nav-group nav-disclosure' }, h('summary', null, group.label), links)
@@ -130,6 +152,21 @@ function markActiveNav(route) {
   }
 }
 
+const VIEW_TRANSITION_WAIT_MS = 120;
+const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)');
+
+// cross-fades the old screen into the new one; skipped for reduced motion and unsupported browsers
+async function swapView(update) {
+  if (typeof document.startViewTransition !== 'function' || reducedMotion.matches || document.visibilityState !== 'visible') {
+    await update();
+    return;
+  }
+  const transition = document.startViewTransition(update);
+  transition.ready.catch(() => {});
+  transition.finished.catch(() => {});
+  try { await transition.updateCallbackDone; } catch { /* update errors surface through the render promise */ }
+}
+
 function closeMobileNav() {
   const toggle = $('nav-toggle');
   toggle.setAttribute('aria-expanded', 'false');
@@ -143,6 +180,7 @@ async function render() {
   if (state.controller) state.controller.abort();
   if (typeof state.cleanup === 'function') { try { state.cleanup(); } catch { } }
   state.cleanup = null;
+  state.revalidate = null;
   state.controller = new AbortController();
   closeMobileNav();
 
@@ -175,17 +213,19 @@ async function render() {
     }
   }
 
-  mount(view, loading());
+  // the old screen stays up while the view module loads; a skeleton only replaces it if that is slow
+  const skeletonTimer = setTimeout(() => { if (seq === state.renderSeq) mount(view, pageSkeleton({ delay: 0 })); }, SKELETON_DELAY_MS);
   let mod;
   try {
     mod = await VIEWS[name]();
   } catch {
+    clearTimeout(skeletonTimer);
     mount(view, errorPanel({ friendly: 'This screen failed to load.' }, () => render()));
     return;
   }
+  clearTimeout(skeletonTimer);
   if (seq !== state.renderSeq) return;
   const container = h('div', { class: `view-${name}` });
-  mount(view, container);
   const ctx = {
     el: container,
     route, params, query,
@@ -198,9 +238,18 @@ async function render() {
     loginNotice: state.loginNotice,
     sessionEnded,
     isCurrent: () => seq === state.renderSeq,
+    // a view registers a refetch that runs when the window regains focus or the network returns
+    onRevalidate: (fn) => { if (seq === state.renderSeq) state.revalidate = fn; },
   };
+  let rendering;
+  await swapView(async () => {
+    mount(view, container);
+    rendering = Promise.resolve().then(() => mod.render(ctx));
+    // give fast data a moment so the transition lands on real content, never longer than that
+    await Promise.race([rendering.catch(() => {}), new Promise((r) => setTimeout(r, VIEW_TRANSITION_WAIT_MS))]);
+  });
   try {
-    const cleanup = await mod.render(ctx);
+    const cleanup = await rendering;
     if (seq === state.renderSeq) state.cleanup = cleanup || null;
   } catch (err) {
     if (seq !== state.renderSeq) return;
@@ -215,8 +264,82 @@ async function render() {
 
 function focusTitle() {
   const title = document.getElementById('page-title');
-  if (title && document.activeElement && document.activeElement.closest && !document.activeElement.closest('#view form')) {
+  const active = document.activeElement;
+  const keepFocus = active && active.closest && (active.closest('#view form') || (active.closest('#view') && isTypingTarget(active)));
+  if (title && active && active.closest && !keepFocus) {
     title.focus({ preventScroll: false });
+  }
+}
+
+const REVALIDATE_MIN_GAP_MS = 2000;
+let lastRevalidate = 0;
+function revalidateView() {
+  if (!state.session || typeof state.revalidate !== 'function' || document.visibilityState !== 'visible') return;
+  if (Date.now() - lastRevalidate < REVALIDATE_MIN_GAP_MS) return;
+  lastRevalidate = Date.now();
+  try { Promise.resolve(state.revalidate()).catch(() => {}); } catch { /* view handles its own errors */ }
+}
+
+async function verifyAuditChain() {
+  try {
+    const res = await api.verifyAudit();
+    if (res.ok) showStatus(`Audit hash chain verified (${res.checked ?? 'all'} records).`, 'success');
+    else showStatus(`Audit chain broken at seq ${res.brokenAt}. Open the Audit log to investigate.`, 'error');
+  } catch (err) {
+    if (err && err.status !== 401) showStatus(err.friendly, 'error');
+  }
+}
+
+function commandItems() {
+  const { role } = state.session.user;
+  const go = (route) => () => navigate(`#/${route}`);
+  const items = navFor(role).map((item) => ({
+    label: item.label, group: 'Go to', icon: NAV_ICONS[item.route], keywords: [item.group, item.route],
+    shortcut: GO_KEYS[item.route] ? sequence('g', GO_KEYS[item.route]) : null, run: go(item.route),
+  }));
+  if (canOpenRoute(role, 'import')) items.push({ label: 'Batch import samples', group: 'Go to', icon: 'upload', keywords: ['json', 'upload', 'analyze'], run: go('import') });
+  if (canOpenRoute(role, 'compare')) items.push({ label: 'Compare two events', group: 'Go to', icon: 'list', keywords: ['diff'], run: go('compare') });
+  if (canOpenRoute(role, 'reports')) items.push({ label: 'Export a report', group: 'Go to', icon: 'download', keywords: ['csv', 'json', 'html', 'download'], run: go('reports') });
+  items.push({ label: 'Account and password', group: 'Go to', icon: 'user', keywords: ['profile', 'change password', 'session'], run: go('account') });
+  if (can(role, 'rules.write')) items.push({ label: 'New rule', group: 'Actions', icon: 'plus', keywords: ['create', 'dsl', 'add'], run: () => navigate('#/rules?new=1') });
+  if (can(role, 'exceptions.request')) items.push({ label: 'Request an exception', group: 'Actions', icon: 'plus', keywords: ['false positive', 'allow', 'tuning'], run: () => navigate('#/exceptions?request=1') });
+  if (can(role, 'users.manage')) items.push({ label: 'Create a user', group: 'Actions', icon: 'plus', keywords: ['add', 'account'], run: () => navigate('#/users?new=1') });
+  if (can(role, 'audit.view')) items.push({ label: 'Verify audit hash chain', group: 'Actions', icon: 'shield-check', keywords: ['integrity', 'tamper'], run: verifyAuditChain });
+  items.push({ label: 'Refresh this page', group: 'Actions', icon: 'refresh', keywords: ['reload'], run: () => render() });
+  items.push({ label: 'Log out', group: 'Actions', icon: 'log-out', keywords: ['sign out'], run: logout });
+  return items;
+}
+
+function openMenu() {
+  if (state.session) openCommandMenu(commandItems());
+}
+
+let pendingGoAt = 0;
+function onKeydown(e) {
+  if (e.defaultPrevented || e.isComposing || !state.session) return;
+  // the command menu and modal dialogs handle their own keys, and nothing fires while typing in a field
+  if (isCommandMenuOpen() || document.querySelector('dialog[open]') || isTypingTarget(e.target)) return;
+  const key = e.key.toLowerCase();
+  if (isModEvent(e) && !e.shiftKey && !e.altKey) {
+    if (key === 'k') { e.preventDefault(); openMenu(); return; }
+    if (key === 'z') {
+      const toast = currentToast();
+      if (toast && toast.open) { e.preventDefault(); toast.undo(); }
+    }
+    return;
+  }
+  if (e.ctrlKey || e.metaKey || e.altKey) return;
+  if (pendingGoAt && Date.now() - pendingGoAt < SEQUENCE_MS) {
+    pendingGoAt = 0;
+    const route = ROUTE_FOR_KEY[key];
+    if (route && canOpenRoute(state.session.user.role, route)) { e.preventDefault(); navigate(`#/${route}`); }
+    return;
+  }
+  pendingGoAt = 0;
+  if (key === 'g' && !e.shiftKey) { pendingGoAt = Date.now(); return; }
+  if (e.key === '/') {
+    const search = document.querySelector('#view [data-shortcut="search"]');
+    if (search) { e.preventDefault(); search.focus(); if (typeof search.select === 'function') search.select(); }
   }
 }
 
@@ -259,6 +382,10 @@ async function boot() {
   renderShell();
   window.addEventListener('hashchange', render);
   window.addEventListener('waf:mode-changed', refreshMode);
+  document.addEventListener('keydown', onKeydown);
+  window.addEventListener('focus', revalidateView);
+  window.addEventListener('online', revalidateView);
+  document.addEventListener('visibilitychange', revalidateView);
   startSessionWatch();
   if (!location.hash || location.hash === '#' || location.hash === '#/') location.replace(state.session ? '#/dashboard' : '#/login');
   else render();

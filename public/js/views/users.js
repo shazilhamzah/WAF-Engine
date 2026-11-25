@@ -1,19 +1,21 @@
 import { h, mount, code } from '../dom.js';
-import { api } from '../api.js';
+import { api, actionKey } from '../api.js';
 import { ROLES } from '../lib/roles.js';
 import { formatTs } from '../lib/format.js';
-import { pageHeader, card, field, select, table, statusLabel, loading, errorPanel, showStatus, confirmDialog, fieldErrors, busy } from '../ui.js';
+import { swr } from '../cache.js';
+import { pageHeader, card, field, select, table, statusLabel, skeletonTable, errorPanel, showStatus, confirmDialog, fieldErrors, busy, staleWarning } from '../ui.js';
 
 const MIN_PASSWORD = 12;
 const USERNAME = /^[A-Za-z0-9._-]{3,64}$/;
 
 export async function render(ctx) {
-  const listBox = h('div', null, loading());
+  const listBox = h('div');
   const username = h('input', { type: 'text', maxlength: 64, autocomplete: 'off', spellcheck: 'false', required: true });
   const password = h('input', { type: 'password', maxlength: 256, autocomplete: 'new-password', required: true });
   const role = select(ROLES, 'operator');
   const errors = h('div');
   const createBtn = h('button', { type: 'submit', class: 'btn btn-primary' }, 'Create user');
+  const createKey = actionKey();
 
   async function create(e) {
     e.preventDefault();
@@ -24,10 +26,11 @@ export async function render(ctx) {
     if (problems.length) return;
     await busy(createBtn, async () => {
       try {
-        await api.createUser(username.value.trim(), password.value, role.value);
+        await api.createUser(username.value.trim(), password.value, role.value, createKey);
+        createKey.reset();
         showStatus(`User ${username.value.trim()} created as ${role.value}.`, 'success');
         username.value = ''; password.value = '';
-        await load();
+        await load({ skipCache: true });
       } catch (err) {
         password.value = '';
         if (err && err.code === 'VALIDATION_FAILED') { mount(errors, fieldErrors(err.details)); return; }
@@ -47,7 +50,7 @@ export async function render(ctx) {
     await busy(btn, async () => {
       await api.updateUser(u.id, { role: newRole, confirm: true });
       showStatus(`${u.username} is now ${newRole}.`, 'success');
-      await load();
+      await load({ skipCache: true });
     });
   }
 
@@ -64,7 +67,7 @@ export async function render(ctx) {
     await busy(btn, async () => {
       await api.updateUser(u.id, { disabled: disabling, confirm: true });
       showStatus(`${u.username} ${disabling ? 'disabled' : 'enabled'}.`, 'success');
-      await load();
+      await load({ skipCache: true });
     });
   }
 
@@ -83,47 +86,42 @@ export async function render(ctx) {
     });
   }
 
-  async function load() {
-    let res;
+  async function load({ skipCache = false } = {}) {
     try {
-      res = await api.users();
+      await swr('users', () => api.users(), (res) => mount(listBox, table({ caption: 'Users', columns, rows: res.items || [], empty: 'No users.' })),
+        { isCurrent: ctx.isCurrent, onStaleError: staleWarning, skipCache });
     } catch (err) {
       if (err && err.status === 401) return;
-      mount(listBox, errorPanel(err, load));
-      return;
+      mount(listBox, errorPanel(err, () => load()));
     }
-    if (!ctx.isCurrent()) return;
-    mount(listBox, table({
-      caption: 'Users',
-      columns: [
-        { key: 'username', label: 'Username', rowHeader: true, render: (u) => h('span', null, u.username, u.id === ctx.user.id ? ' (you)' : '') },
-        { key: 'role', label: 'Role', render: (u) => {
-          if (u.id === ctx.user.id) return u.role;
-          const sel = select(ROLES, u.role, { 'aria-label': `Role for ${u.username}` });
-          const apply = h('button', { type: 'button', class: 'btn btn-small' }, 'Apply');
-          apply.addEventListener('click', () => changeRole(u, sel.value, apply));
-          return h('span', { class: 'btn-group' }, sel, apply);
-        } },
-        { key: 'status', label: 'Status', render: (u) => {
-          if (u.disabled) return statusLabel('disabled', 'muted');
-          if (u.lockedUntil && Date.parse(u.lockedUntil) > Date.now()) return statusLabel(`locked until ${formatTs(u.lockedUntil)}`, 'bad');
-          return statusLabel('active', 'ok');
-        } },
-        { key: 'createdAt', label: 'Created', render: (u) => formatTs(u.createdAt) },
-        { key: 'id', label: 'Id', render: (u) => code(u.id) },
-        { key: 'act', label: 'Actions', render: (u) => {
-          if (u.id === ctx.user.id) return '—';
-          const dis = h('button', { type: 'button', class: ['btn', 'btn-small', u.disabled ? null : 'btn-danger'] }, u.disabled ? 'Enable' : 'Disable');
-          dis.addEventListener('click', () => toggleDisabled(u, dis));
-          const pw = h('button', { type: 'button', class: 'btn btn-small' }, 'Set password');
-          pw.addEventListener('click', () => setPassword(u, pw));
-          return h('div', { class: 'btn-group' }, pw, dis);
-        } },
-      ],
-      rows: res.items || [],
-      empty: 'No users.',
-    }));
   }
+
+  const columns = [
+    { key: 'username', label: 'Username', rowHeader: true, render: (u) => h('span', null, u.username, u.id === ctx.user.id ? ' (you)' : '') },
+    { key: 'role', label: 'Role', render: (u) => {
+      if (u.id === ctx.user.id) return u.role;
+      const sel = select(ROLES, u.role, { 'aria-label': `Role for ${u.username}` });
+      const apply = h('button', { type: 'button', class: 'btn btn-small' }, 'Apply');
+      apply.addEventListener('click', () => changeRole(u, sel.value, apply));
+      return h('span', { class: 'btn-group' }, sel, apply);
+    } },
+    { key: 'status', label: 'Status', render: (u) => {
+      if (u.disabled) return statusLabel('disabled', 'muted');
+      if (u.lockedUntil && Date.parse(u.lockedUntil) > Date.now()) return statusLabel(`locked until ${formatTs(u.lockedUntil)}`, 'bad');
+      return statusLabel('active', 'ok');
+    } },
+    { key: 'createdAt', label: 'Created', render: (u) => formatTs(u.createdAt) },
+    { key: 'id', label: 'Id', render: (u) => code(u.id) },
+    { key: 'act', label: 'Actions', render: (u) => {
+      if (u.id === ctx.user.id) return '—';
+      const dis = h('button', { type: 'button', class: ['btn', 'btn-small', u.disabled ? null : 'btn-danger'] }, u.disabled ? 'Enable' : 'Disable');
+      dis.addEventListener('click', () => toggleDisabled(u, dis));
+      const pw = h('button', { type: 'button', class: 'btn btn-small' }, 'Set password');
+      pw.addEventListener('click', () => setPassword(u, pw));
+      return h('div', { class: 'btn-group' }, pw, dis);
+    } },
+  ];
+  mount(listBox, skeletonTable(columns, 4, { caption: 'Users' }));
 
   const createDisclosure = h('details', { class: 'card' },
     h('summary', null, 'Create a user'),
@@ -143,5 +141,7 @@ export async function render(ctx) {
     pageHeader('Users', newBtn),
     createDisclosure,
     card(null, listBox));
+  if (ctx.query.new) { createDisclosure.open = true; username.focus(); }
   await load();
+  ctx.onRevalidate(load);
 }
