@@ -20,6 +20,7 @@ Scope: `src/index.js`, `src/config.js`, `src/db/**`, `src/auth/**`, `src/service
 | 2026-10-19 | Ran Saad's integration + security suites against the full stack with Nufil's engine and Saad's target: 235/236 pass; the remaining failure (`/files?name=../secret/flag.txt` scores 3 < block 5) is a default-rule scoring issue in `src/rules/default.rules` (engine owner). Evaluation harness test: 11/11. |
 | 2026-10-19 | Fixes found by integration: console samples now mask secret-looking **query parameters** in the stored path (canary test); migration failure releases the DB file handle; sample paths reject control characters (aligned with the UI validator). |
 | 2026-10-19 | Docs: `docs/data-model.md`, `docs/api.md`, `docs/security-controls.md`. |
+| 2026-11-25 | Dependency audit: `npm audit fix` (lockfile only) moved body-parser 1.20.8 → 1.20.9 (GHSA-27r3-jxmh-p828) and follow-redirects 1.16.1 → 1.16.3 (GHSA-mrwp-f3q8-3g9p); `npm audit --omit=dev` back to 0 vulnerabilities, 798/798 tests pass. |
 
 ## Contract clarifications
 
