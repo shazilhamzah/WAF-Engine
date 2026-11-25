@@ -15,6 +15,11 @@ Per-member detail: `docs/progress/shazil.md`, `docs/progress/nufil.md`, `docs/pr
 | 2026-10-20 | Integration continuation | Reconciled the API contract: analyze/import accept 2 MiB JSON envelopes; other routes 256 KiB; browser import remains 256 KiB. Masked query secrets and traversal issue are closed by current tests. |
 | 2026-10-20 | User scope decision | The user explicitly asked to ignore the proposal's 10-15 minute demo/walkthrough. It is omitted, not claimed as completed or replaced by an equivalent deliverable. |
 | 2026-10-20 | Integration continuation | Added final report, complete FR/NFR/objective/evaluation/delivery traceability and final test-results analysis; synchronized fixture, engine, threat-model and handover notes. Final report PDF built using the existing local browser-based renderer and visually checked before delivery. |
+| 2026-11-25 | Shazil (A) | http-proxy DEP0060 deprecation warning filtered (only that code) with tests; README/setup guide quick start renumbered and its repository path corrected (PR #6). Dependency audit: lockfile-only patch of body-parser 1.20.9 and follow-redirects 1.16.3, 0 production advisories (PR #10). Added `npm run manifest` to rebuild the evidence manifest reproducibly. |
+| 2026-11-25 | Saad (D) | Corrected the B/D role labels across the documentation and swapped the two progress logs to match the actual allocation (PR #7). Proxy-level tests for the new tautology rules and a full re-measurement: evaluation 119/123, corpus recall 0.9625 with 0 FP, p95 overhead 1.721/1.886 ms (PR #11). |
+| 2026-11-25 | Wahaj (C) | Console command menu (Ctrl/⌘+K), keyboard shortcuts, list cache and safe retries backed by API `Idempotency-Key` support (PR #8); mobile audit overflow, past-the-end paging and disabled-replay explanation fixed, screenshots and user guide refreshed (PR #12); final report and traceability updated to the re-measured results, PDF rebuilt (PR #13). |
+| 2026-11-25 | Nufil (B) | Rules 942100/942110 extended to hexadecimal literals and `\|\|` concatenation, closing T5-16 and T5-17 without relabelling any fixture; remaining four T5 misses explained in the engine and limitations docs (PR #9). |
+| 2026-11-25 | Release | Strict acceptance 806/806, 39 suites, npm production audit 0; evaluation 119/123; evidence manifest regenerated; tagged `v1.0.0`. All of the 2026-11-25 work, like the original workstreams, was done with Claude's help. |
 
 ## Final status and evidence
 
@@ -30,8 +35,8 @@ keyboard disclosures, seven-day date labels, one mode indicator and one Account 
 logs were empty. Screenshots and [UI review evidence](evaluation/ui-review.json) document the current view.
 
 All remaining requested implementation/evaluation/documentation/report work is complete. The separate
-demo is the sole deliberate delivery-scope exception. Passing 782 automated checks does not imply
-universal detection: the six T5 misses and four corpus false negatives are retained in the results.
+demo is the sole deliberate delivery-scope exception. Passing 806 automated checks (2026-11-25) does not imply
+universal detection: the four remaining T5 misses and three corpus false negatives are retained in the results.
 
 Primary artifacts: `final-report.md`, `final-report.pdf`, `traceability.md`, `test-results.md`,
 `evaluation/results.{md,json}`, `evaluation/latency.json`, `evaluation/check-summary.json`.

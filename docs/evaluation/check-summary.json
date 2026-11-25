@@ -1,17 +1,17 @@
 {
-  "generatedAt": "2026-11-25T18:01:19.079Z",
+  "generatedAt": "2026-11-25T18:19:27.709Z",
   "command": "node --test --test-concurrency=1 \"test/**/*.test.js\"",
   "mode": "strict (WAF_STRICT=1)",
   "node": "v24.19.0",
   "tests": {
-    "tests": 804,
+    "tests": 806,
     "suites": 39,
-    "pass": 804,
+    "pass": 806,
     "fail": 0,
     "cancelled": 0,
     "skipped": 0,
     "todo": 0,
-    "duration_ms": 23070.5032,
+    "duration_ms": 23135.7704,
     "passRate": 100,
     "threshold": 80,
     "meetsThreshold": true

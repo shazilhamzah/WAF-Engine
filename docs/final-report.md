@@ -15,7 +15,7 @@ exceptions. The default set contains 41 rules. The architecture and interfaces e
 Claude's four workstreams were retained during final integration; runtime detection code was not
 rewritten in this completion. On 25 November 2026 two default rules (942100, 942110) were extended to catch hexadecimal-literal and `||` concatenation tautologies, the console gained a command menu and safe retries backed by API idempotency keys, and two dependency advisories were patched; every figure below comes from the re-measurement after those changes.
 
-The final strict acceptance run passed **804 of 804 automated tests (100%)**, with no failed, skipped
+The final strict acceptance run passed **806 of 806 automated tests (100%)**, with no failed, skipped
 or cancelled tests. The production dependency audit reported **zero vulnerabilities**. These figures
 are recorded in [the acceptance summary](evaluation/check-summary.json), not inferred from an earlier
 phase-1 run.
@@ -200,12 +200,12 @@ they do not relabel it benign. Details: [fixture guide](fixtures.md) and
 
 | Measure | Result | Evidence |
 |---|---|---|
-| Tests / passed / failed | 804 / 804 / 0 | [check summary](evaluation/check-summary.json) |
+| Tests / passed / failed | 806 / 806 / 0 | [check summary](evaluation/check-summary.json) |
 | Suites; skipped / cancelled / todo | 39; 0 / 0 / 0 | Same summary |
 | Pass rate; required minimum | 100%; 80% | Same summary |
 | Production dependency vulnerabilities | 0 (including high and critical) | `npmAudit` in same summary |
 
-These 804 regression tests are distinct from the 123 mandatory evaluation checks and 148 corpus
+These 806 regression tests are distinct from the 123 mandatory evaluation checks and 148 corpus
 observations. Passing the regression suite does not mean every attempted bypass was blocked.
 
 ### 7.2 Mandatory cases

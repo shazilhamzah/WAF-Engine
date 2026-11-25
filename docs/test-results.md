@@ -12,7 +12,7 @@ Node v24.19.0 on Windows_NT 10.0.26300 (win32/x64), Intel Core Ultra 7 255H, 16 
 18.1.1 (documentation only). All network evaluation is against temporary localhost listeners;
 temporary databases isolate it from normal runtime data. Source: `environment` in results JSON.
 
-Acceptance evidence timestamp: **2026-11-25T18:01:19.079Z** (23:01 on 25 November in Karachi).
+Acceptance evidence timestamp: **2026-11-25T18:19:27.709Z** (23:19 on 25 November in Karachi).
 Evaluation: **2026-11-25T18:00:40.214Z**. Benchmark: **2026-11-25T18:00:54.142Z**.
 These three runs are separate. Tests needing local sockets were run with localhost access;
 a restricted-sandbox run that denied connections is not the acceptance evidence.
@@ -21,13 +21,13 @@ a restricted-sandbox run that denied connections is not the acceptance evidence.
 
 | Metric | Final result |
 |---|---|
-| Automated tests | **804** |
-| Passed / failed | **804 / 0** |
+| Automated tests | **806** |
+| Passed / failed | **806 / 0** |
 | Skipped / cancelled / todo | **0 / 0 / 0** |
 | Suites | 39 |
 | Pass rate / required threshold | **100% / 80%** |
 | Strict mode | `WAF_STRICT=1` |
-| Test execution time | 23.071 seconds |
+| Test execution time | 23.136 seconds |
 | Production dependency vulnerabilities | **0** (0 critical/high/moderate/low) |
 | Gate result | **PASS** |
 
@@ -52,7 +52,7 @@ throttling; TF-08 explicitly reconfigures and exercises them. See `stack` in res
 | T2 encoding variants | **20/20** | URL/repeated URL, %u, entities, case, NFKC, null/invisible characters, whitespace, comments and encoded paths blocked |
 | T3 benign false positives | **38/38** | All allowed, no false positives in this set |
 | T4 large bodies | **6/6** | 10/60 KiB bodies forwarded intact; adverse prefix blocked; suffix beyond 64 KiB uninspected and explicitly marked partial; 2 MiB rejected; 1 MiB boundary not rejected for size |
-| T5 bypass attempts | **14/18** | Hex-literal (T5-16) and `||` concatenation (T5-17) tautologies now blocked; four expected-block inputs still allowed and retained as failures |
+| T5 bypass attempts | **14/18** | Hex-literal (T5-16) and `\|\|` concatenation (T5-17) tautologies now blocked; four expected-block inputs still allowed and retained as failures |
 | T6 latency | **2/2** | GET added p95 1.674 ms; POST 2.154 ms; target <25 ms |
 | T-final | **11/11** | Denials, throttles, safe errors and restart persistence verified |
 | Total | **119/123 (96.7%)** | Four failures, all T5; no mandatory case unrun (was 117/123 before the 2026-11-25 rule fix) |
