@@ -5,7 +5,7 @@
 The source proposal enumerates FR-1 through FR-7, despite its acceptance paragraph saying "six".
 All **seven** are mapped below. Paths in the implementation and test columns are relative to the
 project root. Measured evidence links are relative to this document. Tests were run in strict mode:
-**782 passed, 0 failed, 0 skipped**; see [acceptance evidence](evaluation/check-summary.json).
+**804 passed, 0 failed, 0 skipped** (re-measured 2026-11-25); see [acceptance evidence](evaluation/check-summary.json).
 
 ## 1. Functional requirements
 
@@ -47,15 +47,15 @@ project root. Measured evidence links are relative to this document. Tests were 
 | T2 encoding variants | `fixtures/t2-encoding.json` | 20/20 blocked | `T2` in [evaluation](evaluation/results.md) |
 | T3 benign false positives | `fixtures/t3-benign.json` | 38/38 allowed | `T3` in [evaluation](evaluation/results.md) |
 | T4 large bodies | `fixtures/large-body.js` | 6/6 checks; beyond-window blind spot explicitly observed | `T4` in [evaluation](evaluation/results.md) |
-| T5 bypass attempts | `fixtures/t5-bypass.json` | 12/18 blocked; six failed protection expectations retained | `T5` in [evaluation](evaluation/results.md); [limitations](limitations-and-ethics.md) |
+| T5 bypass attempts | `fixtures/t5-bypass.json` | 14/18 blocked; four failed protection expectations retained (T5-16/T5-17 fixed 2026-11-25) | `T5` in [evaluation](evaluation/results.md); `test/unit/engine/tautology-variants.test.js`, `test/integration/tautology-proxy.test.js`; [limitations](limitations-and-ethics.md) |
 | T6 latency | Direct versus proxy, 300 pairs/scenario, 30 warmups | Both scenarios below 25 ms p95 overhead | [evaluation](evaluation/results.json), [independent benchmark](evaluation/latency.json) |
 | T-final | Malformed/oversized input, denial, repetition, safe failure, restart | 11/11 checks pass | `T-final` in [evaluation](evaluation/results.md) |
-| Automated pass rate at least 80% | All test files, strict mode | 782/782, 100%; no skips/cancellations | [check summary](evaluation/check-summary.json) |
+| Automated pass rate at least 80% | All test files, strict mode | 804/804, 100%; no skips/cancellations | [check summary](evaluation/check-summary.json) |
 | No unresolved critical application-security findings in tested scope | Authorization, injection/output, secrets, import/sandbox suites | All pass; no open critical findings identified by these checks | [test results](test-results.md); [threat model](threat-model.md) |
 | Quantitative coverage, FP/FN and decision latency | 68 benign + 80 adverse synthetic corpus | TP 76, TN 68, FP 0, FN 4; recall 95%; decision p95 0.476 ms | `metrics` in [JSON](evaluation/results.json); no claim of real-world accuracy |
 
 Passing regression tests verifies implementation behaviour, including honest reporting of known
-limitations. It does not turn the six failed T5 protection expectations into passing detections.
+limitations. It does not turn the four failed T5 protection expectations into passing detections.
 
 ## 4. Delivery checklist and scope exception
 
