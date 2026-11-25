@@ -14,6 +14,7 @@
 | 2026-10-19 | With `src/rules/default.rules`: my suites 246/247; `npm run check` 559/560 (99.8 %), `npm audit` 0 vulnerabilities. Remaining failure: single-level traversal `../secret/flag.txt` only flagged (rule 930105, 2 points) → reaches the fake secret through the WAF (reported to Nufil/master) |
 | 2026-10-19 | `npm run evaluate --quick` end to end: T3 38/38, T4 6/6, T6 2/2 (p95 overhead ≈ 2.4 ms), T-final 11/11; T1, T2, T5 and the attack corpus waiting for fixtures |
 | 2026-11-25 | Corrected the B/D role labels across the documentation to match the actual allocation (Nufil = B security engine / fixtures, Saad = D automation / security testing / QA); the per-member progress logs were swapped to match |
+| 2026-11-25 | Done with Claude: proxy-level tests for the new hex/`||` tautology rules (`test/integration/tautology-proxy.test.js`, 3 attacks blocked + 3 benign look-alikes allowed); full re-measurement — evaluation 119/123 (was 117/123; T5 14/18), corpus recall 0.9625 with 0 false positives, benchmark p95 overhead GET 1.721 ms / POST 1.886 ms, strict check 804/804 and 0 audit findings; `docs/test-results.md` updated. |
 
 ## Next (phase 2)
 
