@@ -42,7 +42,36 @@ async function readError(res) {
   });
 }
 
-export async function request(method, path, { body, query, raw = false, signal } = {}) {
+// crypto.randomUUID only exists in secure contexts, so plain-http access (e.g. over a VPN IP) falls back
+export function uuid() {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') return crypto.randomUUID();
+  const b = crypto.getRandomValues(new Uint8Array(16));
+  b[6] = (b[6] & 0x0f) | 0x40;
+  b[8] = (b[8] & 0x3f) | 0x80;
+  const hex = [...b].map((x) => x.toString(16).padStart(2, '0')).join('');
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
+/**
+ * One key per user intent: made when the action starts, reused by every retry of it, and dropped
+ * once it succeeds. A different payload is a different intent, so it gets a fresh key too.
+ */
+export function actionKey() {
+  let key = null;
+  let payload = null;
+  return {
+    for(body) {
+      if (!key || body !== payload) { key = uuid(); payload = body; }
+      return key;
+    },
+    reset() { key = null; payload = null; },
+  };
+}
+
+const RETRY_DELAYS_MS = [400, 1200];
+const wait = (ms) => new Promise((r) => setTimeout(r, ms));
+
+export async function request(method, path, { body, query, raw = false, signal, idempotencyKey } = {}) {
   const m = method.toUpperCase();
   const headers = { Accept: 'application/json' };
   const init = { method: m, credentials: 'same-origin', headers, cache: 'no-store', signal };
@@ -51,13 +80,25 @@ export async function request(method, path, { body, query, raw = false, signal }
     init.body = JSON.stringify(body);
   }
   if (STATE_CHANGING.has(m) && csrfToken) headers['X-CSRF-Token'] = csrfToken;
+  if (idempotencyKey) {
+    headers['Idempotency-Key'] = typeof idempotencyKey === 'string' ? idempotencyKey : idempotencyKey.for(init.body || '');
+  }
   const url = `${path}${buildQuery(query)}`;
   let res;
-  try {
-    res = await fetch(url, init);
-  } catch (e) {
-    if (e && e.name === 'AbortError') throw e;
-    throw new ApiError({ status: 0, code: 'NETWORK_ERROR' });
+  // only keyed requests retry on their own: the key makes a repeat safe even if the first one landed
+  for (let attempt = 0; ; attempt += 1) {
+    try {
+      res = await fetch(url, init);
+    } catch (e) {
+      if (e && e.name === 'AbortError') throw e;
+      if (idempotencyKey && attempt < RETRY_DELAYS_MS.length) { await wait(RETRY_DELAYS_MS[attempt]); continue; }
+      throw new ApiError({ status: 0, code: 'NETWORK_ERROR' });
+    }
+    if (idempotencyKey && res.status === 409 && attempt < RETRY_DELAYS_MS.length) {
+      const peek = await res.clone().json().catch(() => null);
+      if (peek && peek.error && peek.error.code === 'IDEMPOTENCY_IN_PROGRESS') { await wait(RETRY_DELAYS_MS[attempt]); continue; }
+    }
+    break;
   }
   lastRequestAt = Date.now();
   if (!res.ok) {
@@ -80,7 +121,7 @@ export async function request(method, path, { body, query, raw = false, signal }
 }
 
 export const get = (path, query) => request('GET', path, { query });
-export const post = (path, body) => request('POST', path, { body: body === undefined ? {} : body });
+export const post = (path, body, idempotencyKey) => request('POST', path, { body: body === undefined ? {} : body, idempotencyKey });
 export const put = (path, body) => request('PUT', path, { body: body === undefined ? {} : body });
 export const del = (path, body) => request('DELETE', path, { body });
 
@@ -118,14 +159,14 @@ export const api = {
   events: (filters) => get('/api/events', filters),
   event: (id) => get(`/api/events/${enc(id)}`),
   compare: (a, b) => get('/api/events/compare', { a, b }),
-  analyze: (sample, label) => post('/api/analyze', label ? { label, sample } : { sample }),
-  importSamples: (filename, samples) => post('/api/import', { filename, samples }),
-  replay: (id) => post(`/api/events/${enc(id)}/replay`),
+  analyze: (sample, label, key) => post('/api/analyze', label ? { label, sample } : { sample }, key),
+  importSamples: (filename, samples, key) => post('/api/import', { filename, samples }, key),
+  replay: (id, key) => post(`/api/events/${enc(id)}/replay`, undefined, key),
 
   rules: () => get('/api/rules'),
   ruleHistory: (id) => get(`/api/rules/${enc(id)}/history`),
   validateRule: (source) => post('/api/rules/validate', { source }),
-  createRule: (source, enabled) => post('/api/rules', { source, enabled }),
+  createRule: (source, enabled, key) => post('/api/rules', { source, enabled }, key),
   updateRule: (id, body) => put(`/api/rules/${enc(id)}`, body),
   deleteRule: (id) => del(`/api/rules/${enc(id)}`, { confirm: true }),
 
@@ -135,7 +176,7 @@ export const api = {
 
   exceptions: (status) => get('/api/exceptions', { status }),
   previewException: (ruleId, scope) => post('/api/exceptions/preview', { ruleId, scope }),
-  requestException: (body) => post('/api/exceptions', body),
+  requestException: (body, key) => post('/api/exceptions', body, key),
   approveException: (id, note) => post(`/api/exceptions/${enc(id)}/approve`, note ? { confirm: true, note } : { confirm: true }),
   rejectException: (id, note) => post(`/api/exceptions/${enc(id)}/reject`, note ? { note } : {}),
   revokeException: (id, note) => post(`/api/exceptions/${enc(id)}/revoke`, note ? { confirm: true, note } : { confirm: true }),
@@ -146,6 +187,6 @@ export const api = {
   exportReport: (query) => download('/api/reports/export', query, `waf-studio-report.${query.format || 'html'}`),
 
   users: () => get('/api/users'),
-  createUser: (username, password, role) => post('/api/users', { username, password, role }),
+  createUser: (username, password, role, key) => post('/api/users', { username, password, role }, key),
   updateUser: (id, body) => put(`/api/users/${enc(id)}`, body),
 };

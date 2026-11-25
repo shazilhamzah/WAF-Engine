@@ -44,14 +44,27 @@ Base URL: `http://127.0.0.1:3000/api` (Studio console; bound to loopback only).
 | 403 | `CSRF_INVALID` | missing/wrong `X-CSRF-Token`, cross-origin `Origin` |
 | 404 | `NOT_FOUND` | unknown id/route (forged ids never cause 500) |
 | 409 | `CONFLICT` | duplicate username/rule id, wrong exception state, last active admin, replaying a proxy event |
+| 409 | `IDEMPOTENCY_IN_PROGRESS` | a request with the same `Idempotency-Key` is still running (`Retry-After: 1`) |
 | 413 | `PAYLOAD_TOO_LARGE` | body over the limit |
 | 415 | `UNSUPPORTED_MEDIA_TYPE` | non-JSON body or non-UTF-8 charset |
+| 422 | `IDEMPOTENCY_KEY_REUSED` | an `Idempotency-Key` already used with a different body |
 | 428 | `CONFIRMATION_REQUIRED` | high-impact action without `"confirm": true` |
 | 429 | `RATE_LIMITED` | login throttling, analysis rate limit; `Retry-After` header + `retryAfterSeconds` (in `error` and top level) |
 | 500 | `INTERNAL_ERROR` | unexpected failure — logged internally with redaction, `system.error` audited, never a stack trace |
 
 Rejected input (`VALIDATION_FAILED`, `MALFORMED_JSON`, `PAYLOAD_TOO_LARGE`, `UNSUPPORTED_MEDIA_TYPE`) is audited as
 `request.rejected` (field names only, never values).
+
+### Idempotency keys
+
+Record-creating calls (`POST /api/rules`, `/api/exceptions`, `/api/users`, `/api/analyze`, `/api/import`,
+`/api/events/:id/replay`) accept an optional `Idempotency-Key` header (8–128 of `A-Z a-z 0-9 - _`; the console
+sends a UUID per submit and reuses it for every retry). A repeat with the same key, user, path and body returns
+the first `2xx` response with `Idempotent-Replayed: true` and creates nothing new. The same key with a different
+body is `422 IDEMPOTENCY_KEY_REUSED`; a repeat while the first is still running is `409 IDEMPOTENCY_IN_PROGRESS`.
+Only successful responses are kept (in memory, 24 h, scoped per signed-in user), so a failed attempt can be
+retried with the same key. Requests without the header behave exactly as before. Implementation:
+`src/api/idempotency.js`; tests: `test/unit/api/idempotency.test.js`.
 
 ### Shapes
 

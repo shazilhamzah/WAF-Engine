@@ -1,17 +1,21 @@
 import { h, mount, code } from '../dom.js';
-import { api } from '../api.js';
+import { api, actionKey } from '../api.js';
 import { can } from '../lib/roles.js';
 import { hashFor } from '../lib/query.js';
 import { truncate } from '../lib/format.js';
 import { icon } from '../icons.js';
-import { pageHeader, outcomeBadge, chip, loading, showStatus, select, busy } from '../ui.js';
+import { pageHeader, outcomeBadge, chip, showStatus, select, busy, card, skeleton, skeletonLine } from '../ui.js';
 import { evidenceSections } from '../decision.js';
 
 const REPLAYABLE = new Set(['console', 'import', 'replay']);
 
 export async function render(ctx) {
   const id = ctx.params.id;
-  mount(ctx.el, loading('Loading event…'));
+  mount(ctx.el, skeleton(
+    h('div', { class: 'page-head' }, h('div', { class: 'skeleton-heading' }, skeletonLine('title'))),
+    h('div', { class: 'badges' }, skeletonLine('short')),
+    card(null, skeletonLine(), skeletonLine(), skeletonLine('short')),
+    card(null, skeletonLine(), skeletonLine('short'))));
   let res;
   try {
     res = await api.event(id);
@@ -37,9 +41,11 @@ export async function render(ctx) {
   const fmt = select(['html', 'csv', 'json'], 'html', { 'aria-label': 'Export format' });
   const exportBtn = h('button', { type: 'button', class: 'btn', on: { click: doExport } }, icon('download'), 'Export');
 
+  const replayKey = actionKey();
   async function replay() {
     await busy(replayBtn, async () => {
-      const r = await api.replay(event.id);
+      const r = await api.replay(event.id, replayKey);
+      replayKey.reset();
       ctx.flash(`Replayed as event ${r.event.id}.`, 'success');
       ctx.navigate(`#/events/${encodeURIComponent(r.event.id)}`);
     });
@@ -63,6 +69,6 @@ export async function render(ctx) {
       outcomeBadge({ verdict: d.verdict || event.verdict, action: d.action || event.action }),
       d.statusCode ? chip(`HTTP ${d.statusCode}`, 'bad') : null,
       h('span', { class: 'muted' }, `${event.source}${event.label ? ` · “${event.label}”` : ''}`),
-      code(`${event.method} ${truncate(event.path, 120)}`)),
+      code(`${event.method} ${truncate(event.path, 120)}`, 'code vt-event-request')),
     ...evidenceSections(event, { canRequest }).filter(Boolean));
 }

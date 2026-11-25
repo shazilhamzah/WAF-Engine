@@ -3,7 +3,7 @@ import { api } from '../api.js';
 import { hashFor } from '../lib/query.js';
 import { formatTs } from '../lib/format.js';
 import { compareEventRows, displayValue } from '../lib/diff.js';
-import { pageHeader, card, field, table, verdictBadge, actionBadge, loading, errorPanel, emptyState, showStatus } from '../ui.js';
+import { pageHeader, card, field, table, verdictBadge, actionBadge, skeleton, skeletonLine, placeholderTable, errorPanel, emptyState, showStatus } from '../ui.js';
 
 function cell(row, side) {
   const v = row[side];
@@ -44,7 +44,7 @@ export async function render(ctx) {
     mount(out, emptyState('Select two events from the Events list or enter their IDs above.'));
     return;
   }
-  mount(out, loading('Comparing…'));
+  mount(out, skeleton(card(null, h('h2', { class: 'card-title' }, skeletonLine('short')), placeholderTable(COLUMNS, 6, { caption: 'Differences between Event A and Event B' }))));
   let res;
   try {
     res = await api.compare(ctx.query.a, ctx.query.b);

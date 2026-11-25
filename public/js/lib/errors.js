@@ -8,6 +8,8 @@ export const ERROR_MESSAGES = Object.freeze({
   CSRF_INVALID: 'Your session security token is out of date. Reload the page and try again.',
   NOT_FOUND: 'The requested record was not found.',
   CONFLICT: 'This change conflicts with the current state (for example the id already exists, or you cannot review your own request).',
+  IDEMPOTENCY_IN_PROGRESS: 'The same request is still being processed. Please wait a moment.',
+  IDEMPOTENCY_KEY_REUSED: 'The form changed while a previous attempt was being saved. Submit again.',
   PAYLOAD_TOO_LARGE: 'The submitted data is too large.',
   UNSUPPORTED_MEDIA_TYPE: 'The request format is not supported.',
   CONFIRMATION_REQUIRED: 'This high-impact action needs explicit confirmation.',

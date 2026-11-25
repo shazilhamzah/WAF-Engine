@@ -1,7 +1,10 @@
 import { h, mount, clear } from '../dom.js';
-import { api } from '../api.js';
+import { api, actionKey } from '../api.js';
 import { EXAMPLES, METHODS, LIMITS, exampleByKey, validateSample, rowsToHeaders, headersToRows, normalizeSample } from '../lib/samples.js';
-import { pageHeader, card, field, select, fieldErrors, showStatus } from '../ui.js';
+import { pageHeader, card, field, select, fieldErrors, showStatus, undoToast } from '../ui.js';
+import { shortcut } from '../keys.js';
+
+const UNDO_KEY = shortcut('mod+z');
 import { decisionSummary } from '../decision.js';
 import { icon } from '../icons.js';
 
@@ -14,6 +17,9 @@ export function render(ctx) {
   const errors = h('div');
   const resultSlot = h('div', { 'aria-live': 'polite' });
   const submit = h('button', { type: 'submit', class: 'btn btn-primary' }, 'Analyze');
+  let toast = null;
+  // one Idempotency-Key per submit intent; a retry of the same sample reuses it, an edited one gets a new key
+  const submitKey = actionKey();
 
   const exampleOptions = [
     { value: '', label: 'Load example…' },
@@ -35,8 +41,23 @@ export function render(ctx) {
     const row = h('div', { class: 'header-row' },
       field('Header name', n),
       field('Header value', v),
-      h('button', { type: 'button', class: 'btn btn-small', 'aria-label': 'Remove header', on: { click: () => { row.remove(); addBtn.focus(); } } }, icon('x')));
+      h('button', { type: 'button', class: 'btn btn-small', 'aria-label': 'Remove header', on: { click: () => removeHeader(row) } }, icon('x')));
     return row;
+  }
+
+  // removing happens at once; Undo puts the row back where it was
+  function removeHeader(row) {
+    const next = row.nextSibling;
+    const name = row.querySelector('.hdr-name').value.trim();
+    row.remove();
+    addBtn.focus();
+    toast = undoToast(name ? `Removed header ${name}.` : 'Removed header.', {
+      shortcut: UNDO_KEY,
+      onUndo: () => {
+        headerList.insertBefore(row, next && next.parentNode === headerList ? next : null);
+        row.querySelector('input').focus();
+      },
+    });
   }
   const addBtn = h('button', { type: 'button', class: 'btn btn-small', on: { click: () => { const r = headerRow(); headerList.appendChild(r); r.querySelector('input').focus(); } } }, '+ Add header');
 
@@ -74,7 +95,8 @@ export function render(ctx) {
     submit.disabled = true;
     mount(resultSlot, card('Result', h('p', { class: 'loading' }, 'Analyzing…')));
     try {
-      const res = await api.analyze(sample, label.value.trim() || undefined);
+      const res = await api.analyze(sample, label.value.trim() || undefined, submitKey);
+      submitKey.reset();
       const evt = res.event;
       mount(resultSlot, card('Result',
         decisionSummary(evt),
@@ -90,11 +112,25 @@ export function render(ctx) {
     }
   }
 
+  // clearing happens at once; Undo restores every field, header row and the last result
   function clearForm() {
+    const saved = {
+      example: exampleSelect.value, label: label.value, method: method.value, path: path.value, body: body.value,
+      headers: [...headerList.childNodes], errors: [...errors.childNodes], result: [...resultSlot.childNodes],
+    };
     exampleSelect.value = '';
     label.value = ''; method.value = 'GET'; path.value = '/'; body.value = '';
     setHeaders({}); mount(errors); mount(resultSlot);
     path.focus();
+    toast = undoToast('Form cleared.', {
+      shortcut: UNDO_KEY,
+      onUndo: () => {
+        exampleSelect.value = saved.example; label.value = saved.label; method.value = saved.method;
+        path.value = saved.path; body.value = saved.body;
+        mount(headerList, saved.headers); mount(errors, saved.errors); mount(resultSlot, saved.result);
+        path.focus();
+      },
+    });
   }
 
   setHeaders({ 'user-agent': 'waf-studio-lab' });
@@ -117,4 +153,6 @@ export function render(ctx) {
         errors,
         h('div', { class: 'btn-group' }, submit, h('button', { type: 'button', class: 'btn', on: { click: clearForm } }, 'Clear')))),
     resultSlot);
+  // the undo would restore into a page that no longer exists, so leaving ends it
+  return () => { if (toast && toast.open) toast.dismiss(); };
 }

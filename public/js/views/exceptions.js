@@ -1,10 +1,11 @@
 import { h, mount, code } from '../dom.js';
-import { api } from '../api.js';
+import { api, actionKey } from '../api.js';
 import { can } from '../lib/roles.js';
 import { hashFor } from '../lib/query.js';
 import { formatTs, truncate, dateInputToIso } from '../lib/format.js';
 import { METHODS } from '../lib/samples.js';
-import { pageHeader, card, field, select, table, statusBadge, outcomeBadge, loading, errorPanel, showStatus, confirmDialog, fieldErrors, busy } from '../ui.js';
+import { swr } from '../cache.js';
+import { pageHeader, card, field, select, table, statusBadge, outcomeBadge, skeletonTable, errorPanel, showStatus, confirmDialog, fieldErrors, busy, staleWarning } from '../ui.js';
 
 const STATUSES = ['pending', 'approved', 'rejected', 'revoked'];
 
@@ -103,7 +104,8 @@ export async function render(ctx) {
     if (exp) body.expiresAt = exp;
     submitBtn.disabled = true;
     try {
-      const res = await api.requestException(body);
+      const res = await api.requestException(body, requestKey);
+      requestKey.reset();
       ctx.flash(`Exception ${res.exception && res.exception.id} requested. An administrator other than you must approve it.`, 'success');
       ctx.navigate(hashFor('/exceptions', { status: 'pending' }));
     } catch (err) {
@@ -114,6 +116,7 @@ export async function render(ctx) {
     }
   }
 
+  const requestKey = actionKey();
   const requestForm = h('form', { class: 'form', novalidate: true, on: { submit: submitRequest } },
     sourceEvent ? h('p', { class: 'muted small' }, 'Pre-filled from event ', h('a', { href: `#/events/${encodeURIComponent(sourceEvent)}` }, code(sourceEvent)), '.') : null,
     h('div', { class: 'form-row' },
@@ -132,7 +135,7 @@ export async function render(ctx) {
       class: 'tab', role: 'tab', href: hashFor('/exceptions', { status: st }),
       'aria-selected': String(st === status), id: `tab-${st}`,
     }, st[0].toUpperCase() + st.slice(1))));
-  const listBox = h('div', { role: 'tabpanel', 'aria-labelledby': `tab-${status}` }, loading());
+  const listBox = h('div', { role: 'tabpanel', 'aria-labelledby': `tab-${status}` });
 
   async function review(exc, kind, btn) {
     const titles = { approve: 'Approve exception', reject: 'Reject exception', revoke: 'Revoke exception' };
@@ -154,7 +157,7 @@ export async function render(ctx) {
       else if (kind === 'reject') await api.rejectException(exc.id, values.note);
       else await api.revokeException(exc.id, values.note);
       showStatus(`Exception ${exc.id} ${kind === 'approve' ? 'approved' : kind === 'reject' ? 'rejected' : 'revoked'}.`, 'success');
-      await loadList();
+      await loadList({ skipCache: true });
     });
   }
 
@@ -177,35 +180,33 @@ export async function render(ctx) {
     return out.length ? h('div', { class: 'btn-group' }, ...out) : '—';
   }
 
-  async function loadList() {
-    let res;
+  function paintList(res) {
+    const items = (res.items || []).filter((x) => !x.status || x.status === status);
+    mount(listBox, table({ caption: `${status} exceptions`, columns, rows: items, empty: `No ${status} exceptions.` }));
+  }
+
+  async function loadList({ skipCache = false } = {}) {
     try {
-      res = await api.exceptions(status);
+      await swr(`exceptions:${status}`, () => api.exceptions(status), paintList, { isCurrent: ctx.isCurrent, onStaleError: staleWarning, skipCache });
     } catch (err) {
       if (err && err.status === 401) return;
-      mount(listBox, errorPanel(err, loadList));
-      return;
+      mount(listBox, errorPanel(err, () => loadList()));
     }
-    if (!ctx.isCurrent()) return;
-    const items = (res.items || []).filter((x) => !x.status || x.status === status);
-    mount(listBox, table({
-      caption: `${status} exceptions`,
-      columns: [
-        { key: 'id', label: 'Id', render: (x) => code(x.id), rowHeader: true },
-        { key: 'ruleId', label: 'Rule', render: (x) => code(x.ruleId) },
-        { key: 'scope', label: 'Scope', render: (x) => scopeText(scopeOf(x)) },
-        { key: 'reason', label: 'Reason', className: 'wrap-anywhere', render: (x) => truncate(x.reason, 120) },
-        { key: 'status', label: 'Status', render: (x) => statusBadge(x.status) },
-        { key: 'requestedBy', label: 'Requested', render: (x) => h('span', null, who(x.requestedBy, x.requestedByName), h('br'), h('span', { class: 'small muted' }, formatTs(x.createdAt))) },
-        { key: 'reviewedBy', label: 'Reviewed', render: (x) => (x.reviewedBy ? h('span', null, who(x.reviewedBy, x.reviewedByName), h('br'), h('span', { class: 'small muted' }, formatTs(x.reviewedAt)), x.reviewNote ? h('span', { class: 'small' }, h('br'), `“${truncate(x.reviewNote, 80)}”`) : null) : '—') },
-        { key: 'expiresAt', label: 'Expires', render: (x) => (x.expiresAt ? formatTs(x.expiresAt) : 'never') },
-        { key: 'src', label: 'Source event', render: (x) => (x.sourceEventId ? h('a', { href: `#/events/${encodeURIComponent(x.sourceEventId)}` }, code(truncate(x.sourceEventId, 16))) : '—') },
-        { key: 'act', label: 'Actions', render: actionsFor },
-      ],
-      rows: items,
-      empty: `No ${status} exceptions.`,
-    }));
   }
+
+  const columns = [
+    { key: 'id', label: 'Id', render: (x) => code(x.id), rowHeader: true },
+    { key: 'ruleId', label: 'Rule', render: (x) => code(x.ruleId) },
+    { key: 'scope', label: 'Scope', render: (x) => scopeText(scopeOf(x)) },
+    { key: 'reason', label: 'Reason', className: 'wrap-anywhere', render: (x) => truncate(x.reason, 120) },
+    { key: 'status', label: 'Status', render: (x) => statusBadge(x.status) },
+    { key: 'requestedBy', label: 'Requested', render: (x) => h('span', null, who(x.requestedBy, x.requestedByName), h('br'), h('span', { class: 'small muted' }, formatTs(x.createdAt))) },
+    { key: 'reviewedBy', label: 'Reviewed', render: (x) => (x.reviewedBy ? h('span', null, who(x.reviewedBy, x.reviewedByName), h('br'), h('span', { class: 'small muted' }, formatTs(x.reviewedAt)), x.reviewNote ? h('span', { class: 'small' }, h('br'), `“${truncate(x.reviewNote, 80)}”`) : null) : '—') },
+    { key: 'expiresAt', label: 'Expires', render: (x) => (x.expiresAt ? formatTs(x.expiresAt) : 'never') },
+    { key: 'src', label: 'Source event', render: (x) => (x.sourceEventId ? h('a', { href: `#/events/${encodeURIComponent(x.sourceEventId)}` }, code(truncate(x.sourceEventId, 16))) : '—') },
+    { key: 'act', label: 'Actions', render: actionsFor },
+  ];
+  mount(listBox, skeletonTable(columns, 4, { caption: `${status} exceptions` }));
 
   const requestDisclosure = h('details', { class: 'card', open: Boolean(q.new) },
     h('summary', null, q.new ? 'Request an exception (pre-filled from event)' : 'Request an exception'),
@@ -220,6 +221,8 @@ export async function render(ctx) {
     requestDisclosure,
     card(null, tabs, listBox));
   if (q.new) reason.focus();
+  else if (q.request) { requestDisclosure.open = true; ruleId.focus(); }
   await loadList();
+  ctx.onRevalidate(loadList);
 }
 

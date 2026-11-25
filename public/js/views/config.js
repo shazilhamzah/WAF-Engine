@@ -4,7 +4,7 @@ import { can } from '../lib/roles.js';
 import { formatTs } from '../lib/format.js';
 import { icon } from '../icons.js';
 import { diffObjects, displayValue } from '../lib/diff.js';
-import { pageHeader, card, field, table, loading, errorPanel, showStatus, confirmDialog, diffTable, fieldErrors } from '../ui.js';
+import { pageHeader, card, field, table, loading, errorPanel, showStatus, confirmDialog, diffTable, fieldErrors, skeleton, skeletonLine } from '../ui.js';
 
 const LIMIT_FIELDS = [
   ['maxBodyBytes', 'Max body (bytes)', 'Larger requests are rejected (413) before rules run.'],
@@ -38,7 +38,10 @@ export function checkConfig(cfg) {
 
 export async function render(ctx) {
   const isAdmin = can(ctx.role, 'config.write');
-  const body = h('div', null, loading());
+  const body = h('div', null, skeleton(
+    h('p', { class: 'meta-line' }, skeletonLine('short')),
+    card(null, ...['Enforcement mode', 'Thresholds', 'Limits', 'Rate limit'].map((legend) => h('fieldset', null,
+      h('legend', null, legend), skeletonLine(), skeletonLine('short'))))));
   const historyBox = h('div', null, loading());
   mount(ctx.el, pageHeader('Configuration'),
     body,
