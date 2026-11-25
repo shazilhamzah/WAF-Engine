@@ -64,9 +64,9 @@ Current screenshots: [desktop](images/dashboard-desktop.png), [phone width](imag
 ## 4. Analyzing a request (Analyze)
 
 1. Open **Tools → Analyze** (`Single request` tab). Optionally choose from the **Load example…** dropdown in the header:
-   * `✔ Benign search`, `✔ Benign name with apostrophe`, `✔ Benign JSON comment` — normal inputs, including
+   * `✓ Benign search`, `✓ Benign name with apostrophe`, `✓ Benign JSON comment` — normal inputs, including
      classic false-positive candidates (an apostrophe; the words *select* and *union* in prose).
-   * `⚠ SQL injection`, `⚠ Cross-site scripting`, `⚠ Path traversal`, `⚠ Double-encoded traversal` — textbook
+   * `⚠ SQL injection (tautology)`, `⚠ Cross-site scripting`, `⚠ Path traversal`, `⚠ Double-encoded traversal` — textbook
      attack indicators for the lab target.
 2. Adjust **Method**, **Path and query** (must start with `/`; URL-encode spaces as `%20`), **Headers** (name/value
    rows; *+ Add header*, *✕* to remove) and **Body**. Give it a **Label** so you can find it later.
@@ -99,17 +99,18 @@ Open an event from **Events**, the dashboard, or the Analyze result. The view is
 | Rule matches | Per match: rule id and name, severity, points, category, **location** (`query.q`, `body.comment`, `header.user-agent`, …), the **matched excerpt** (shown as inert text, at most 120 characters, secrets masked) and **decoded via** chips (`url`, `html`, `unicode` …). Also includes expandable **Suppressed by exceptions**, **Parser anomalies** and **Rate limit** sections when present. |
 | Request & metadata | Sanitized request parameters, body sizes, user agent, timestamps, timings, engine/ruleset/config versions, client pseudonym (`c_…`, never the IP), and expandable **Stored sample (redacted)** and **Raw decision JSON** views. |
 
-What a **normal** sample looks like: `✔ Passed`, score below the flag threshold, *"No rule matched this request."*.
+What a **normal** sample looks like: `✓ Passed`, score below the flag threshold, *"No rule matched this request."*.
 What a **seeded adverse** sample looks like: `■ Blocked` (or `⚑ Flagged · passed`), the exact rule, location and
 excerpt that triggered it — never just "unsafe".
 
 ### Actions on an event
 
-* **↻ Replay** (console and import events): re-runs the stored sample with today's rules,
+* **Replay** (console, import and replay events): re-runs the stored sample with today's rules,
   thresholds and exceptions and opens the new event, which links back to the original. Proxy events cannot be
-  replayed because their bodies are not stored.
+  replayed because their bodies are not stored; on those the button is disabled and a note under the outcome badge
+  says why.
 * **Compare with original** (on replays) / **Compare…**: opens the compare view.
-* **⇩ Export**: downloads a report for just this event in the chosen format (`html`, `csv`, `json`).
+* **Export**: downloads a report for just this event in the chosen format (`html`, `csv`, `json`).
 * **Request exception** (per match): opens the exception form pre-filled with the rule id, location, path and method.
 
 ## 7. History, comparison and export (Events, Compare)
@@ -117,8 +118,9 @@ excerpt that triggered it — never just "unsafe".
 * **Filters**: search text (path, label, event id, method), verdict, source (`proxy`, `console`, `import`, `replay`),
   date range, and expandable **More filters** (`Action`, `Rule id`). Filters live in the address bar, so Back/Forward and bookmarks work.
 * Results are paged 50 at a time (**‹ Previous / Next ›**) and show a single unified **Outcome** badge per row.
+  A bookmarked page that no longer exists (for example after a reset) says *Past the last page* and offers **Last page**.
 * **Compare**: tick **two** events and press **Compare (2/2)**. The compare view highlights all differing fields (`≠`) at the top and groups identical fields into an expandable **Unchanged fields** section.
-* **Export**: choose `html`, `csv` or `json` in the **Events** header and press **⇩ Export** to download a report for either the selected events or the current filter set (or use `#/reports` for a standalone export form).
+* **Export**: choose `html`, `csv` or `json` in the **Events** header and press **Export** to download a report for either the selected events or the current filter set (or use `#/reports` for a standalone export form).
 
 ## 8. Requesting an exception (tuning a false positive)
 
@@ -134,9 +136,9 @@ excerpt that triggered it — never just "unsafe".
 
 ## 9. Exporting reports
 
-Open **Reports**, choose **HTML** (readable, self-contained), **CSV** (spreadsheet; one row per event) or **JSON**
+Open the standalone export form (**Ctrl+K** → *Export a report*, or `#/reports`; it is not in the sidebar), choose **HTML** (readable, self-contained), **CSV** (spreadsheet; one row per event) or **JSON**
 (machine-readable), optionally a date range, verdict and specific event ids (up to 500), and press
-**⇩ Download report**. Without ids the most recent matching events are exported (at most 1 000).
+**Download report**. Without ids the most recent matching events are exported (at most 1 000).
 
 Every report contains the generator, time, filters, ruleset and configuration versions, summary metrics (counts by
 verdict and action, false-positive review figures, top rules, categories, latency) and, per event, the decision,
@@ -149,21 +151,23 @@ the content).
 
 This reproduces the scenario on page 3 of the proposal end to end.
 
-1. **Operator signs in** as `operator` → Dashboard shows mode `⛔ BLOCK`, ruleset and config versions.
+1. **Operator signs in** as `operator` → the header shows **Enabled** (block mode); Overview → **System details**
+   shows the ruleset and config versions.
 2. **Safe input**: Analyze → *Load example: Benign search* → label `normal search` → **Analyze**.
-   Expected: `✔ allow`, action `allowed`, score 0, "No rule matched; no warnings." (completed status, no unjustified critical warning).
+   Expected: `✓ Passed`, score 0, *"No rule matched this request."* (completed status, no unjustified critical warning).
 3. **Suspicious variant**: *Load example: SQL injection (tautology)* → label `suspicious variant` → **Analyze**.
-   Expected: `⛔ block`, action `blocked`, HTTP 403; the match table names the SQLi rule, location `query.q`,
+   Expected: `■ Blocked` with an `HTTP 403` chip; the match table names the SQLi rule, location `query.q`,
    excerpt `' OR 1=1--` and a `url` decoded-via chip — the particular indicator, not just "unsafe". Try the
    double-encoded traversal too: the chips show `url` decoding was needed (twice) and a `DOUBLE_ENCODING` anomaly.
-4. **Compare in history**: Events → tick both events → **Compare selected** → verdict `allow → block`, score `+N`,
+4. **Compare in history**: Events → tick both events → **Compare (2/2)** → verdict `allow → block`, score `+N`,
    rules added highlighted.
-5. **Export a sanitized report**: Reports → HTML → both event ids → **Download report**.
+5. **Export a sanitized report**: Events → keep both events ticked → `html` → **Export** (or the standalone form:
+   **Ctrl+K** → *Export a report* → both event ids → **Download report**).
 6. **Administrator changes one permitted rule or threshold** (see the admin guide): e.g. Config → raise the block
    threshold above the SQLi score, reason "demo: tune threshold", confirm. A new configuration version is created and
    audited.
-7. **Repeat the test**: open the `suspicious variant` event → **Replay with current rules** → the new event shows
-   `⚑ flag` / `allowed` with the new thresholds; **Compare with original** shows *Configuration version changed* and
+7. **Repeat the test**: open the `suspicious variant` event → **Replay** → the new event shows
+   `⚑ Flagged · passed` with the new thresholds; **Compare with original** shows *Configuration version changed* and
    the verdict change — both the new result and the configuration change are traceable (Audit: `config.update`,
    `event.replay`).
 8. **Unauthorized viewer**: sign in as `viewer` and open the event URL → *Not available for your role*; the server
