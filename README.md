@@ -21,15 +21,25 @@ audit log.
 
 ## Quick start
 
-Requirements: **Node.js ≥ 22.13** (built-in `node:sqlite`), npm. No Docker, no database server.
+Requirements: **Node.js ≥ 22.13** (built-in `node:sqlite`; developed on v24), npm, Git. No Docker, no
+database server. Ports 3000, 3001 and 8080 on 127.0.0.1 must be free.
+
+Run these in order from a fresh clone:
 
 ```bash
-npm install
+git clone <repository-url> WAF-Engine
+cd WAF-Engine      # package.json is at the repository root
+node --version     # must print v22.13 or newer
+npm ci             # exact versions from package-lock.json (the only step that needs the internet)
 npm run setup      # creates data/, the database, default rules and accounts — SAVE THE PRINTED PASSWORDS
+npm test           # optional: all tests should pass
 npm start          # Studio http://127.0.0.1:3000 · WAF proxy http://127.0.0.1:8080 · target :3001
 ```
 
-Try an attack through the WAF (on Windows PowerShell use `curl.exe`):
+`npm start` runs in the foreground; stop it with Ctrl+C. Startup and proxying print no deprecation
+warnings (http-proxy's `DEP0060 util._extend` notice is filtered in `src/proxy/silenceDep0060.js`).
+
+In a second terminal, try an attack through the WAF (on Windows PowerShell use `curl.exe`):
 
 ```bash
 curl -i "http://127.0.0.1:8080/search?q=mug"                          # 200, X-WAF-Action: allowed
