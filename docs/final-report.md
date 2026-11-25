@@ -3,7 +3,7 @@
 **Proposal 44 | Class 3, Group 12**  
 **Domain:** Web and Infrastructure Security  
 **Workstreams:** Shazil (A), Nufil (B), Wahaj (C), Saad (D)  
-**Final integration:** 20 October 2026, Asia/Karachi
+**Final integration:** 20 October 2026, Asia/Karachi; results re-measured 25 November 2026
 
 ## 1. Executive summary
 
@@ -13,21 +13,21 @@ versioned policy in SQLite, and exports sanitized evidence. Its engine implement
 language, normalization, anomaly scoring, block/monitor modes, sliding-window rate limits and scoped
 exceptions. The default set contains 41 rules. The architecture and interfaces established during
 Claude's four workstreams were retained during final integration; runtime detection code was not
-rewritten in this completion.
+rewritten in this completion. On 25 November 2026 two default rules (942100, 942110) were extended to catch hexadecimal-literal and `||` concatenation tautologies, the console gained a command menu and safe retries backed by API idempotency keys, and two dependency advisories were patched; every figure below comes from the re-measurement after those changes.
 
-The final strict acceptance run passed **782 of 782 automated tests (100%)**, with no failed, skipped
+The final strict acceptance run passed **804 of 804 automated tests (100%)**, with no failed, skipped
 or cancelled tests. The production dependency audit reported **zero vulnerabilities**. These figures
 are recorded in [the acceptance summary](evaluation/check-summary.json), not inferred from an earlier
 phase-1 run.
 
-The complete mandatory evaluation produced **117 passes from 123 checks (95.1%)**. T1, T2, T3, T4,
-T6 and T-final all passed. T5 blocked 12 of 18 bypass attempts, retaining six misses as failed
+The complete mandatory evaluation produced **119 passes from 123 checks (96.7%)**. T1, T2, T3, T4,
+T6 and T-final all passed. T5 blocked 14 of 18 bypass attempts (up from 12 before the 25 November rule fix), retaining four misses as failed
 protection expectations. A separate controlled corpus of 80 adverse and 68 benign requests produced
-76 true positives, four false negatives, 68 true negatives and zero false positives: 95% recall,
-100% precision, and 0% observed false-positive rate. Corpus engine decision latency was 0.476 ms at
+77 true positives, three false negatives, 68 true negatives and zero false positives: 96.25% recall,
+100% precision, and 0% observed false-positive rate. Corpus engine decision latency was 0.277 ms at
 p95. See [the full per-input evaluation](evaluation/results.md) and [machine-readable evidence](evaluation/results.json).
 
-In a separate localhost benchmark, p95 added proxy latency was **1.888 ms for GET** and **1.988 ms for
+In a separate localhost benchmark, p95 added proxy latency was **1.721 ms for GET** and **1.886 ms for
 a 2 KiB form POST**, both below the 25 ms teaching-tool target. These results describe one controlled
 synthetic experiment on one laptop, not production security or performance guarantees. Evidence:
 [latency measurements](evaluation/latency.json).
@@ -171,7 +171,7 @@ within the generated evidence, not records available in the normal running appli
 
 The environment was **Node v24.19.0**, Windows build **10.0.26300**, Intel Core Ultra 7 255H,
 16 logical CPUs and approximately 31 GiB RAM as reported by Node. Engine version was **1.0.0**,
-with **41 rules** and ruleset **ce0b86243cbc47a1**. Baseline thresholds were flag 3/block 5.
+with **41 rules** and ruleset **96ab725577dc312f**. Baseline thresholds were flag 3/block 5.
 The evaluation raised the proxy limit to 100,000/minute for throughput measurements, then
 deliberately lowered it for TF-08. Source: `environment` and `stack` in [results JSON](evaluation/results.json).
 
@@ -200,12 +200,12 @@ they do not relabel it benign. Details: [fixture guide](fixtures.md) and
 
 | Measure | Result | Evidence |
 |---|---|---|
-| Tests / passed / failed | 782 / 782 / 0 | [check summary](evaluation/check-summary.json) |
-| Suites; skipped / cancelled / todo | 36; 0 / 0 / 0 | Same summary |
+| Tests / passed / failed | 804 / 804 / 0 | [check summary](evaluation/check-summary.json) |
+| Suites; skipped / cancelled / todo | 39; 0 / 0 / 0 | Same summary |
 | Pass rate; required minimum | 100%; 80% | Same summary |
 | Production dependency vulnerabilities | 0 (including high and critical) | `npmAudit` in same summary |
 
-These 782 regression tests are distinct from the 123 mandatory evaluation checks and 148 corpus
+These 804 regression tests are distinct from the 123 mandatory evaluation checks and 148 corpus
 observations. Passing the regression suite does not mean every attempted bypass was blocked.
 
 ### 7.2 Mandatory cases
@@ -216,10 +216,10 @@ observations. Passing the regression suite does not mean every attempted bypass 
 | T2 | Encoding/normalization variants | 20/20 | All blocked; malformed-byte case retains other visible traversal indicators |
 | T3 | Difficult benign inputs | 38/38 | All allowed |
 | T4 | Body-size and inspection boundaries | 6/6 | Expected size policy and documented beyond-window blind spot observed |
-| T5 | Evasion attempts | 12/18 | Six protection failures retained and explained below |
+| T5 | Evasion attempts | 14/18 | Four protection failures retained and explained below |
 | T6 | GET and 2 KiB POST overhead | 2/2 | Both below the 25 ms p95 threshold |
 | T-final | Malformed input, denial, repetition, failure and restart | 11/11 | Safe behaviour and persisted state verified |
-| Total | Mandatory checks only | 117/123 (95.1%) | Includes failed T5 expectations |
+| Total | Mandatory checks only | 119/123 (96.7%) | Includes failed T5 expectations |
 
 Evidence for every row and every input: [evaluation results](evaluation/results.md) and
 [results JSON](evaluation/results.json). T4 includes 10/60 KiB benign bodies forwarded intact,
@@ -237,15 +237,15 @@ SQLi remained blocked while benign traffic was allowed. Those counts belong to t
 | Metric | Value |
 |---|---|
 | Adverse / benign requests | 80 / 68 |
-| TP / TN / FP / FN | 76 / 68 / 0 / 4 |
+| TP / TN / FP / FN | 77 / 68 / 0 / 3 |
 | Precision | 1.0000 |
-| Recall | 0.9500 |
-| F1 | 0.9744 |
+| Recall | 0.9625 |
+| F1 | 0.9809 |
 | Observed false-positive rate | 0/68 = 0% |
-| Adverse requests actually blocked | 76/80 |
-| Engine decision mean / p50 / p95 / p99 | 0.267 / 0.234 / 0.476 / 0.776 ms |
+| Adverse requests actually blocked | 77/80 |
+| Engine decision mean / p50 / p95 / p99 | 0.147 / 0.126 / 0.277 / 0.452 ms |
 
-SQLi category coverage was 24/27 (88.9%), XSS 24/25 (96%), traversal 16/16, command signatures 8/8
+SQLi category coverage was 25/27 (92.6%), XSS 24/25 (96%), traversal 16/16, command signatures 8/8
 and scanners 4/4. Categories here are the intended class of each controlled input. Full values,
 including all false-negative records, appear under `metrics` in [results JSON](evaluation/results.json).
 
@@ -263,10 +263,10 @@ differences); see `test/evaluation/latency.js`.
 
 | Scenario | Direct p95 | Via-WAF p95 | Added p95 | Target |
 |---|---|---|---|---|
-| GET search | 0.378 ms | 2.266 ms | 1.888 ms | <25 ms: pass |
-| POST 2 KiB form | 0.337 ms | 2.325 ms | 1.988 ms | <25 ms: pass |
+| GET search | 0.317 ms | 2.038 ms | 1.721 ms | <25 ms: pass |
+| POST 2 KiB form | 0.238 ms | 2.124 ms | 1.886 ms | <25 ms: pass |
 
-There were no request errors. The evaluation's separate T6 run measured 2.795 ms and 3.582 ms
+There were no request errors. The evaluation's separate T6 run measured 1.674 ms and 2.154 ms
 added p95 respectively, also passing. These are different runs, not contradictory measurements;
 localhost scheduling and cache state vary. Sources: [benchmark](evaluation/latency.json),
 T6 in [evaluation JSON](evaluation/results.json). No concurrency or production throughput claim is made.
@@ -283,11 +283,9 @@ Tests: `test/unit/engine/rules.test.js`, `test/integration/proxy.test.js`, `test
 | T5-13; CA-077 | SQL tokens split across parameters | Context-free per-value matching cannot model an application joining values |
 | T5-14; CA-078 | SQL tokens split across JSON fields | Requires application data-flow reconstruction |
 | T5-15; CA-079 | Base64-wrapped markup | Arbitrary application-level base64 is not decoded |
-| T5-16; CA-080 | Hexadecimal numeric comparison | Decimal tautology signature does not cover this expression |
-| T5-17 | String-concatenated comparison | No SQL semantic interpreter/constant folding |
 | T5-18 | Markup split across duplicate parameters | Joining behaviour depends on the protected application |
 
-All six remain expected `block` and measured `allow`. They are accepted signature-coverage
+All four remain expected `block` and measured `allow`. Two former misses, T5-16 (hexadecimal numeric comparison, CA-080) and T5-17 (string-concatenated comparison), were closed on 25 November 2026 by extending rules 942100 and 942110; unit tests (`test/unit/engine/tautology-variants.test.js`) and end-to-end proxy tests (`test/integration/tautology-proxy.test.js`) cover them together with benign look-alikes, and the benign corpus still produced zero false positives. They are accepted signature-coverage
 limitations for this teaching scope, with failures visible in [the evaluation](evaluation/results.md).
 They do not establish that the Studio API is vulnerable to SQL injection or that the target sandbox
 can be escaped; those separate properties have their own passing security tests.
