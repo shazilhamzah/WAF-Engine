@@ -49,4 +49,4 @@ http-proxy deprecation warning remains. See `../test-results.md` and `../evaluat
 
 * `src/rules/default.rules`: path traversal `../secret/flag.txt` currently scores 3 (flag) — integration test expects a block (Saad).
 * `test/unit/engine/parser.test.js` "SQL comment, whitespace, lowercase and backslash variants" fails at the time of writing (Saad).
-* http-proxy 1.18.1 prints a Node `DEP0060 util._extend` deprecation warning at start-up; harmless (`--no-deprecation` hides it).
+* ~~http-proxy 1.18.1 prints a Node `DEP0060 util._extend` deprecation warning~~ — resolved 2026-11-25: filtered (DEP0060 only) in `src/proxy/silenceDep0060.js`.

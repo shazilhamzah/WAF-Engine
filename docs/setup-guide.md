@@ -20,12 +20,12 @@ Free ports **3000**, **3001** and **8080** on 127.0.0.1 (configurable, see §8).
 ## 2. Install
 
 ```bash
-git clone <repository-url>
-cd <repository>/IS/Project        # the folder that contains package.json
-npm install                       # express, http-proxy (+ marked for the PDF build)
+git clone <repository-url> WAF-Engine
+cd WAF-Engine                     # package.json is at the repository root
+npm ci                            # express, http-proxy (+ marked for the PDF build), exact lockfile versions
 ```
 
-`npm install` is the only step that needs the internet.
+`npm ci` (or `npm install`) is the only step that needs the internet.
 
 ## 3. First-run setup — save the printed passwords
 

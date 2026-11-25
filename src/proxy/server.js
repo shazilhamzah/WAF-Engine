@@ -1,6 +1,7 @@
 'use strict';
 const http = require('node:http');
 const { Readable } = require('node:stream');
+require('./silenceDep0060').installDep0060Filter(); // see file: hides only http-proxy's DEP0060
 const httpProxy = require('http-proxy');
 const { normalizeLogger } = require('../services/logger');
 const { createAuditor } = require('../services/audit');
