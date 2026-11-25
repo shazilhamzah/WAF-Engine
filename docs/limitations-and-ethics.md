@@ -62,7 +62,7 @@ failures, not removed. Generated measurements state their environment and timest
 | Limitation | Consequence | Mitigation in WAF Studio / note |
 |---|---|---|
 | Signature rules recognise **known patterns**, not intent | Novel or heavily obfuscated attacks can pass (false negatives) | Anomaly scoring combines several weak signals; normalisation before matching; monitor mode for safe tuning; misses are listed in the evaluation (T5, corpus FN table) |
-| Known bypass classes: SQL comment splitting (`UN/**/ION`), alternative whitespace (`%09`, `%0b`, `/**/`), case and Unicode variants, string concatenation (`'ad'||'min'`), numeric tricks (`1e0`, `0x31`), HTTP parameter pollution, JSON/multipart smuggling, uncommon content types, payloads split across parameters or requests | Some T5 samples are expected to slip through | Each miss is labelled honestly in `fixtures/t5-bypass.json` and reported; adding a rule is a policy change that is versioned and audited |
+| Known bypass classes: SQL comment splitting (`UN/**/ION`), alternative whitespace (`%09`, `%0b`, `/**/`), case and Unicode variants, string concatenation (`CONCAT('ad','min')`, `'ad'+'min'`; the `' OR ('a'||'b')=(...)` shape is caught by 942110 since 2026-11-25), numeric tricks (`1e0`, `2-1=1`; hex literals such as `0x31=0x31` are caught by 942100 since 2026-11-25), HTTP parameter pollution, JSON/multipart smuggling, uncommon content types, payloads split across parameters or requests | Some T5 samples are expected to slip through | Each miss is labelled honestly in `fixtures/t5-bypass.json` and reported; adding a rule is a policy change that is versioned and audited |
 | **False positives**: legitimate text that looks like code (names like O'Brien, SQL tutorials, `<3`, mathematical expressions) | Benign requests flagged or blocked | T3 + benign corpus measure the FP rate; scoped exceptions (FR-7) let operators fix them with admin approval; thresholds tunable |
 | Context-free matching | The WAF does not know the target's real data types, so it cannot tell a dangerous parameter from a harmless one | Exceptions can be scoped by path prefix, location and method |
 | Only HTTP/1.1 requests the proxy sees are inspected | Responses are not inspected (no data-leak prevention, no virtual patching of output) | Out of scope |
@@ -130,6 +130,32 @@ markup. Reconstruction/base64 cases depend on application behaviour and are not 
 exploits demonstrated against the bundled shop. The small synthetic corpus shares signature
 families with baseline cases, so 95% recall and 0/68 false positives do not estimate Internet-wide
 protection. See [final test results](test-results.md) for evidence and latency definitions.
+
+Update (2026-11-25): two of the six misses are now blocked. **T5-16** (`1 OR 0x31=0x31`) matches rule
+942100, which now accepts hexadecimal as well as decimal literals; **T5-17**
+(`' OR ('a'||'b')=('a'||'b')`) matches rule 942110, which now also recognises a quote break-out
+followed by a parenthesised `||` concatenation in a comparison. Both changes only add alternatives to
+the existing patterns (nothing previously matched stops matching), pass the ReDoS guard, and keep T3
+and the benign corpus fully allowed. Expected verdicts were not changed. Engine-level result: 4/18 T5
+samples allowed and 3/80 corpus false negatives (CA-080 is now detected). The 2026-10-19 snapshot in
+[`evaluation/results.md`](evaluation/results.md) and [test-results](test-results.md) predates this
+change and has not been regenerated. These remain signatures, not an SQL interpreter: equivalent
+forms such as `1 OR 1e0=1e0`, `2-1=1`, `CONCAT('a','b')=CONCAT('a','b')` or `'a'+'b'='a'+'b'` still pass.
+
+The four remaining misses are **out of scope** for a WAF that inspects each value on its own:
+
+* **T5-13 / T5-14 — keywords split across parameters or JSON fields.** Every value (`UN`, `ION`, …)
+  is harmless by itself; SQL only exists if the application concatenates the fields. Catching it
+  needs knowledge of how the application combines its inputs (data-flow analysis). A rule that
+  joined or matched keyword fragments across fields would fire on ordinary short values.
+* **T5-15 — base64 inside an application-specific parameter.** Decoding every base64-looking value
+  would also decode ordinary tokens, IDs and image data, cost time on every request and still miss
+  other encodings (hex, custom schemes). The application that decodes the value must validate the
+  decoded result.
+* **T5-18 — markup split across duplicate parameters.** Each `q` value is inspected separately;
+  whether duplicates are joined (and with which separator) is framework behaviour. Joining before
+  matching would change the verdict for benign duplicate parameters. A duplicate that carries a
+  complete attack is still blocked (T5-07).
 
 | Do | Don't |
 |---|---|
