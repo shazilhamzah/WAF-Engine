@@ -15,21 +15,21 @@
 # ============================================================== SQL injection (942xxx)
 
 rule 942100 "SQLi boolean tautology" {
-  when args, cookies, user_agent, header:referer matches /\b(?:or|and|xor)\b\s{1,10}['"(]{0,2}\d{1,10}['")]{0,2}\s{0,10}(?:=|<>|!=|<=|>=|\blike\b)\s{0,10}['"(]{0,2}\d{1,10}/i
+  when args, cookies, user_agent, header:referer matches /\b(?:or|and|xor)\b\s{1,10}['"(]{0,2}(?:0x[0-9a-f]{1,16}|\d{1,10})['")]{0,2}\s{0,10}(?:=|<>|!=|<=|>=|\blike\b)\s{0,10}['"(]{0,2}(?:0x[0-9a-f]{1,16}|\d{1,10})/i
   severity critical
   score 5
   category sqli
   tags sqli, owasp-a03, tautology
-  description "Numeric always-true comparison such as OR 1=1, used to bypass WHERE clauses in login and search queries"
+  description "Numeric always-true comparison such as OR 1=1 (decimal or hex literals like OR 0x31=0x31), used to bypass WHERE clauses in login and search queries"
 }
 
 rule 942110 "SQLi quoted string tautology" {
-  when args, cookies, user_agent, header:referer matches /['"`]\s{0,10}(?:\b(?:or|and)\b|\|\||&&)\s{0,10}['"`][^'"`]{0,40}['"`]\s{0,10}(?:=|<>|!=|\blike\b)\s{0,10}['"`]/i
+  when args, cookies, user_agent, header:referer matches /['"`]\s{0,10}(?:\b(?:or|and)\b|\|\||&&)\s{0,10}['"`][^'"`]{0,40}['"`]\s{0,10}(?:=|<>|!=|\blike\b)\s{0,10}['"`]|['"`]\s{0,10}\b(?:or|and)\b\s{0,10}\(\s{0,10}['"`][^'"`]{0,40}['"`]\s{0,10}\|\|\s{0,10}['"`][^'"`]{0,40}['"`]\s{0,10}\)\s{0,10}(?:=|<>|!=|\blike\b)/i
   severity critical
   score 5
   category sqli
   tags sqli, owasp-a03, tautology
-  description "Breaks out of a quoted value and adds a string comparison that is always true, e.g. ' or 'a'='a"
+  description "Breaks out of a quoted value and adds a string comparison that is always true, e.g. ' or 'a'='a or ' OR ('a'||'b')=('a'||'b')"
 }
 
 rule 942120 "SQLi UNION SELECT" {

@@ -112,6 +112,24 @@ match entry:
   suppressedBy: null }          // exception id when suppressed
 ```
 
+### 4.1 Detection scope: what one value at a time can and cannot see
+
+Rules match **one normalized value at a time**. Since 2026-11-25 the SQLi tautology rules also cover
+two T5 variants: 942100 accepts hexadecimal literals (`OR 0x31=0x31`) and 942110 accepts
+`' OR ('a'||'b')=('a'||'b')` (a quote break-out, then a parenthesised `||` concatenation in a
+comparison). Regression tests: `test/unit/engine/tautology-variants.test.js`.
+
+Out of scope by design (still labelled as known limitations in `fixtures/t5-bypass.json`):
+
+| Sample | Why the engine allows it |
+|---|---|
+| T5-13, T5-14 | SQL keywords split across query parameters / JSON fields. Each value is harmless; only an application that concatenates them builds SQL. Detecting it needs data-flow knowledge of the application. |
+| T5-15 | Base64 in an application-specific parameter. The engine does not guess which values are base64; decoding everything would hit ordinary tokens and IDs and still miss other encodings. |
+| T5-18 | Markup split across duplicate `q` values. Values are inspected separately; how duplicates are joined is framework behaviour. A complete attack in a duplicate is blocked (T5-07). |
+
+The rules are signatures, not an SQL evaluator, so other equivalent expressions (`1e0=1e0`,
+`2-1=1`, `CONCAT(...)`, `'a'+'b'`) can still pass. See `docs/limitations-and-ethics.md` §3.
+
 ## 5. Scoring and thresholds (FR-3)
 
 ```

@@ -8,6 +8,7 @@ Owns `src/engine/**`, `src/rules/**`, benign fixtures in `fixtures/`, `test/unit
 | Date | Entry |
 |---|---|
 | 2026-10-19 | Read Proposal 44, `docs/00-project-plan.md`, `docs/01-requirements.md` and the integration contract `docs/02-architecture.md` (§1.2 pipeline, §3 engine interface, §3.4 exceptions, §3.5 locations, §3.6 Decision, §3.7 DSL) |
+| 2026-11-25 | Closed two T5 misses with Claude's help (automated session, same disclosure as below): 942100 now accepts hex literals (T5-16 `OR 0x31=0x31`) and 942110 a quote break-out with a `\|\|` concatenation comparison (T5-17). Patterns only gained alternatives; expected verdicts unchanged; T3/benign corpus still fully allowed; new `tautology-variants.test.js`. T5-13/14/15/18 stay documented as out of scope (`limitations-and-ethics.md` §3, `engine.md` §4.1); the Oct-19 evaluation snapshot was not regenerated. |
 
 ## Handover reconciliation and completion - 2026-10-20
 

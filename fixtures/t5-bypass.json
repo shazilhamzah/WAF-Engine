@@ -297,8 +297,7 @@
         "categories": [
           "sqli"
         ]
-      },
-      "knownLimitation": "Numeric tautology signature covers decimal numbers, not hexadecimal expressions."
+      }
     },
     {
       "id": "T5-17",
@@ -316,8 +315,7 @@
         "categories": [
           "sqli"
         ]
-      },
-      "knownLimitation": "No SQL expression interpreter or semantic constant folding."
+      }
     },
     {
       "id": "T5-18",
