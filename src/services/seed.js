@@ -1,17 +1,4 @@
 'use strict';
-/**
- * Database seeding, shared by scripts/setup.js, tests and the evaluation harness.
- *
- *   const { passwords, created } = await seedDatabase(db, engine, { passwords: { admin: '…' } });
- *
- * - default rules: `src/rules/default.rules` parsed with engine.parseRuleFile, stored as version 1 when the
- *   rules table is empty
- * - default configuration from engine.DEFAULT_CONFIG when no config version exists
- * - users admin/operator/viewer (usernames = role names; `options.users` adds more, e.g. admin2) when they
- *   do not exist; passwords come from `options.passwords[username]` or are randomly generated and
- *   returned (never written to disk). Existing users keep their password unless `resetPasswords: true`.
- * Idempotent: running it twice changes nothing.
- */
 const fs = require('node:fs');
 const path = require('node:path');
 const { hashPassword, generatePassword, checkPasswordPolicy } = require('../auth/passwords');
@@ -22,7 +9,6 @@ const DEFAULT_USERS = Object.freeze([
   { username: 'operator', role: 'operator' },
   { username: 'viewer', role: 'viewer' },
 ]);
-/** Second administrator used to demonstrate separation of duties (exception approval). */
 const ADMIN2 = Object.freeze({ username: 'admin2', role: 'admin' });
 
 function metaFromSource(engine, id, source) {
@@ -72,14 +58,6 @@ function seedConfig(db, engine) {
   return { seeded: true, version: rec.version };
 }
 
-/**
- * @param {object} db  repository store from openDatabase()
- * @param {object} [engine] src/engine (rules/config are skipped when absent)
- * @param {{ passwords?: Record<string,string>, users?: Array<{username,role}>, includeAdmin2?: boolean,
- *           resetPasswords?: boolean, rulesText?: string, rulesPath?: string }} [options]
- * @returns {Promise<{ passwords: Record<string,string>, created: Array<{username,role,generated:boolean}>,
- *                     rules: object, config: object }>}
- */
 async function seedDatabase(db, engine, options = {}) {
   const given = { ...(options.passwords || {}) };
   const users = [...DEFAULT_USERS, ...(options.includeAdmin2 ? [ADMIN2] : []), ...(options.users || [])];

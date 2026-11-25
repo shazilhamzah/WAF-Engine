@@ -1,5 +1,4 @@
 'use strict';
-// inspect() must never throw on hostile input and always return a well-formed Decision.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const crypto = require('node:crypto');
@@ -15,7 +14,7 @@ function assertDecision(d) {
   assert.doesNotThrow(() => JSON.stringify(d));
 }
 
-// deterministic PRNG so failures are reproducible
+// deterministic random generator so failures are reproducible
 function rng(seed) {
   let s = seed >>> 0;
   return () => {

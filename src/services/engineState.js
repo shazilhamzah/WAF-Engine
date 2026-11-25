@@ -1,15 +1,4 @@
 'use strict';
-/**
- * Shared compiled engine state (contract §3.3, §6 step 6).
- *
- * Holds the compiled rule set, the active configuration and the approved+unexpired exceptions loaded from
- * the repository, plus the proxy's shared rate limiter. The Studio API calls reload() after every rule,
- * config or exception change, so the proxy and the console always inspect with identical state.
- *
- *   const engineState = createEngineState({ db, engine, logger });
- *   const ctx = engineState.getContext({ clientKey, withRateLimit: true });
- *   const decision = engine.inspect(raw, ctx);
- */
 const { normalizeLogger } = require('./logger');
 const { canonicalJson } = require('../db/util');
 
@@ -22,13 +11,12 @@ function createEngineState({ db, engine, logger, clock } = {}) {
   const now = typeof clock === 'function' ? clock : (db.clock || (() => Date.now()));
 
   let compiled = { rules: [], errors: [], rulesetVersion: 'empty' };
-  let configRecord = null; // { version, config, changedAt, changedBy, reason }
+  let configRecord = null;
   let exceptions = [];
   let rateLimiter = null;
   let rateLimitKey = null;
   let loadedAt = null;
 
-  /** Ensures a config version exists (seeded from engine.DEFAULT_CONFIG) and returns the latest. */
   function loadConfig() {
     let latest = db.configs.latest();
     if (!latest) {
@@ -52,7 +40,7 @@ function createEngineState({ db, engine, logger, clock } = {}) {
       rateLimiter = engine.createRateLimiter(rl);
     } else if (key !== rateLimitKey) {
       if (typeof rateLimiter.configure === 'function') rateLimiter.configure(rl);
-      // A changed limit starts from a clean window so the new setting is observable immediately.
+      // a changed limit starts from a clean window
       if (typeof rateLimiter.reset === 'function') rateLimiter.reset();
     }
     rateLimitKey = key;
@@ -92,10 +80,6 @@ function createEngineState({ db, engine, logger, clock } = {}) {
     engine,
     reload,
     status,
-    /**
-     * Inspect context (contract §3.3). Exceptions are re-filtered for expiry at call time.
-     * @param {{ clientKey?: string, withRateLimit?: boolean }} opts
-     */
     getContext({ clientKey = null, withRateLimit = false } = {}) {
       const t = now();
       const iso = new Date(t).toISOString();

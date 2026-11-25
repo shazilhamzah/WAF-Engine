@@ -1,8 +1,5 @@
 'use strict';
-/**
- * Minimal block / error pages for the proxy. They reveal the event id ONLY — never rule ids, names,
- * scores, matched input or internal error details (contract §6).
- */
+// pages show only the event id and nothing about rules or inputs
 
 const REASONS = Object.freeze({
   400: 'Bad Request', 403: 'Forbidden', 413: 'Payload Too Large', 429: 'Too Many Requests',
@@ -29,7 +26,6 @@ const BASE_HEADERS = Object.freeze({
 
 const escapeHtml = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
 
-/** True when the Accept header prefers JSON over HTML. */
 function prefersJson(accept) {
   const a = String(accept || '').toLowerCase();
   const j = a.indexOf('application/json');

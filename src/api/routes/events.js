@@ -1,8 +1,4 @@
 'use strict';
-/**
- * Stats, event history, analysis, import, replay and compare (contract §5.2).
- * Viewers only ever receive EventSummary objects.
- */
 const express = require('express');
 const { ApiError, notFound, conflict, rateLimited } = require('../errors');
 const { v, validate, sampleSchema, sampleSizeProblems } = require('../validation');
@@ -36,7 +32,6 @@ const importSchema = v.object({
   filename: v.string({ min: 6, max: 128, pattern: /^[A-Za-z0-9 _.()-]+\.json$/i, patternMessage: 'must be a plain file name ending in .json' }),
   samples: v.array(v.any(), { min: 1, max: 100 }),
 });
-
 
 const compareQuery = v.object({ a: v.string({ min: 1, max: 100 }), b: v.string({ min: 1, max: 100 }) });
 
@@ -99,7 +94,7 @@ function createEventsRouter({ db, engineState, audit, auth, analysisLimiter }) {
     res.json({ items, total, limit: q.limit || 50, offset: q.offset || 0 });
   });
 
-  // NOTE: must be declared before /events/:id
+  // this route must come before the one with an id
   router.get('/events/compare', auth.requireAuth, AO, (req, res) => {
     const q = validate(compareQuery, req.query, 'query');
     const a = isId(q.a, 'evt_') ? db.events.get(q.a) : null;

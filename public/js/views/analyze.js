@@ -1,27 +1,41 @@
-// Analyze: build a sample (method, path, headers, body), submit, show the explainable decision.
 import { h, mount, clear } from '../dom.js';
 import { api } from '../api.js';
 import { EXAMPLES, METHODS, LIMITS, exampleByKey, validateSample, rowsToHeaders, headersToRows, normalizeSample } from '../lib/samples.js';
-import { pageHeader, card, field, select, fieldErrors, showStatus, emptyState } from '../ui.js';
-import { decisionSummary, versionLine } from '../decision.js';
+import { pageHeader, card, field, select, fieldErrors, showStatus } from '../ui.js';
+import { decisionSummary } from '../decision.js';
+import { icon } from '../icons.js';
 
 export function render(ctx) {
-  const label = h('input', { type: 'text', maxlength: LIMITS.labelMax, placeholder: 'e.g. normal search' });
+  const label = h('input', { type: 'text', maxlength: LIMITS.labelMax, placeholder: 'Optional label for history' });
   const method = select(METHODS, 'GET');
   const path = h('input', { type: 'text', required: true, maxlength: LIMITS.pathMax, value: '/search?q=hello', spellcheck: 'false', autocomplete: 'off' });
-  const body = h('textarea', { rows: 6, spellcheck: 'false', placeholder: 'Request body (optional)' });
+  const body = h('textarea', { rows: 5, spellcheck: 'false', placeholder: 'Request body (optional)' });
   const headerList = h('div', { class: 'header-list' });
   const errors = h('div');
-  const result = h('div', { 'aria-live': 'polite' }, emptyState('Submit a sample to see the decision and its evidence.'));
+  const resultSlot = h('div', { 'aria-live': 'polite' });
   const submit = h('button', { type: 'submit', class: 'btn btn-primary' }, 'Analyze');
 
+  const exampleOptions = [
+    { value: '', label: 'Load example…' },
+    ...EXAMPLES.map((ex) => ({ value: ex.key, label: `${ex.kind === 'attack' ? '⚠ ' : '✓ '}${ex.label}` })),
+  ];
+  const exampleSelect = select(exampleOptions, '', {
+    'aria-label': 'Load example sample',
+    on: {
+      change: () => {
+        const ex = EXAMPLES.find((x) => x.key === exampleSelect.value);
+        if (ex) loadExample(ex.key, ex.label);
+      },
+    },
+  });
+
   function headerRow(name = '', value = '') {
-    const n = h('input', { type: 'text', value: name, maxlength: 100, spellcheck: 'false', autocomplete: 'off', class: 'hdr-name' });
-    const v = h('input', { type: 'text', value, maxlength: LIMITS.headerValueMax, spellcheck: 'false', autocomplete: 'off', class: 'hdr-value' });
+    const n = h('input', { type: 'text', value: name, maxlength: 100, spellcheck: 'false', autocomplete: 'off', class: 'hdr-name', placeholder: 'Header-Name' });
+    const v = h('input', { type: 'text', value, maxlength: LIMITS.headerValueMax, spellcheck: 'false', autocomplete: 'off', class: 'hdr-value', placeholder: 'Value' });
     const row = h('div', { class: 'header-row' },
       field('Header name', n),
       field('Header value', v),
-      h('button', { type: 'button', class: 'btn btn-small', 'aria-label': 'Remove header', on: { click: () => { row.remove(); addBtn.focus(); } } }, '✕'));
+      h('button', { type: 'button', class: 'btn btn-small', 'aria-label': 'Remove header', on: { click: () => { row.remove(); addBtn.focus(); } } }, icon('x')));
     return row;
   }
   const addBtn = h('button', { type: 'button', class: 'btn btn-small', on: { click: () => { const r = headerRow(); headerList.appendChild(r); r.querySelector('input').focus(); } } }, '+ Add header');
@@ -40,7 +54,6 @@ export function render(ctx) {
     setHeaders(sample.headers);
     label.value = exLabel;
     mount(errors);
-    showStatus(`Loaded example "${exLabel}".`, 'info');
   }
 
   function collect() {
@@ -57,54 +70,51 @@ export function render(ctx) {
     const { sample, problems } = collect();
     path.setAttribute('aria-invalid', String(problems.some((p) => p.field === 'path')));
     mount(errors, fieldErrors(problems));
-    if (problems.length) { showStatus('Fix the highlighted problems before submitting.', 'error'); return; }
+    if (problems.length) return;
     submit.disabled = true;
-    mount(result, h('p', { class: 'loading' }, 'Analyzing…'));
+    mount(resultSlot, card('Result', h('p', { class: 'loading' }, 'Analyzing…')));
     try {
       const res = await api.analyze(sample, label.value.trim() || undefined);
       const evt = res.event;
-      mount(result,
+      mount(resultSlot, card('Result',
         decisionSummary(evt),
-        h('p', { class: 'muted small' }, `Event ${evt.id} · ${versionLine(evt)}`),
         h('div', { class: 'btn-group' },
-          h('a', { class: 'btn btn-primary', href: `#/events/${encodeURIComponent(evt.id)}` }, 'Open full evidence →'),
-          h('a', { class: 'btn', href: '#/events' }, 'History')));
-      showStatus(`Analysis complete: ${evt.verdict || (evt.decision && evt.decision.verdict)}.`, 'success');
+          h('a', { class: 'btn btn-primary', href: `#/events/${encodeURIComponent(evt.id)}` }, 'Open full evidence', icon('arrow-right')),
+          h('a', { class: 'btn', href: '#/events' }, 'Events'))));
     } catch (err) {
-      mount(result, emptyState('No result.'));
+      mount(resultSlot);
       if (err && err.code === 'VALIDATION_FAILED') mount(errors, fieldErrors(err.details));
-      if (err && err.status !== 401) showStatus(err.friendly, 'error');
+      else if (err && err.status !== 401) showStatus(err.friendly, 'error');
     } finally {
       submit.disabled = false;
     }
   }
 
   function clearForm() {
+    exampleSelect.value = '';
     label.value = ''; method.value = 'GET'; path.value = '/'; body.value = '';
-    setHeaders({}); mount(errors); mount(result, emptyState('Submit a sample to see the decision and its evidence.'));
+    setHeaders({}); mount(errors); mount(resultSlot);
     path.focus();
   }
 
   setHeaders({ 'user-agent': 'waf-studio-lab' });
 
+  const tabs = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Analysis mode' },
+    h('a', { class: 'tab', role: 'tab', href: '#/analyze', 'aria-selected': 'true' }, 'Single request'),
+    h('a', { class: 'tab', role: 'tab', href: '#/import', 'aria-selected': 'false' }, 'Batch import (.json)'));
+
   mount(ctx.el,
-    pageHeader('Analyze a request'),
-    card('Load an example',
-      h('p', { class: 'muted small' }, 'Safe lab samples: benign inputs (including false-positive candidates) and classic attack indicators.'),
-      h('div', { class: 'btn-group' }, ...EXAMPLES.map((ex) => h('button', {
-        type: 'button', class: ['btn', 'btn-small', ex.kind === 'attack' ? 'example-attack' : 'example-benign'],
-        on: { click: () => loadExample(ex.key, ex.label) },
-      }, ex.kind === 'attack' ? `⚠ ${ex.label}` : `✔ ${ex.label}`)))),
-    card('Sample',
+    pageHeader('Analyze', exampleSelect),
+    tabs,
+    card(null,
       h('form', { class: 'form', novalidate: true, on: { submit: onSubmit } },
-        field('Label (optional)', label, 'Helps you find this event in history.'),
         h('div', { class: 'form-row' },
           field('Method', method),
-          field('Path and query', path, "Must start with '/'. URL-encode spaces and special characters.")),
-        h('fieldset', null, h('legend', null, 'Headers'), headerList, addBtn,
-          h('p', { class: 'hint' }, `Up to ${LIMITS.headerMax} headers. Names: letters, digits and '-'.`)),
-        field('Body', body, 'Up to 1 MiB. Leave empty for none.'),
+          field('Path and query', path),
+          field('Label', label)),
+        h('details', { open: true }, h('summary', null, 'Headers'), headerList, addBtn),
+        field('Body', body),
         errors,
         h('div', { class: 'btn-group' }, submit, h('button', { type: 'button', class: 'btn', on: { click: clearForm } }, 'Clear')))),
-    card('Result', result));
+    resultSlot);
 }

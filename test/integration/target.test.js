@@ -1,9 +1,4 @@
 'use strict';
-/**
- * Vulnerable target (target/app.js) — proves each deliberate vulnerability is real when hit DIRECTLY
- * (so the WAF has something meaningful to stop) and that the sandbox fences hold.
- * Runs without any other module, on an ephemeral port.
- */
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const http = require('node:http');
@@ -129,7 +124,7 @@ test('echo endpoint counts bytes and enforces 5 MB cap', async () => {
   const small = await fetch(base + '/api/echo', { method: 'POST', body: 'x'.repeat(10240), headers: { 'content-type': 'text/plain' } });
   assert.deepEqual(await small.json(), { ok: true, bytes: 10240, contentType: 'text/plain' });
   const big = await fetch(base + '/api/echo', { method: 'POST', body: Buffer.alloc(5 * 1024 * 1024 + 10, 97) }).catch(() => null);
-  if (big) assert.equal(big.status, 413); // connection may be closed early instead — both are safe
+  if (big) assert.equal(big.status, 413); // connection may be closed early instead and that is also safe
 });
 
 test('malformed JSON gives a generic 400 without internals', async () => {

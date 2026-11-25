@@ -1,11 +1,4 @@
 'use strict';
-/**
- * Cookie sessions (contract §5, NFR-2/3).
- *  - token: 32 random bytes (base64url) in cookie `waf_sid` (HttpOnly, SameSite=Strict, Path=/, Secure on HTTPS)
- *  - only SHA-256(token) is stored; a database leak does not reveal usable cookies
- *  - CSRF synchronizer token (32 random bytes) per session
- *  - 30-minute idle timeout, 8-hour absolute lifetime; rotated on login, deleted on logout/password change
- */
 const crypto = require('node:crypto');
 
 const COOKIE_NAME = 'waf_sid';
@@ -21,7 +14,6 @@ function randomToken() {
   return crypto.randomBytes(32).toString('base64url');
 }
 
-/** Minimal RFC 6265 cookie header parser (first occurrence wins). */
 function parseCookies(header) {
   const out = {};
   if (typeof header !== 'string' || header.length > 8192) return out;
@@ -43,17 +35,14 @@ function serializeCookie(value, { secure = false, clear = false } = {}) {
   return attrs.join('; ');
 }
 
-/** Constant-time comparison of two strings of possibly different length. */
 function safeEqual(a, b) {
+  // hash first so the comparison does not leak the length
   if (typeof a !== 'string' || typeof b !== 'string') return false;
   const ha = crypto.createHash('sha256').update(a).digest();
   const hb = crypto.createHash('sha256').update(b).digest();
   return crypto.timingSafeEqual(ha, hb) && a.length === b.length;
 }
 
-/**
- * @param {{ db, clock?: () => number, idleMs?: number, absoluteMs?: number }} deps
- */
 function createSessionManager({ db, clock = () => Date.now(), idleMs = IDLE_MS, absoluteMs = ABSOLUTE_MS }) {
   function effectiveExpiry(session) {
     const idle = Date.parse(session.lastSeenAt) + idleMs;
@@ -63,7 +52,6 @@ function createSessionManager({ db, clock = () => Date.now(), idleMs = IDLE_MS, 
 
   return {
     COOKIE_NAME, idleMs, absoluteMs,
-    /** Creates a session. Returns the raw token (cookie value) — never persisted. */
     create(userId, clientId = null) {
       const now = clock();
       const token = randomToken();
@@ -74,11 +62,6 @@ function createSessionManager({ db, clock = () => Date.now(), idleMs = IDLE_MS, 
       });
       return { token, csrfToken, session, expiresAt: new Date(effectiveExpiry(session)).toISOString() };
     },
-    /**
-     * Validates a cookie token. Returns
-     *   { status: 'missing' } | { status: 'expired' } | { status: 'ok', session, user, csrfToken, expiresAt }
-     * Expired sessions are deleted. Disabled/missing users invalidate the session.
-     */
     validate(token, { touch = true } = {}) {
       if (!token) return { status: 'missing' };
       if (!TOKEN_RE.test(token)) return { status: 'expired' };
@@ -109,7 +92,6 @@ function createSessionManager({ db, clock = () => Date.now(), idleMs = IDLE_MS, 
       const now = clock();
       return db.sessions.deleteExpired(new Date(now).toISOString(), new Date(now - idleMs).toISOString());
     },
-    /** CSRF synchronizer check (timing-safe). */
     checkCsrf(session, headerValue) {
       return Boolean(session && typeof headerValue === 'string' && headerValue.length > 0 && headerValue.length <= 256
         && safeEqual(headerValue, session.csrfToken));

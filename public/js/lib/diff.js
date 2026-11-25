@@ -1,10 +1,7 @@
-// Diff helpers for the config confirmation dialog and the event compare view (pure).
-
 function isPlainObject(v) {
   return v !== null && typeof v === 'object' && !Array.isArray(v);
 }
 
-/** { a: { b: 1 } } → { 'a.b': 1 }. Arrays are leaf values. */
 export function flatten(obj, prefix = '', out = {}) {
   if (!isPlainObject(obj)) {
     if (prefix) out[prefix] = obj;
@@ -22,7 +19,6 @@ function same(a, b) {
   return JSON.stringify(a) === JSON.stringify(b);
 }
 
-/** Leaf-level differences between two objects: [{ path, from, to }] sorted by path. */
 export function diffObjects(before, after) {
   const a = flatten(before || {});
   const b = flatten(after || {});
@@ -51,11 +47,6 @@ function dec(evt) {
   return (evt && evt.decision) || {};
 }
 
-/**
- * Rows for the side-by-side compare table:
- * [{ field, label, a, b, changed, informational }]
- * `informational` rows (ids, timestamps) always differ and are not counted as changes.
- */
 export function compareEventRows(a, b) {
   const da = dec(a);
   const db = dec(b);
@@ -93,7 +84,6 @@ export function compareEventRows(a, b) {
   }));
 }
 
-/** Human-readable summary lines from the server's compare diff object. */
 export function summarizeDiff(diff, a, b) {
   if (!diff) return [];
   const out = [];

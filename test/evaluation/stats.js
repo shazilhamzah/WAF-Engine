@@ -1,7 +1,5 @@
 'use strict';
-/** Small, dependency-free statistics + text-sanitising helpers for the evaluation harness. */
 
-/** Nearest-rank percentile (p in 0..100) of a numeric array. */
 function percentile(values, p) {
   if (!values.length) return null;
   const s = [...values].sort((a, b) => a - b);
@@ -32,9 +30,6 @@ function round(x, d = 3) {
   return Math.round(x * f) / f;
 }
 
-/**
- * Binary-classification metrics. tp/fp/tn/fn counts → precision, recall, F1, FPR, accuracy.
- */
 function classification({ tp, fp, tn, fn }) {
   const div = (a, b) => (b === 0 ? null : round(a / b, 4));
   const precision = div(tp, tp + fp);
@@ -43,7 +38,6 @@ function classification({ tp, fp, tn, fn }) {
   return { tp, fp, tn, fn, precision, recall, f1, falsePositiveRate: div(fp, fp + tn), accuracy: div(tp + tn, tp + tn + fp + fn) };
 }
 
-/** Makes untrusted input safe & short for reports: escapes control chars, truncates. */
 function sanitize(value, max = 120) {
   if (value === null || value === undefined) return '';
   let s = Buffer.isBuffer(value) ? value.toString('utf8') : String(value);
@@ -52,7 +46,6 @@ function sanitize(value, max = 120) {
   return s;
 }
 
-/** Escapes text for use inside a Markdown table cell rendered as inline HTML code. */
 function mdCode(value, max = 80) {
   const s = sanitize(value, max)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -61,7 +54,6 @@ function mdCode(value, max = 80) {
   return s ? `<code>${s}</code>` : '';
 }
 
-/** Escapes plain text for a Markdown table cell. */
 function mdText(value, max = 160) {
   return sanitize(value, max).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\|/g, '&#124;');
 }

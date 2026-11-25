@@ -1,11 +1,4 @@
 'use strict';
-/**
- * Injection & output-encoding defences in the Studio itself (NFR-4, contract §8):
- *  - SQLi strings in API filters (q, verdict, ruleId, from/to, limit/offset) never break queries
- *  - stored XSS payloads (labels, paths, headers) come back as inert JSON data, and the HTML export escapes them
- *  - CSV export neutralises formula injection (= + - @ prefixed with ')
- *  - identifiers are generated server-side (client-supplied ids ignored)
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startStack, skipUnlessStack, findLeak } = require('../helpers/stack');
@@ -15,7 +8,6 @@ const XSS = '<script>alert("waf-xss")</script>';
 const IMG = '<img src=x onerror=alert(1)>';
 const FORMULAS = ['=HYPERLINK("http://evil.invalid","x")', '+cmd|\' /C calc\'!A0', '-2+3+cmd|\' /C calc\'!A0', '@SUM(1+1)*cmd|\' /C calc\'!A0'];
 
-/** Minimal RFC-4180 CSV parser (quoted fields, doubled quotes, CRLF/LF). */
 function parseCsv(text) {
   const rows = []; let row = []; let field = ''; let q = false;
   for (let i = 0; i < text.length; i++) {

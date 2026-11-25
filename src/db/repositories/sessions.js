@@ -1,8 +1,4 @@
 'use strict';
-/**
- * Sessions are keyed by the SHA-256 hash of the cookie token; the raw token is never stored.
- * Expiry policy (idle/absolute) is applied by src/auth/sessions.js; this repository only persists.
- */
 
 function mapSession(row) {
   if (!row) return null;
@@ -37,7 +33,6 @@ function createSessionsRepository({ raw }) {
     touch(tokenHash, lastSeenAt) { return stmts.touch.run(lastSeenAt, tokenHash).changes > 0; },
     delete(tokenHash) { return stmts.del.run(String(tokenHash)).changes > 0; },
     deleteForUser(userId) { return stmts.delUser.run(String(userId)).changes; },
-    /** Deletes sessions past the absolute expiry or idle since before `idleCutoffIso`. */
     deleteExpired(nowIsoValue, idleCutoffIso) { return stmts.delExpired.run(nowIsoValue, idleCutoffIso).changes; },
     countForUser(userId) { return stmts.countUser.get(String(userId)).n; },
   };

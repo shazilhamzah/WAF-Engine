@@ -187,14 +187,12 @@ describe('api: login throttling', () => {
       // unknown usernames lock the same way (no enumeration through lockout behaviour)
       for (let i = 0; i < 5; i += 1) await h.client().login('ghost-user', `Wrong-Passw0rd-${i}`);
       assert.equal((await h.client().login('ghost-user', 'Wrong-Passw0rd-x')).status, 429);
-      // admin unaffected; persisted lock visible
       const admin = await h.as('admin');
       const users = await admin.get('/api/users');
       assert.ok(users.body.items.find((u) => u.username === 'operator').lockedUntil);
       const audit = await admin.get('/api/audit?action=auth&limit=200');
       assert.ok(audit.body.items.some((i) => i.action === 'auth.lockout'));
       assert.doesNotMatch(JSON.stringify(audit.body), /Wrong-Passw0rd/);
-      // an admin password reset clears the lock
       const op = users.body.items.find((u) => u.username === 'operator');
       assert.equal((await admin.put(`/api/users/${op.id}`, { password: 'Reset-Operator-Pw1' })).status, 200);
       assert.equal((await h.client().login('operator', 'Reset-Operator-Pw1')).status, 200);

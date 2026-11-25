@@ -1,25 +1,4 @@
 'use strict';
-/**
- * Report export (contract §8, owner Wahaj).
- *
- *   const { buildReport } = require('./src/reports/export');
- *   const { filename, contentType, body } = buildReport({
- *     events,          // full Event objects (contract §5.2 "Event"); only sanitized fields are used
- *     stats,           // optional dashboard stats (GET /api/stats shape)
- *     config,          // active EngineConfig (mode, thresholds, limits, rateLimit)
- *     rulesetVersion, configVersion,
- *     generatedBy,     // e.g. { username: 'alice', role: 'operator' } or 'alice'
- *     generatedAt,     // ISO string (default: now)
- *     filters,         // the filters used to select the events
- *   }, 'json' | 'csv' | 'html');
- *
- * Sanitization guarantees (tested in test/unit/reports):
- *  - never includes stored samples (headers / bodies), client pseudonyms, session data or secrets;
- *  - excerpts are re-redacted, control characters escaped and capped at 120 characters;
- *  - secret-looking query parameters in paths are masked;
- *  - HTML: every value is HTML-escaped; the document has no scripts and a restrictive CSP meta tag;
- *  - CSV: RFC 4180 quoting, cells beginning with = + - @ TAB CR are prefixed with ' (formula injection).
- */
 
 const FORMATS = Object.freeze(['json', 'csv', 'html']);
 const CONTENT_TYPES = Object.freeze({
@@ -36,11 +15,6 @@ const SECRET_VALUE_RES = [
   /\b(pass(word|wd)?|pwd|secret|token|api[-_]?key|session(id)?|sid|csrf(token)?)\s*[=:]\s*("[^"]*"|'[^']*'|[^\s&;,"']+)/gi,
 ];
 
-// ---------------------------------------------------------------------------------------------
-// Sanitizers
-// ---------------------------------------------------------------------------------------------
-
-/** Escapes control characters so they are visible but inert (\n, \x00 …). */
 function escapeControls(str) {
   return String(str).replace(/[\u0000-\u001f\u007f-\u009f\u2028\u2029]/g, (c) => {
     if (c === '\n') return '\\n';
@@ -55,13 +29,11 @@ function cap(str, max) {
   return s.length > max ? `${s.slice(0, max - 1)}…` : s;
 }
 
-/** Plain text field: controls escaped, length capped. null/undefined → null. */
 function safeText(value, max = TEXT_MAX) {
   if (value === null || value === undefined) return null;
   return cap(escapeControls(String(value)), max);
 }
 
-/** Masks secrets that may appear inside an excerpt (tokens, password=…, Bearer …). */
 function redactSecretsInText(str) {
   let out = String(str);
   for (const re of SECRET_VALUE_RES) {
@@ -75,7 +47,6 @@ function redactSecretsInText(str) {
   return out;
 }
 
-/** Redacted, ≤120-char, control-free excerpt; fully masked when its location is secret. */
 function safeExcerpt(excerpt, location) {
   if (excerpt === null || excerpt === undefined) return null;
   const loc = String(location || '');
@@ -87,7 +58,6 @@ function safeExcerpt(excerpt, location) {
   return cap(escapeControls(redactSecretsInText(excerpt)), EXCERPT_MAX);
 }
 
-/** Masks values of secret-looking query parameters in a path ("/x?token=abc" → "/x?token=[REDACTED]"). */
 function redactPath(path) {
   if (path === null || path === undefined) return null;
   const s = String(path);
@@ -127,10 +97,6 @@ function sanitizeMatch(m) {
   };
 }
 
-/**
- * Projection of a stored Event into the report shape. Only whitelisted, sanitized fields survive;
- * in particular `sample`, `clientId` and any raw header/body values are dropped.
- */
 function sanitizeEvent(evt) {
   const e = evt || {};
   const d = (e.decision && typeof e.decision === 'object') ? e.decision : {};
@@ -184,7 +150,6 @@ function sanitizeEvent(evt) {
   };
 }
 
-/** Only the tunable, non-secret configuration fields. */
 function sanitizeConfig(cfg) {
   if (!cfg || typeof cfg !== 'object') return null;
   const pick = (o, keys) => (o && typeof o === 'object' ? Object.fromEntries(keys.filter((k) => k in o).map((k) => [k, typeof o[k] === 'boolean' ? o[k] : num(o[k])])) : null);
@@ -212,10 +177,6 @@ function generatorText(generatedBy) {
   const name = safeText(generatedBy.username || generatedBy.name || 'unknown', 64);
   return generatedBy.role ? `${name} (${safeText(generatedBy.role, 20)})` : name;
 }
-
-// ---------------------------------------------------------------------------------------------
-// Summary metrics
-// ---------------------------------------------------------------------------------------------
 
 function percentile(sorted, p) {
   if (!sorted.length) return null;
@@ -259,8 +220,6 @@ function summarize(events) {
     byAction,
     bySource,
     byCategory,
-    // False-positive review aids: events that were flagged/blocked, events that monitor mode let through,
-    // and events where approved exceptions suppressed matches.
     falsePositiveReview: {
       flaggedOrBlocked: byVerdict.flag + byVerdict.block,
       wouldBlockButLogged: wouldBlockLogged,
@@ -272,10 +231,6 @@ function summarize(events) {
     latency: { p50Ms: percentile(latencies, 50), p95Ms: percentile(latencies, 95) },
   };
 }
-
-// ---------------------------------------------------------------------------------------------
-// Formats
-// ---------------------------------------------------------------------------------------------
 
 function escapeHtml(value) {
   if (value === null || value === undefined) return '';
@@ -289,10 +244,10 @@ function escapeHtml(value) {
 }
 
 const FORMULA_START = /^[=+\-@\t\r]/;
-/** One CSV cell: formula-injection prefix + RFC 4180 quoting (every cell quoted). */
 function csvCell(value) {
   if (value === null || value === undefined) return '""';
   let s = typeof value === 'number' || typeof value === 'boolean' ? String(value) : String(value);
+  // prefix cells that could run as spreadsheet formulas
   if (typeof value === 'string' && FORMULA_START.test(s)) s = `'${s}`;
   return `"${s.replace(/"/g, '""')}"`;
 }

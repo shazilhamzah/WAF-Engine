@@ -1,5 +1,4 @@
-// UI-side mirror of the role matrix in docs/02-architecture.md §2.
-// This only decides what to SHOW; the server enforces every capability independently.
+// this only decides what to show and the server enforces every capability
 
 export const ROLES = Object.freeze(['admin', 'operator', 'viewer']);
 
@@ -32,13 +31,10 @@ export function can(role, capability) {
   return Array.isArray(allowed) && allowed.includes(role);
 }
 
-// Navigation entries; `cap` is the capability needed to see the link and open the page.
 export const NAV = Object.freeze([
   { route: 'dashboard', label: 'Overview', group: 'Activity', cap: 'dashboard.view' },
   { route: 'events', label: 'Events', group: 'Activity', cap: 'events.list' },
-  { route: 'reports', label: 'Reports', group: 'Activity', cap: 'reports.export' },
-  { route: 'analyze', label: 'Analyze request', group: 'Tools', cap: 'samples.submit' },
-  { route: 'import', label: 'Import samples', group: 'Tools', cap: 'samples.submit' },
+  { route: 'analyze', label: 'Analyze', group: 'Tools', cap: 'samples.submit' },
   { route: 'rules', label: 'Rules', group: 'Policy', cap: 'rules.read' },
   { route: 'config', label: 'Configuration', group: 'Policy', cap: 'config.read' },
   { route: 'exceptions', label: 'Exceptions', group: 'Policy', cap: 'exceptions.request' },
@@ -46,7 +42,6 @@ export const NAV = Object.freeze([
   { route: 'users', label: 'Users', group: 'Administration', cap: 'users.manage' },
 ]);
 
-// Capability required to open each route (event detail and compare are not in the nav).
 export const ROUTE_CAPS = Object.freeze({
   dashboard: 'dashboard.view',
   analyze: 'samples.submit',
@@ -80,7 +75,6 @@ export function canOpenRoute(role, route) {
   return cap ? can(role, cap) : false;
 }
 
-/** Roles that may open a route, for the "not available for your role" panel. */
 export function rolesForRoute(route) {
   const cap = ROUTE_CAPS[route];
   return cap ? [...CAPABILITIES[cap]] : [];

@@ -1,9 +1,4 @@
 'use strict';
-/**
- * Account lifecycle security (NFR-2): disabling a user revokes access immediately; password change
- * requires the current password, enforces the 12-char minimum, and the old password stops working.
- * Kept separate from session-csrf.test.js so per-client login rate limits never interfere.
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startStack, skipUnlessStack } = require('../helpers/stack');

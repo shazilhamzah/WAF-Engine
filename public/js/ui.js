@@ -1,45 +1,51 @@
-// Shared UI components built on the safe DOM helper.
 import { h, s, mount, clear, uid, code } from './dom.js';
 import { verdictInfo, actionInfo, severityInfo, statusInfo, modeInfo, formatNumber } from './lib/format.js';
+import { eventOutcome } from './lib/dashboard.js';
 import { rolesForRoute } from './lib/roles.js';
+import { icon } from './icons.js';
 
-// ---- Badges (icon + text; colour is an extra cue only) ---------------------------------
-function badgeFrom(info, extraClass) {
-  return h('span', { class: ['badge', `tone-${info.tone}`, extraClass] },
-    h('span', { class: 'badge-icon', 'aria-hidden': 'true' }, info.icon), ' ', info.text);
+export function badge(text, tone, extraClass) {
+  return h('span', { class: ['badge', `tone-${tone}`, extraClass] },
+    h('span', { class: 'dot', 'aria-hidden': 'true' }), text);
 }
+const badgeFrom = (info, extraClass) => badge(info.text, info.tone, extraClass);
 export const verdictBadge = (v) => badgeFrom(verdictInfo(v));
 export const actionBadge = (a) => badgeFrom(actionInfo(a));
 export const severityBadge = (sv) => badgeFrom(severityInfo(sv));
 export const statusBadge = (st) => badgeFrom(statusInfo(st));
 export const modeBadge = (m) => badgeFrom(modeInfo(m), 'badge-mode');
+export const outcomeBadge = (event) => badgeFrom(eventOutcome(event || {}));
 export function chip(text, tone = 'muted') {
   return h('span', { class: ['chip', `tone-${tone}`] }, text);
 }
+export function statusLabel(text, tone = 'muted') {
+  return h('span', { class: ['status-label', `tone-${tone}`] }, h('span', { class: 'dot', 'aria-hidden': 'true' }), text);
+}
 
-// ---- Global status region (aria-live) ---------------------------------------------------
+const MESSAGE_ICONS = { error: 'alert', warn: 'alert', success: 'check', info: 'info' };
+export function message(kind, ...children) {
+  return h('p', { class: ['status-msg', `status-${kind}`] }, icon(MESSAGE_ICONS[kind] || 'info'), h('span', null, ...children));
+}
+
 let statusTimer = null;
-export function showStatus(message, kind = 'info') {
+export function showStatus(text, kind = 'info') {
   const region = document.getElementById('status');
   if (!region) return;
   clearTimeout(statusTimer);
-  const icon = kind === 'error' ? '⚠' : kind === 'success' ? '✔' : 'ⓘ';
   const prefix = kind === 'error' ? 'Error: ' : '';
-  mount(region, h('p', { class: ['status-msg', `status-${kind}`] },
-    h('span', { 'aria-hidden': 'true' }, `${icon} `), prefix, message,
-    h('button', { type: 'button', class: 'link-btn status-close', 'aria-label': 'Dismiss message', on: { click: () => clearStatus() } }, '✕')));
+  const msg = message(kind, prefix, text);
+  msg.appendChild(h('button', { type: 'button', class: 'link-btn status-close', 'aria-label': 'Dismiss message', on: { click: () => clearStatus() } }, icon('x')));
+  mount(region, msg);
   if (kind !== 'error') statusTimer = setTimeout(clearStatus, 8000);
 }
 export function clearStatus() {
   const region = document.getElementById('status');
   if (region) clear(region);
 }
-/** Shows an ApiError (or any error) in the status region. */
 export function showError(err) {
   showStatus((err && err.friendly) || (err && err.message) || 'Unexpected error.', 'error');
 }
 
-// ---- Panels -----------------------------------------------------------------------------
 export function pageHeader(title, ...actions) {
   return h('div', { class: 'page-head' },
     h('h1', { id: 'page-title', tabindex: '-1' }, title),
@@ -61,30 +67,25 @@ export function emptyState(text) {
 
 export function errorPanel(err, retry) {
   return h('div', { class: 'panel panel-error', role: 'alert' },
-    h('p', null, h('span', { 'aria-hidden': 'true' }, '⚠ '), (err && err.friendly) || 'Could not load this page.'),
+    message('error', (err && err.friendly) || 'Could not load this page.'),
     retry ? h('button', { type: 'button', class: 'btn', on: { click: retry } }, 'Try again') : null);
 }
 
-/** "Not available for your role" state (server would return a generic 403 anyway). */
 export function rolePanel(route, role) {
   const roles = rolesForRoute(route);
   return h('div', { class: 'panel panel-role', role: 'region', 'aria-labelledby': 'page-title' },
-    h('h1', { id: 'page-title', tabindex: '-1' }, h('span', { 'aria-hidden': 'true' }, '🔒 '), 'Not available for your role'),
+    icon('lock', 'panel-icon'),
+    h('h1', { id: 'page-title', tabindex: '-1' }, 'Not available for your role'),
     h('p', null, `This page needs the ${roles.join(' or ') || 'appropriate'} role. You are signed in as ${role}.`),
     h('p', null, h('a', { href: '#/dashboard', class: 'btn' }, 'Back to dashboard')));
 }
 
-// ---- Key/value list -----------------------------------------------------------------------
 export function kvList(pairs, cls) {
   return h('dl', { class: ['kv', cls] }, ...pairs.filter(Boolean).map(([k, v]) => [
     h('dt', null, k), h('dd', null, v === null || v === undefined || v === '' ? '—' : v),
   ]));
 }
 
-// ---- Tables (th scope=col; td data-label for stacked mobile cards) ------------------------
-/**
- * table({ caption, columns: [{ key, label, render(row) → Node|string, className }], rows, empty })
- */
 export function table({ caption, columns, rows, empty = 'No records.', className, rowClass }) {
   if (!rows || rows.length === 0) return emptyState(empty);
   return h('div', { class: 'table-wrap' },
@@ -101,20 +102,17 @@ export function table({ caption, columns, rows, empty = 'No records.', className
         }))))));
 }
 
-// ---- Pagination ---------------------------------------------------------------------------
 export function pagination({ total, limit, offset, onPage }) {
   const pages = Math.max(1, Math.ceil((total || 0) / limit));
   const page = Math.floor(offset / limit) + 1;
   const from = total ? offset + 1 : 0;
   const to = Math.min(offset + limit, total || 0);
   return h('nav', { class: 'pager', 'aria-label': 'Pagination' },
-    h('button', { type: 'button', class: 'btn btn-small', disabled: page <= 1, on: { click: () => onPage(Math.max(0, offset - limit)) } }, '‹ Previous'),
+    h('button', { type: 'button', class: 'btn btn-small', disabled: page <= 1, on: { click: () => onPage(Math.max(0, offset - limit)) } }, icon('chevron-left'), 'Previous'),
     h('span', { class: 'pager-info' }, `${formatNumber(from)}–${formatNumber(to)} of ${formatNumber(total || 0)} · page ${page} / ${pages}`),
-    h('button', { type: 'button', class: 'btn btn-small', disabled: page >= pages, on: { click: () => onPage(offset + limit) } }, 'Next ›'));
+    h('button', { type: 'button', class: 'btn btn-small', disabled: page >= pages, on: { click: () => onPage(offset + limit) } }, 'Next', icon('chevron-right')));
 }
 
-// ---- Form fields ---------------------------------------------------------------------------
-/** Labelled field. `control` is an input/select/textarea element (id assigned automatically). */
 export function field(label, control, hint) {
   const id = control.id || uid('fld');
   control.id = id;
@@ -131,14 +129,13 @@ export function select(options, value, attrs = {}) {
     ...options.map((o) => (typeof o === 'string' ? h('option', { value: o }, o) : h('option', { value: o.value }, o.label))));
 }
 
-/** Marks fields with server validation details: [{field, message}] → aria-invalid + message. */
 export function fieldErrors(details) {
   if (!details || !details.length) return null;
   return h('ul', { class: 'field-errors', role: 'alert' },
     ...details.map((d) => h('li', null, d.field ? `${d.field}: ` : '', d.message || String(d))));
 }
 
-// ---- Bars (SVG; attributes, not inline styles, so the strict CSP is respected) -------------
+// bars use svg attributes instead of inline styles because of the strict csp
 export function hbar(value, max, label) {
   const pct = max > 0 ? Math.max(0, Math.min(100, (value / max) * 100)) : 0;
   return h('span', { class: 'hbar' },
@@ -148,11 +145,6 @@ export function hbar(value, max, label) {
     h('span', { class: 'hbar-label' }, label === undefined ? formatNumber(value) : label));
 }
 
-// ---- Modal dialog (native <dialog>; focus trap, Esc closes, focus returns) ------------------
-/**
- * confirmDialog({ title, body, confirmLabel, danger, fields: [{ name, label, type, required, value, hint }] })
- * → Promise<{ confirmed: boolean, values: {} }>
- */
 export function confirmDialog({ title, body, confirmLabel = 'Confirm', cancelLabel = 'Cancel', danger = false, fields = [] }) {
   return new Promise((resolve) => {
     const previous = document.activeElement;
@@ -213,7 +205,6 @@ export function confirmDialog({ title, body, confirmLabel = 'Confirm', cancelLab
   });
 }
 
-/** Small "diff" table used in confirmation dialogs: rows [{ path, from, to }]. */
 export function diffTable(rows, fmt = (v) => String(v)) {
   return table({
     caption: 'Changes',
@@ -228,7 +219,6 @@ export function diffTable(rows, fmt = (v) => String(v)) {
   });
 }
 
-/** Run an async action with a button disabled meanwhile; errors go to the status region. */
 export async function busy(button, fn) {
   const prev = button ? button.disabled : false;
   if (button) { button.disabled = true; button.setAttribute('aria-busy', 'true'); }

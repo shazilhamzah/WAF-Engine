@@ -1,7 +1,4 @@
 'use strict';
-/**
- * Stable API error codes (contract §5.1). Responses never contain stack traces or internal messages.
- */
 
 const STATUS_BY_CODE = Object.freeze({
   VALIDATION_FAILED: 400,
@@ -38,11 +35,6 @@ const DEFAULT_MESSAGES = Object.freeze({
 });
 
 class ApiError extends Error {
-  /**
-   * @param {keyof STATUS_BY_CODE} code
-   * @param {string} [message]
-   * @param {{ details?: Array<{field:string,message:string}>, retryAfterSeconds?: number }} [extra]
-   */
   constructor(code, message, extra = {}) {
     super(message || DEFAULT_MESSAGES[code] || 'Error');
     if (!STATUS_BY_CODE[code]) throw new Error(`Unknown API error code ${code}`);
@@ -63,7 +55,6 @@ const conflict = (message) => new ApiError('CONFLICT', message);
 const confirmationRequired = (message) => new ApiError('CONFIRMATION_REQUIRED', message);
 const rateLimited = (retryAfterSeconds, message) => new ApiError('RATE_LIMITED', message, { retryAfterSeconds });
 
-/** Writes the contract error envelope. */
 function sendError(res, apiError, requestId) {
   const body = { error: { code: apiError.code, message: apiError.message, requestId: requestId || null } };
   if (Array.isArray(apiError.details) && apiError.details.length) body.error.details = apiError.details.slice(0, 50);

@@ -1,10 +1,4 @@
 'use strict';
-/**
- * Tuning & exception workflow (FR-7) with separation of duties:
- * operator requests a scoped exception from an event and previews its impact → requester / operator
- * cannot approve → a second admin approves (with confirmation) → replay shows the suppressed match
- * (kept as evidence) → revoke restores the original decision. Every step is audited.
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startStack, skipUnlessStack } = require('../helpers/stack');

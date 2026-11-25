@@ -1,8 +1,4 @@
 'use strict';
-/**
- * Cross-cutting HTTP middleware for the Studio console: request ids, security headers, Host/Origin
- * checks, JSON-only bodies, and the central error handler (no stack traces, stable codes).
- */
 const crypto = require('node:crypto');
 const { ApiError, sendError } = require('./errors');
 
@@ -23,7 +19,6 @@ const SECURITY_HEADERS = Object.freeze({
 
 const LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]']);
 
-/** Request id + client pseudonym + security headers on every response. */
 function requestContext({ identifyClient }) {
   return function context(req, res, next) {
     req.requestId = 'req_' + crypto.randomUUID();
@@ -40,10 +35,6 @@ function apiNoStore(req, res, next) {
   next();
 }
 
-/**
- * DNS-rebinding / cross-site defence in depth: the console only answers Host names that point at the
- * loopback interface, and state-changing requests carrying an Origin header must be same-origin.
- */
 function hostAndOriginGuard({ allowedHosts = LOCAL_HOSTS } = {}) {
   return function guard(req, res, next) {
     const host = String(req.headers.host || '');
@@ -64,7 +55,6 @@ function hasBody(req) {
   return len !== undefined && len !== '0';
 }
 
-/** Bodies must be application/json (contract §5: else 415). */
 function requireJsonBody(req, res, next) {
   if (!['POST', 'PUT', 'PATCH', 'DELETE'].includes(req.method) || !hasBody(req)) return next();
   const ct = String(req.headers['content-type'] || '').toLowerCase();
@@ -75,7 +65,6 @@ function requireJsonBody(req, res, next) {
   return next();
 }
 
-/** The JSON parser accepts only objects/arrays; route schemas require objects. */
 function ensureObjectBody(req, res, next) {
   if (req.body === undefined || req.body === null || (typeof req.body === 'object' && !Buffer.isBuffer(req.body))) {
     if (req.body === undefined || req.body === null) req.body = {};
@@ -86,9 +75,8 @@ function ensureObjectBody(req, res, next) {
 
 const REJECT_AUDIT = new Set(['VALIDATION_FAILED', 'MALFORMED_JSON', 'PAYLOAD_TOO_LARGE', 'UNSUPPORTED_MEDIA_TYPE']);
 
-/** Maps any error to the contract envelope; logs internals; audits rejected input and server errors. */
 function errorHandler({ logger, audit }) {
-  // Bound how many system.error audit entries a burst of failures can create.
+  // cap how many error audit entries a burst of failures can create
   let lastSystemErrorAudit = 0;
   // eslint-disable-next-line no-unused-vars
   return function handle(error, req, res, next) {
@@ -123,7 +111,6 @@ function errorHandler({ logger, audit }) {
   };
 }
 
-/** Wraps async route handlers so rejections reach the error handler. */
 const asyncHandler = (fn) => (req, res, next) => {
   try {
     const p = fn(req, res, next);

@@ -1,16 +1,13 @@
-// Exceptions (tuning workflow): request a scoped exception (pre-filled from an event match),
-// preview its impact, and — for admins other than the requester — approve / reject / revoke.
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { can } from '../lib/roles.js';
 import { hashFor } from '../lib/query.js';
 import { formatTs, truncate, dateInputToIso } from '../lib/format.js';
 import { METHODS } from '../lib/samples.js';
-import { pageHeader, card, field, select, table, statusBadge, verdictBadge, loading, errorPanel, showStatus, confirmDialog, fieldErrors, busy } from '../ui.js';
+import { pageHeader, card, field, select, table, statusBadge, outcomeBadge, loading, errorPanel, showStatus, confirmDialog, fieldErrors, busy } from '../ui.js';
 
 const STATUSES = ['pending', 'approved', 'rejected', 'revoked'];
 
-/** Accepts either { scope: {...} } or flat pathPrefix/location/method fields. */
 export function scopeOf(x) {
   const sc = (x && x.scope) || {};
   return {
@@ -20,7 +17,6 @@ export function scopeOf(x) {
   };
 }
 
-/** True when the exception was requested by this user (separation of duties). */
 export function isOwnRequest(exc, user) {
   if (!exc || !user) return false;
   if (exc.requestedById !== undefined && exc.requestedById !== null) return exc.requestedById === user.id;
@@ -49,7 +45,6 @@ export async function render(ctx) {
   const status = STATUSES.includes(q.status) ? q.status : 'pending';
   const canReview = can(ctx.role, 'exceptions.review');
 
-  // ---- Request form -------------------------------------------------------------------
   const ruleId = h('input', { type: 'text', inputmode: 'numeric', maxlength: 6, value: q.ruleId || '', required: true });
   const pathPrefix = h('input', { type: 'text', maxlength: 512, value: q.pathPrefix || '', spellcheck: 'false', placeholder: '/search' });
   const location = h('input', { type: 'text', maxlength: 200, value: q.location || '', spellcheck: 'false', placeholder: 'query.q' });
@@ -88,7 +83,7 @@ export async function render(ctx) {
         columns: [
           { key: 'ts', label: 'Time', render: (e) => formatTs(e.ts) },
           { key: 'req', label: 'Request', render: (e) => h('a', { href: `#/events/${encodeURIComponent(e.id)}` }, code(`${e.method} ${truncate(e.path, 60)}`)) },
-          { key: 'verdict', label: 'Verdict', render: (e) => verdictBadge(e.verdict) },
+          { key: 'outcome', label: 'Outcome', render: outcomeBadge },
           { key: 'score', label: 'Score', className: 'num' },
         ],
         rows: sample,
@@ -132,7 +127,6 @@ export async function render(ctx) {
     h('div', { class: 'btn-group' }, previewBtn, submitBtn),
     previewBox);
 
-  // ---- List with tabs -------------------------------------------------------------------
   const tabs = h('div', { class: 'tabs', role: 'tablist', 'aria-label': 'Exception status' },
     ...STATUSES.map((st) => h('a', {
       class: 'tab', role: 'tab', href: hashFor('/exceptions', { status: st }),
@@ -148,7 +142,7 @@ export async function render(ctx) {
       body: h('div', null,
         h('p', null, `Rule ${exc.ruleId} — ${scopeText(sc)}`),
         h('p', null, 'Requested reason: ', String(exc.reason || '—')),
-        kind === 'approve' ? h('p', { class: 'warn-note' }, 'Once approved, matching requests will no longer score for this rule in the proxy and console. The approval is audited.') : null,
+        kind === 'approve' ? h('p', { class: 'warn-note' }, 'Once approved, matching requests will no longer score for this rule in the proxy and console.') : null,
         kind === 'revoke' ? h('p', null, 'The rule will apply again to matching requests immediately.') : null),
       confirmLabel: titles[kind].split(' ')[0],
       danger: kind !== 'approve',
@@ -169,12 +163,12 @@ export async function render(ctx) {
     const own = isOwnRequest(exc, ctx.user);
     const out = [];
     if (exc.status === 'pending') {
-      const ap = h('button', { type: 'button', class: 'btn btn-small btn-primary', disabled: own, 'aria-describedby': own ? 'own-note' : null }, 'Approve');
+      const ap = h('button', { type: 'button', class: 'btn btn-small btn-primary', disabled: own, 'aria-describedby': own ? `own-note-${exc.id}` : null }, 'Approve');
       ap.addEventListener('click', () => review(exc, 'approve', ap));
-      const rj = h('button', { type: 'button', class: 'btn btn-small', disabled: own, 'aria-describedby': own ? 'own-note' : null }, 'Reject');
+      const rj = h('button', { type: 'button', class: 'btn btn-small', disabled: own, 'aria-describedby': own ? `own-note-${exc.id}` : null }, 'Reject');
       rj.addEventListener('click', () => review(exc, 'reject', rj));
       out.push(ap, rj);
-      if (own) out.push(h('span', { class: 'small muted' }, 'Your request — another administrator must review it.'));
+      if (own) out.push(h('span', { id: `own-note-${exc.id}`, class: 'small muted' }, 'Your request — another administrator must review it.'));
     } else if (exc.status === 'approved') {
       const rv = h('button', { type: 'button', class: 'btn btn-small btn-danger' }, 'Revoke');
       rv.addEventListener('click', () => review(exc, 'revoke', rv));
@@ -213,13 +207,18 @@ export async function render(ctx) {
     }));
   }
 
+  const requestDisclosure = h('details', { class: 'card', open: Boolean(q.new) },
+    h('summary', null, q.new ? 'Request an exception (pre-filled from event)' : 'Request an exception'),
+    requestForm);
+  const newBtn = h('button', {
+    type: 'button', class: 'btn',
+    on: { click: () => { requestDisclosure.open = true; (ruleId.value ? reason : ruleId).focus(); } },
+  }, '+ Request exception');
+
   mount(ctx.el,
-    pageHeader('Exceptions'),
-    h('p', { class: 'note', id: 'own-note' },
-      'ⓘ Separation of duties: operators and admins can request an exception; only an administrator who did not request it can approve or reject it. ',
-      'Approved exceptions suppress one rule within a narrow scope and are kept as evidence in every decision.'),
-    card(q.new ? 'Request an exception (pre-filled from event)' : 'Request an exception', requestForm),
-    card('Exception requests', tabs, listBox));
+    pageHeader('Exceptions', newBtn),
+    requestDisclosure,
+    card(null, tabs, listBox));
   if (q.new) reason.focus();
   await loadList();
 }

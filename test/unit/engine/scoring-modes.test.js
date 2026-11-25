@@ -1,5 +1,4 @@
 'use strict';
-// FR-3 scoring and FR-4 block/monitor modes.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { engine, ctx, getWith, UA } = require('./helpers');
@@ -7,7 +6,7 @@ const { engine, ctx, getWith, UA } = require('./helpers');
 const monitor = () => ({ ...engine.DEFAULT_CONFIG, mode: 'monitor' });
 
 test('score = sum of rule points + anomaly points, with per-category breakdown and contributions', () => {
-  // SQL tautology (5) inside a double-encoded value (DOUBLE_ENCODING +2)
+  // sql tautology inside a double encoded value also adds the encoding score
   const d = engine.inspect({ method: 'GET', url: '/search?q=%2527%2520OR%25201%253D1', headers: UA }, ctx());
   assert.equal(d.score.total, 7);
   assert.deepEqual(d.score.byCategory, { sqli: 5, anomaly: 2 });
@@ -27,7 +26,6 @@ test('a rule counts once per request even when it matches several locations', ()
 
 test('verdicts follow thresholds: allow < flag <= flag verdict < block', () => {
   assert.equal(engine.inspect(getWith('q', 'hello'), ctx()).verdict, 'allow');
-  // XSS embedding tag alone scores 3 -> flag
   const flag = engine.inspect(getWith('q', '<iframe>'), ctx());
   assert.equal(flag.score.total, 3);
   assert.equal(flag.verdict, 'flag');
@@ -35,7 +33,6 @@ test('verdicts follow thresholds: allow < flag <= flag verdict < block', () => {
   assert.equal(flag.wouldBlock, false);
   const block = engine.inspect(getWith('q', '<script>alert(1)</script>'), ctx());
   assert.equal(block.verdict, 'block');
-  // custom thresholds change the verdict
   const strict = engine.inspect(getWith('q', '<iframe>'), ctx({ config: { ...engine.DEFAULT_CONFIG, thresholds: { flag: 1, block: 3 } } }));
   assert.equal(strict.verdict, 'block');
 });

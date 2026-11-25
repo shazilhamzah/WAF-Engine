@@ -1,5 +1,4 @@
 'use strict';
-// Unit tests for src/reports/export.js (owner Wahaj): escaping, CSV injection, redaction, formats.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const {
@@ -107,7 +106,7 @@ test('CSV report neutralizes formulas coming from event data', () => {
   assert.ok(lines[0].startsWith('"id","timestamp"'));
   assert.ok(lines[1].includes(`"'=HYPERLINK(""http://evil.example"",""click"")"`));
   assert.ok(lines[1].includes(`"'+cmd|calc"`));
-  // No cell (after the opening quote) starts with a formula trigger.
+  // no cell (after the opening quote) starts with a formula trigger
   const cells = lines[1].match(/"(?:[^"]|"")*"/g);
   for (const c of cells) assert.ok(!/^"[=+\-@\t\r]/.test(c), `unsafe cell ${c}`);
 });

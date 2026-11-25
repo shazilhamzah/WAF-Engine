@@ -1,8 +1,4 @@
 'use strict';
-/**
- * Test harness for Shazil's unit tests: in-memory DB, fake engine, seeded users, Studio app on an
- * ephemeral port, and a cookie/CSRF-aware JSON client.
- */
 const http = require('node:http');
 const { openDatabase } = require('../../../src/db');
 const { createEngineState } = require('../../../src/services/engineState');
@@ -51,9 +47,6 @@ class Client {
   }
 }
 
-/**
- * @param {{ clock?: () => number, options?: object, engine?: object }} [opts]
- */
 async function startHarness(opts = {}) {
   const clockState = { offset: 0 };
   const clock = opts.clock || (() => Date.now() + clockState.offset);

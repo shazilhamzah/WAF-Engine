@@ -1,5 +1,4 @@
 'use strict';
-/** /api/audit (admin only, contract §4.1, §5.2). Read-only: the API offers no way to modify the log. */
 const express = require('express');
 const { v, validate } = require('../validation');
 

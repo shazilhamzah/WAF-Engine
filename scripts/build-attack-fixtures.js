@@ -1,9 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-/** Deterministic, synthetic lab-only fixtures for the evaluation handover (member B).
- * These strings are data: this script never sends requests or executes a payload.
- * Expected verdicts express the protection goal, including known bypass attempts.
- */
+
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -88,7 +85,7 @@ function buildFixtures() {
   ];
   const t5 = t5defs.map(([d, c, r, limitation], i) => sample(`T5-${String(i + 1).padStart(2, '0')}`, d, c, r, limitation ? { knownLimitation: limitation } : {}));
 
-  // A controlled corpus, not a random sample of Internet traffic or an independent holdout.
+  // this corpus is hand built so it is not a random sample or a holdout
   const corpus = [];
   const add = (d, c, r, extra) => corpus.push(sample(`CA-${String(corpus.length + 1).padStart(3, '0')}`, d, c, r, extra));
   for (const [d, p] of sql) { add(d + ' in query', 'sqli', get(p)); add(d + ' in JSON', 'sqli', post(JSON.stringify({ filter: p }))); }

@@ -1,22 +1,20 @@
-// Config: mode, thresholds, limits, rate limit. Admin changes go through a confirmation dialog
-// showing the old → new diff and a required reason; the request carries confirm: true.
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { can } from '../lib/roles.js';
 import { formatTs } from '../lib/format.js';
+import { icon } from '../icons.js';
 import { diffObjects, displayValue } from '../lib/diff.js';
-import { pageHeader, card, field, table, loading, errorPanel, showStatus, confirmDialog, diffTable, fieldErrors, modeBadge } from '../ui.js';
+import { pageHeader, card, field, table, loading, errorPanel, showStatus, confirmDialog, diffTable, fieldErrors } from '../ui.js';
 
 const LIMIT_FIELDS = [
   ['maxBodyBytes', 'Max body (bytes)', 'Larger requests are rejected (413) before rules run.'],
-  ['inspectBodyBytes', 'Inspected body (bytes)', 'Bytes of the body that rules inspect; the rest raises an anomaly.'],
+  ['inspectBodyBytes', 'Inspected body (bytes)', 'Bytes of the body that rules inspect.'],
   ['maxUrlLength', 'Max URL length', ''],
   ['maxHeaderCount', 'Max header count', ''],
   ['maxArgs', 'Max arguments', ''],
   ['decodeRounds', 'URL-decode rounds', 'Detects double/triple encoding.'],
 ];
 
-/** Client-side sanity checks mirroring engine.validateConfig (server is authoritative). */
 export function checkConfig(cfg) {
   const errs = [];
   const int = (v) => Number.isInteger(v);
@@ -43,8 +41,8 @@ export async function render(ctx) {
   const body = h('div', null, loading());
   const historyBox = h('div', null, loading());
   mount(ctx.el, pageHeader('Configuration'),
-    isAdmin ? null : h('p', { class: 'note' }, 'Read-only: only administrators can change the mode, thresholds, limits and rate limits.'),
-    body, card('Change history', historyBox));
+    body,
+    h('details', { class: 'card' }, h('summary', null, 'Change history'), historyBox));
 
   async function load() {
     let res;
@@ -102,11 +100,10 @@ export async function render(ctx) {
         title: 'Confirm configuration change',
         body: h('div', null,
           diffTable(changes, displayValue),
-          modeChange && modeChange.to === 'monitor' ? h('p', { class: 'warn-note' }, '⚠ Monitor mode never blocks: attacks will be forwarded to the target and only logged.') : null,
-          h('p', { class: 'small muted' }, 'The new configuration takes effect immediately in the proxy and is recorded as a new version in the audit log.')),
+          modeChange && modeChange.to === 'monitor' ? h('p', { class: 'warn-note' }, icon('alert'), 'Monitor mode never blocks: attacks will be forwarded to the target and only logged.') : null),
         confirmLabel: 'Apply change',
         danger: Boolean(modeChange),
-        fields: [{ name: 'reason', label: 'Reason', type: 'textarea', required: true, maxlength: 500, hint: 'Why is this change needed? Recorded with the version.' }],
+        fields: [{ name: 'reason', label: 'Reason', type: 'textarea', required: true, maxlength: 500 }],
       });
       if (!confirmed) return;
       try {
@@ -123,26 +120,26 @@ export async function render(ctx) {
     mount(body,
       h('p', { class: 'meta-line' },
         h('span', null, 'Active version ', code(res.version)),
-        h('span', null, `changed ${formatTs(res.changedAt)} by ${res.changedBy || '—'}`),
-        h('span', null, 'Mode ', modeBadge(cfg.mode))),
-      h('form', { class: 'form', novalidate: true, on: { submit: review } },
-        card('Mode',
+        h('span', null, `changed ${formatTs(res.changedAt)} by ${res.changedBy || '—'}`)),
+      card(null,
+        h('form', { class: 'form', novalidate: true, on: { submit: review } },
           h('fieldset', null, h('legend', null, 'Enforcement mode'),
             h('div', { class: 'radio-row' },
-              h('label', { for: 'mode-block' }, modeBlock, 'Block — enforce: requests at/above the block threshold get 403'),
-              h('label', { for: 'mode-monitor' }, modeMonitor, 'Monitor — never block; log what would have been blocked')))),
-        card('Thresholds',
-          h('div', { class: 'form-row' },
-            field('Flag threshold', flag, 'Score at which a request is flagged.'),
-            field('Block threshold', block, 'Score at which a request is blocked (block mode).'))),
-        card('Limits', h('div', { class: 'form-row' }, ...LIMIT_FIELDS.map(([k, label, hint]) => field(label, limits[k], hint || undefined)))),
-        card('Rate limit',
-          h('div', { class: 'check-row' }, h('label', { for: 'rl-enabled' }, rlEnabled, 'Rate limiting enabled')),
-          h('div', { class: 'form-row' },
-            field('Window (ms)', rlWindow),
-            field('Max requests per client per window', rlMax))),
-        errors,
-        isAdmin ? h('div', { class: 'btn-group' }, h('button', { type: 'submit', class: 'btn btn-primary' }, 'Review changes…')) : null));
+              h('label', { for: 'mode-block' }, modeBlock, 'Block (enforce 403)'),
+              h('label', { for: 'mode-monitor' }, modeMonitor, 'Monitor (log only)'))),
+          h('fieldset', null, h('legend', null, 'Thresholds'),
+            h('div', { class: 'form-row' },
+              field('Flag threshold', flag),
+              field('Block threshold', block))),
+          h('fieldset', null, h('legend', null, 'Limits'),
+            h('div', { class: 'form-row' }, ...LIMIT_FIELDS.map(([k, label, hint]) => field(label, limits[k], hint || undefined)))),
+          h('fieldset', null, h('legend', null, 'Rate limit'),
+            h('div', { class: 'check-row' }, h('label', { for: 'rl-enabled' }, rlEnabled, 'Rate limiting enabled')),
+            h('div', { class: 'form-row' },
+              field('Window (ms)', rlWindow),
+              field('Max requests per client', rlMax))),
+          errors,
+          isAdmin ? h('div', { class: 'btn-group' }, h('button', { type: 'submit', class: 'btn btn-primary' }, 'Review changes…')) : null)));
   }
 
   async function loadHistory() {

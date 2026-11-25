@@ -1,7 +1,7 @@
-// Login view. One generic failure message (no username enumeration); 429 shows the wait time.
 import { h, mount } from '../dom.js';
 import { api } from '../api.js';
 import { field } from '../ui.js';
+import { icon } from '../icons.js';
 
 const GENERIC_FAILURE = 'Invalid username or password.';
 
@@ -14,7 +14,7 @@ export function render(ctx) {
 
   function showMessage(text, tone = 'bad') {
     mount(message, text ? h('p', { class: ['status-msg', tone === 'bad' ? 'status-error' : 'status-info'] },
-      h('span', { 'aria-hidden': 'true' }, tone === 'bad' ? '⚠ ' : 'ⓘ '), text) : null);
+      icon(tone === 'bad' ? 'alert' : 'info'), h('span', null, text)) : null);
   }
 
   function lockFor(seconds) {
@@ -63,12 +63,11 @@ export function render(ctx) {
 
   mount(ctx.el,
     h('div', { class: 'card login-card' },
-      h('p', { class: 'brand' }, h('span', { class: 'brand-mark', 'aria-hidden': 'true' }, '◆'), ' WAF Studio'),
+      h('p', { class: 'brand' }, h('span', { class: 'brand-mark' }, icon('logo')), 'WAF Studio'),
       h('h1', { id: 'page-title', tabindex: '-1' }, 'Sign in'),
       ctx.loginNotice ? h('p', { class: 'note' }, ctx.loginNotice) : null,
       message,
-      form,
-      h('p', { class: 'muted small' }, 'Local lab console. Accounts are created by an administrator.')));
+      form));
   username.focus();
   return () => { if (lockTimer) clearInterval(lockTimer); };
 }

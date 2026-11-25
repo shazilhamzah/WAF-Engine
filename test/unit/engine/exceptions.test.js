@@ -1,5 +1,4 @@
 'use strict';
-// FR-7 exceptions: scoped suppression applied in stage 2, suppressed matches kept as evidence.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { engine, ctx, UA } = require('./helpers');

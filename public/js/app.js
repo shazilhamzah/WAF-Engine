@@ -1,11 +1,10 @@
-// WAF Studio console — application shell, session handling and hash router.
 import { h, mount, clear } from './dom.js';
 import { api, setCsrfToken, onUnauthorized, lastActivity } from './api.js';
 import { parseHash } from './lib/query.js';
 import { navGroupsFor, canOpenRoute } from './lib/roles.js';
 import { modeBadge, rolePanel, showStatus, clearStatus, loading, errorPanel } from './ui.js';
+import { icon } from './icons.js';
 
-// Lazy view modules, one per screen (see docs/wireframes.md).
 const VIEWS = {
   login: () => import('./views/login.js'),
   dashboard: () => import('./views/dashboard.js'),
@@ -23,12 +22,17 @@ const VIEWS = {
   account: () => import('./views/account.js'),
 };
 
-const IDLE_TIMEOUT_MS = 30 * 60 * 1000; // contract §5: 30 min idle
+const NAV_ICONS = {
+  dashboard: 'overview', events: 'list', reports: 'report', analyze: 'scan', import: 'upload',
+  rules: 'shield-check', config: 'sliders', exceptions: 'clipboard', audit: 'history', users: 'users',
+};
+
+const IDLE_TIMEOUT_MS = 30 * 60 * 1000;
 const state = {
-  session: null,          // { user: {id, username, role}, csrfToken, expiresAt }
-  loginNotice: null,      // shown on the login screen (e.g. session expired)
-  flash: null,            // status message carried across one navigation
-  controller: null,       // AbortController of the current view
+  session: null,
+  loginNotice: null,
+  flash: null,
+  controller: null,
   cleanup: null,
   renderSeq: 0,
 };
@@ -56,7 +60,6 @@ function flash(message, kind = 'success') {
   state.flash = { message, kind };
 }
 
-/** Forget the session locally and go to login with a notice. */
 function sessionEnded(notice) {
   setSession(null);
   state.loginNotice = notice || null;
@@ -97,12 +100,15 @@ function renderShell() {
   nav.hidden = false;
   document.body.classList.add('signed-in');
   mount(userBox,
-    h('span', { class: 'user-name', title: `Signed in as ${user.role}` }, user.username),
-    h('a', { href: '#/account', class: 'btn btn-small' }, 'Account'),
-    h('button', { type: 'button', class: 'btn btn-small', on: { click: logout } }, 'Log out'));
+    h('a', { href: '#/account', class: 'user-link', 'aria-label': `Account settings for ${user.username} (${user.role})` },
+      h('span', { class: 'monogram', 'aria-hidden': 'true' }, user.username.slice(0, 1).toUpperCase()),
+      h('span', { class: 'user-name' }, user.username),
+      h('span', { class: 'user-role' }, user.role)),
+    h('button', { type: 'button', class: 'btn btn-small btn-plain', on: { click: logout } }, icon('log-out'), 'Log out'));
   mount(nav, ...navGroupsFor(user.role).map((group) => {
     const links = h('ul', { class: 'nav-list' }, ...group.items.map((item) => h('li', null,
-      h('a', { href: `#/${item.route}`, class: 'nav-link', dataset: { route: item.route } }, item.label))));
+      h('a', { href: `#/${item.route}`, class: 'nav-link', dataset: { route: item.route } },
+        icon(NAV_ICONS[item.route] || 'list'), h('span', null, item.label)))));
     return group.collapsible
       ? h('details', { class: 'nav-group nav-disclosure' }, h('summary', null, group.label), links)
       : h('section', { class: 'nav-group', 'aria-label': group.label }, h('p', { class: 'nav-group-label' }, group.label), links);
@@ -111,7 +117,9 @@ function renderShell() {
 }
 
 function markActiveNav(route) {
-  const active = route === 'event' || route === 'compare' ? 'events' : route;
+  const active = route === 'event' || route === 'compare' || route === 'reports'
+    ? 'events'
+    : route === 'import' ? 'analyze' : route;
   for (const a of document.querySelectorAll('.nav-link')) {
     if (a.dataset.route === active) {
       a.setAttribute('aria-current', 'page');
@@ -133,7 +141,7 @@ async function render() {
   const { route, params, query } = parseHash(location.hash);
   const view = $('view');
   if (state.controller) state.controller.abort();
-  if (typeof state.cleanup === 'function') { try { state.cleanup(); } catch { /* ignore */ } }
+  if (typeof state.cleanup === 'function') { try { state.cleanup(); } catch { } }
   state.cleanup = null;
   state.controller = new AbortController();
   closeMobileNav();
@@ -197,7 +205,7 @@ async function render() {
   } catch (err) {
     if (seq !== state.renderSeq) return;
     if (err && err.status === 403) mount(container, rolePanel(route, role));
-    else if (err && err.status === 401) return; // handled by onUnauthorized
+    else if (err && err.status === 401) return;
     else mount(container, errorPanel(err, () => render()));
   }
   const title = container.querySelector('h1');
@@ -219,7 +227,7 @@ function startSessionWatch() {
     const idle = Date.now() - lastActivity() > IDLE_TIMEOUT_MS + 5000;
     const absolute = Number.isFinite(expiresAt) && Date.now() > expiresAt;
     if (!idle && !absolute) return;
-    // Ask the server (the authority); a 401 means the session really ended.
+    // ask the server since a 401 means the session really ended
     try {
       const me = await api.me();
       setSession(me);

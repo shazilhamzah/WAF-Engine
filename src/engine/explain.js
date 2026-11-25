@@ -1,14 +1,4 @@
 'use strict';
-/**
- * Explanation and recommendation builder (OBJ-2: every decision is explainable).
- *
- * Produces short, specific sentences in pipeline order, e.g.
- *   "Rule 942100 'SQLi boolean tautology' matched query.q after URL decoding (+5)"
- *   "Parser anomaly DOUBLE_ENCODING: A value was URL-encoded more than once ... (+2)"
- *   "Total score 7 >= block threshold 5 -> verdict block"
- *   "Mode block: request blocked with HTTP 403"
- * No raw request values are included (excerpts live in `matches[].excerpt`, already redacted).
- */
 
 const { describeVia } = require('./normalize');
 
@@ -43,11 +33,6 @@ function matchSentence(m) {
   return `Rule ${m.ruleId} '${m.ruleName}' ${where}${how}${via ? ` after ${via}` : ''}${extra} (${signed(m.points)})`;
 }
 
-/**
- * @param {object} d partial decision: { parsedOk, rejectCode, anomalies, matches, suppressed, score, verdict,
- *                   blockReason, mode, action, statusCode, rateLimit, request }
- * @returns {{ explanation: string[], recommendation: string }}
- */
 function buildExplanation(d) {
   const lines = [];
   const anomalies = d.anomalies || [];

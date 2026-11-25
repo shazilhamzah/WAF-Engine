@@ -1,21 +1,4 @@
 'use strict';
-/**
- * startStack(): boots the WHOLE WAF Studio stack (studio API + WAF proxy + vulnerable target) on
- * ephemeral ports with a throw-away database, seeds it with known test passwords and returns helpers.
- *
- * Contract assumptions (docs/02-architecture.md) — if one of these changes, only this file needs fixing:
- *   A1  require('src/index.js').startAll(opts) → Promise<{ studio, proxy, target, close() }>
- *       opts: { studioPort, proxyPort, targetPort, dbPath, dataDir, quiet }
- *       studio/proxy/target are http.Server instances OR objects exposing `.server`, `.port` or `.url`.
- *   A2  require('src/services/seed.js').seedDatabase(db, engine, { passwords }) seeds users
- *       admin/operator/viewer (usernames = role names) + default rules + default config. It may return
- *       { passwords } — returned passwords win over the ones we pass.
- *   A3  The seed needs a DB handle. We prefer `stack.db` (if startAll exposes it); otherwise we open the
- *       DB file ourselves with require('src/db').openDatabase(dbPath) BEFORE starting, seed, close it,
- *       then start the stack on the same file (so the running engine state loads the seeded rules).
- *   A4  Tables/columns follow §4 (sessions.expires_at/last_seen_at, audit_log triggers) — used by the
- *       session-expiry and tamper tests through `stack.openRawDb()`.
- */
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
@@ -27,22 +10,16 @@ const SRC_SEED = path.join(ROOT, 'src', 'services', 'seed.js');
 const SRC_DB = path.join(ROOT, 'src', 'db', 'index.js');
 const SRC_ENGINE = path.join(ROOT, 'src', 'engine', 'index.js');
 
-/** Known, test-only passwords (≥ 12 chars, as the password policy requires). */
 const TEST_PASSWORDS = Object.freeze({
   admin: 'Test-Admin-Passw0rd!',
   operator: 'Test-Operator-Passw0rd!',
   viewer: 'Test-Viewer-Passw0rd!'
 });
 
-/** Whether the backend modules exist yet (phase-1 tests skip cleanly when they do not). */
 function stackAvailable() {
   return fs.existsSync(SRC_INDEX) && fs.existsSync(SRC_SEED);
 }
 
-/**
- * For node:test — returns a `skip` option: tests are skipped (with a reason) while the backend does
- * not exist yet, unless WAF_STRICT=1 (set by scripts/check.js) in which case they run and fail loudly.
- */
 function skipUnlessStack() {
   if (stackAvailable() || process.env.WAF_STRICT === '1') return false;
   return 'backend not available yet (src/index.js or src/services/seed.js missing)';
@@ -60,7 +37,7 @@ function portOf(x) {
 
 function rmrf(dir) {
   for (let i = 0; i < 10; i++) {
-    try { fs.rmSync(dir, { recursive: true, force: true }); return; } catch { /* Windows file locks: retry */ }
+    try { fs.rmSync(dir, { recursive: true, force: true }); return; } catch { /* windows file locks so retry */ }
     Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100); // short synchronous sleep
   }
 }
@@ -78,20 +55,13 @@ async function seedFile(dbPath, passwords) {
   }
 }
 
-/**
- * @param {object} [opts]
- * @param {string} [opts.dataDir]   reuse an existing data dir (restart/recovery tests)
- * @param {boolean} [opts.seed=true] seed users/rules/config (false on restart)
- * @param {object} [opts.passwords] override test passwords
- * @param {object} [opts.startOptions] extra options for startAll
- */
 async function startStack(opts = {}) {
   const dataDir = opts.dataDir || fs.mkdtempSync(path.join(os.tmpdir(), 'waf-studio-test-'));
   const dbPath = opts.dbPath || path.join(dataDir, 'waf-studio.db');
   let passwords = { ...TEST_PASSWORDS, ...(opts.passwords || {}) };
   const seed = opts.seed !== false;
 
-  // Seed before start when we can open the DB ourselves (A3).
+  // seed before start when we can open the db ourselves
   let seeded = false;
   if (seed && fs.existsSync(SRC_DB)) {
     passwords = await seedFile(dbPath, passwords);
@@ -109,7 +79,6 @@ async function startStack(opts = {}) {
     if (!stack.db) throw new Error('startStack: cannot seed — neither src/db/index.js openDatabase nor stack.db available');
     const out = await seedDatabase(stack.db, engine, { passwords });
     if (out && out.passwords) passwords = out.passwords;
-    // Make the running engine pick up seeded rules/config if it exposes a reload.
     const es = stack.engineState;
     if (es && typeof es.reload === 'function') await es.reload();
   }
@@ -127,10 +96,8 @@ async function startStack(opts = {}) {
   const api = {
     raw: stack, dataDir, dbPath, passwords, studioUrl, proxyUrl, targetUrl,
 
-    /** New unauthenticated API client. */
     client() { return new ApiClient(studioUrl); },
 
-    /** Logged-in client for a role (username defaults to the role name). Throws on failure. */
     async login(role, { username = role, password = passwords[role] } = {}) {
       const c = new ApiClient(studioUrl);
       const r = await c.login(username, password);
@@ -138,12 +105,9 @@ async function startStack(opts = {}) {
       return c;
     },
 
-    /** Raw request through the WAF proxy (no path normalisation). */
     proxy(req) { return rawRequest(proxyUrl, req); },
-    /** Raw request straight to the target (bypasses the WAF — baseline for T6). */
     direct(req) { return rawRequest(targetUrl, req); },
 
-    /** Stops the target only (for "target down → 502" tests). */
     async stopTarget() {
       const t = stack.target;
       const srv = t && (typeof t.close === 'function' ? t : t.server);
@@ -153,7 +117,6 @@ async function startStack(opts = {}) {
       }
     },
 
-    /** Opens the DB file directly (node:sqlite) for white-box checks. Caller must close(). */
     openRawDb() {
       const { DatabaseSync } = require('node:sqlite');
       const db = new DatabaseSync(dbPath);
@@ -161,7 +124,6 @@ async function startStack(opts = {}) {
       return db;
     },
 
-    /** Stops everything; removes the temp data dir unless keepData. */
     async stop({ keepData = false } = {}) {
       if (stopped) return;
       stopped = true;
@@ -172,7 +134,6 @@ async function startStack(opts = {}) {
   return api;
 }
 
-/** Waits for `fn` to return truthy (polling), e.g. for an async event write. */
 async function waitFor(fn, { timeoutMs = 3000, intervalMs = 25 } = {}) {
   const until = Date.now() + timeoutMs;
   let last;
@@ -184,9 +145,8 @@ async function waitFor(fn, { timeoutMs = 3000, intervalMs = 25 } = {}) {
   return last;
 }
 
-/** Strings that must never appear in an error body (stack traces, internal paths, engine internals). */
 const LEAK_PATTERNS = [
-  /\bat [\w.<>$]+ \(/,            // stack frame "at fn ("
+  /\bat [\w.<>$]+ \(/,
   /\bat (?:node:|file:|[A-Za-z]:\\)/,
   /node:internal/,
   /node_modules/,

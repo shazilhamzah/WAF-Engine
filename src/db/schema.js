@@ -1,8 +1,4 @@
 'use strict';
-/**
- * Schema migrations, applied in order and tracked with `PRAGMA user_version` (contract §4).
- * Each migration runs inside a transaction. Never edit a shipped migration: append a new one.
- */
 
 const MIGRATIONS = [
   {
@@ -149,10 +145,6 @@ END;
 
 const LATEST_VERSION = MIGRATIONS[MIGRATIONS.length - 1].version;
 
-/**
- * Applies pending migrations to a DatabaseSync instance.
- * @returns {{ from: number, to: number }}
- */
 function migrate(raw) {
   const from = raw.prepare('PRAGMA user_version').get().user_version;
   if (from > LATEST_VERSION) {

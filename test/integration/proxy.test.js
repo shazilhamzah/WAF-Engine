@@ -1,8 +1,4 @@
 'use strict';
-/**
- * WAF reverse proxy end to end (contract §6): real HTTP through the proxy to the vulnerable target.
- * Traceability: FR-1, FR-4, FR-5, FR-6, T-final (safe failure), NFR-5.
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startStack, skipUnlessStack, waitFor } = require('../helpers/stack');

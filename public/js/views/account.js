@@ -1,8 +1,7 @@
-// Account: session info, change own password, log out.
 import { h, mount } from '../dom.js';
 import { api } from '../api.js';
 import { formatTs } from '../lib/format.js';
-import { pageHeader, card, field, kvList, showStatus, fieldErrors } from '../ui.js';
+import { pageHeader, card, field, fieldErrors } from '../ui.js';
 
 export const MIN_PASSWORD = 12;
 
@@ -29,7 +28,7 @@ export function render(ctx) {
     try {
       await api.changePassword(current.value, next.value);
       current.value = ''; next.value = ''; confirm.value = '';
-      // The server revokes every session of this user (including this one) after a password change.
+      // the server revokes every session of this user after a password change
       ctx.sessionEnded('Password changed. All your sessions were signed out — sign in again with your new password.');
       return;
     } catch (err) {
@@ -43,25 +42,15 @@ export function render(ctx) {
     }
   }
 
-  async function logout(e) {
-    e.target.disabled = true;
-    try { await api.logout(); } catch { /* already gone */ }
-    ctx.sessionEnded('You have signed out.');
-  }
-
   mount(ctx.el,
     pageHeader('Account'),
-    card('Session', kvList([
-      ['Username', user.username],
-      ['Role', user.role],
-      ['Session expires', session && session.expiresAt ? formatTs(session.expiresAt) : '—'],
-      ['Idle timeout', '30 minutes without activity (maximum session 8 hours)'],
-      ['Note', 'Changing your password signs out all of your sessions.'],
-    ]), h('p', null, h('button', { type: 'button', class: 'btn', on: { click: logout } }, 'Log out'))),
+    h('p', { class: 'meta-line' },
+      h('span', null, `${user.username} (${user.role})`),
+      session && session.expiresAt ? h('span', null, `Session expires ${formatTs(session.expiresAt)}`) : null),
     card('Change password',
       h('form', { class: 'form', novalidate: true, on: { submit: onSubmit } },
         field('Current password', current),
-        field('New password', next, `At least ${MIN_PASSWORD} characters. A passphrase of several words works well.`),
+        field('New password', next, `At least ${MIN_PASSWORD} characters.`),
         field('Confirm new password', confirm),
         errors,
         h('div', null, submit))));

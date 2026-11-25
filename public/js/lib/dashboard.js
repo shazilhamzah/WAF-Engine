@@ -1,4 +1,3 @@
-// Dashboard presentation rules. Verdicts describe detection; actions describe enforcement.
 export function summarizeOutcomes(totals = {}) {
   const count = (v) => Math.max(0, Number(v) || 0);
   return {

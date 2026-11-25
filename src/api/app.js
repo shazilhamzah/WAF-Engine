@@ -1,13 +1,4 @@
 'use strict';
-/**
- * Studio console application (contract §5, §10):
- *
- *   const app = createStudioApp({ db, engineState, secret, logger });   // Express app (not listening)
- *
- * Pipeline: request id + security headers → Host/Origin guard → JSON-only bodies (256 KB; 2 MiB for
- * analyze/import) → session → CSRF → routers (each enforces its own roles) → 404 → error handler.
- * Static files from public/ with SPA fallback for non-/api GETs.
- */
 const fs = require('node:fs');
 const path = require('node:path');
 const express = require('express');
@@ -32,9 +23,6 @@ const PUBLIC_DIR = path.resolve(__dirname, '..', '..', 'public');
 const REPORTS_ROUTER_PATH = path.resolve(__dirname, 'routes', 'reports.js');
 const PKG_VERSION = (() => { try { return require('../../package.json').version; } catch { return '0.0.0'; } })();
 
-/**
- * Loads Wahaj's reports router (src/api/routes/reports.js). Tolerates ONLY that file being absent.
- */
 function loadReportsRouterFactory(log) {
   try {
     const mod = require(REPORTS_ROUTER_PATH);
@@ -53,11 +41,6 @@ function loadReportsRouterFactory(log) {
   }
 }
 
-/**
- * @param {{ db, engineState, secret: string, logger?, clock?: () => number, publicDir?: string,
- *           options?: { analysisPerMinute?: number, loginThrottle?: object, idleMs?: number, absoluteMs?: number } }} deps
- * @returns {import('express').Express} app (with `app.locals.waf` exposing internals for tests)
- */
 function createStudioApp({ db, engineState, secret, logger, clock, publicDir = PUBLIC_DIR, options = {} } = {}) {
   if (!db) throw new Error('createStudioApp requires db');
   if (!engineState) throw new Error('createStudioApp requires engineState');
@@ -83,7 +66,6 @@ function createStudioApp({ db, engineState, secret, logger, clock, publicDir = P
   app.use(mw.requestContext({ identifyClient }));
   app.use(mw.hostAndOriginGuard());
 
-  // ---- API -------------------------------------------------------------------------------------------
   app.use('/api', mw.apiNoStore, mw.requireJsonBody);
   app.use(['/api/analyze', '/api/import'], express.json({ limit: '2mb', strict: true, type: 'application/json' }));
   app.use('/api', express.json({ limit: '256kb', strict: true, type: 'application/json' }), mw.ensureObjectBody);
@@ -106,7 +88,7 @@ function createStudioApp({ db, engineState, secret, logger, clock, publicDir = P
 
   app.use('/api', (req, res, next) => next(new ApiError('NOT_FOUND')));
 
-  // ---- Static SPA ------------------------------------------------------------------------------------
+  // anything without a file extension falls back to the single page app
   const indexFile = path.join(publicDir, 'index.html');
   app.use(express.static(publicDir, { index: 'index.html', dotfiles: 'ignore', redirect: false, fallthrough: true }));
   app.use((req, res, next) => {

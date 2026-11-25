@@ -1,8 +1,4 @@
 'use strict';
-// Static checks over public/**: the console must satisfy the strict CSP (script-src 'self'; style-src 'self')
-// and must never turn data into markup. Fails on innerHTML/outerHTML/insertAdjacentHTML/document.write,
-// eval/new Function/string timers, inline handlers (HTML attributes or el.onX = …), style attributes,
-// inline <script>/<style> blocks and external URLs (CDNs, fonts).
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -25,7 +21,6 @@ const files = fs.existsSync(PUBLIC) ? walk(PUBLIC) : [];
 const rel = (p) => path.relative(PUBLIC, p).split(path.sep).join('/');
 const byExt = (ext) => files.filter((f) => f.endsWith(ext));
 
-/** Removes // and /* *\/ comments (good enough for our own code; strings with // are rare and checked). */
 function stripJsComments(src) {
   return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/(^|[^:'"`\\])\/\/.*$/gm, '$1');
 }
@@ -115,14 +110,13 @@ test('CSS does not import remote resources', () => {
   }
 });
 
-// Attack examples are data (sent as JSON and shown via textContent), so the sample library is exempt.
 const MARKUP_EXEMPT = new Set(['js/lib/samples.js']);
 
 test('views render untrusted strings only through the DOM helper (no template-literal markup)', () => {
   const problems = [];
   for (const file of byExt('.js').filter((f) => !MARKUP_EXEMPT.has(rel(f)))) {
     const src = stripJsComments(fs.readFileSync(file, 'utf8'));
-    // A template literal or string that starts with an HTML tag is a smell of string-built markup.
+    // a template literal or string that starts with an html tag is a smell of string built markup
     for (const hit of findAll(src, /[`'"]\s*<(div|span|p|a|td|tr|table|li|ul|code|pre|img|svg|script|iframe|b|strong)\b[^`'"]*>/i)) {
       problems.push(`${rel(file)}:${hit}`);
     }

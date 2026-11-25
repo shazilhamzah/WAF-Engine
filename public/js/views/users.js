@@ -1,9 +1,8 @@
-// Users (admin): list, create, change role, set password, disable/enable — high-impact changes confirmed.
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
 import { ROLES } from '../lib/roles.js';
 import { formatTs } from '../lib/format.js';
-import { pageHeader, card, field, select, table, chip, loading, errorPanel, showStatus, confirmDialog, fieldErrors, busy } from '../ui.js';
+import { pageHeader, card, field, select, table, statusLabel, loading, errorPanel, showStatus, confirmDialog, fieldErrors, busy } from '../ui.js';
 
 const MIN_PASSWORD = 12;
 const USERNAME = /^[A-Za-z0-9._-]{3,64}$/;
@@ -106,14 +105,14 @@ export async function render(ctx) {
           return h('span', { class: 'btn-group' }, sel, apply);
         } },
         { key: 'status', label: 'Status', render: (u) => {
-          if (u.disabled) return chip('○ disabled', 'muted');
-          if (u.lockedUntil && Date.parse(u.lockedUntil) > Date.now()) return chip(`⛔ locked until ${formatTs(u.lockedUntil)}`, 'bad');
-          return chip('✔ active', 'ok');
+          if (u.disabled) return statusLabel('disabled', 'muted');
+          if (u.lockedUntil && Date.parse(u.lockedUntil) > Date.now()) return statusLabel(`locked until ${formatTs(u.lockedUntil)}`, 'bad');
+          return statusLabel('active', 'ok');
         } },
         { key: 'createdAt', label: 'Created', render: (u) => formatTs(u.createdAt) },
         { key: 'id', label: 'Id', render: (u) => code(u.id) },
         { key: 'act', label: 'Actions', render: (u) => {
-          if (u.id === ctx.user.id) return h('a', { href: '#/account', class: 'btn btn-small' }, 'Account');
+          if (u.id === ctx.user.id) return '—';
           const dis = h('button', { type: 'button', class: ['btn', 'btn-small', u.disabled ? null : 'btn-danger'] }, u.disabled ? 'Enable' : 'Disable');
           dis.addEventListener('click', () => toggleDisabled(u, dis));
           const pw = h('button', { type: 'button', class: 'btn btn-small' }, 'Set password');
@@ -126,17 +125,23 @@ export async function render(ctx) {
     }));
   }
 
+  const createDisclosure = h('details', { class: 'card' },
+    h('summary', null, 'Create a user'),
+    h('form', { class: 'form', novalidate: true, on: { submit: create } },
+      h('div', { class: 'form-row' },
+        field('Username', username),
+        field('Initial password', password, `At least ${MIN_PASSWORD} characters.`),
+        field('Role', role)),
+      errors,
+      h('div', null, createBtn)));
+  const newBtn = h('button', {
+    type: 'button', class: 'btn',
+    on: { click: () => { createDisclosure.open = true; username.focus(); } },
+  }, '+ New user');
+
   mount(ctx.el,
-    pageHeader('Users'),
-    card('Create a user',
-      h('form', { class: 'form', novalidate: true, on: { submit: create } },
-        h('div', { class: 'form-row' },
-          field('Username', username),
-          field('Initial password', password, `At least ${MIN_PASSWORD} characters.`),
-          field('Role', role)),
-        errors,
-        h('div', null, createBtn)),
-      h('p', { class: 'muted small' }, 'Roles: admin (configures, approves, audits), operator (analyzes, requests exceptions, exports), viewer (dashboard and sanitized summaries only). Grant the least privilege needed.')),
-    card('Accounts', listBox));
+    pageHeader('Users', newBtn),
+    createDisclosure,
+    card(null, listBox));
   await load();
 }

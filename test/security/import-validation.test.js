@@ -1,10 +1,4 @@
 'use strict';
-/**
- * Upload / import validation (NFR-4, proposal "Validate file type, size, structure, and fields on the
- * server"): POST /api/import { filename, samples } with ≤ 100 samples, filename must end in .json,
- * body ≤ 256 KB; malformed samples are rejected individually with a stable code; nothing is executed,
- * the filename is never used as a filesystem path.
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startStack, skipUnlessStack, findLeak } = require('../helpers/stack');
@@ -56,7 +50,7 @@ describe('import validation', { skip: skipUnlessStack() }, () => {
     assert.ok([201, 429].includes(r.status), `100 samples → ${r.status} ${r.text.slice(0, 120)}`);
   });
 
-  // analyze/import accept up to 2 MiB of JSON (sample bodies may be 1 MiB); everything else 256 KB.
+  // analyze and import accept up to 2 mib of json and everything else is capped at 256 kb
   it('oversize import body (> 2 MiB) → 413', async () => {
     const samples = Array.from({ length: 10 }, (_, i) => ({ ...ok(i), method: 'POST', body: 'b'.repeat(250 * 1024) }));
     const r = await op.post('/api/import', { filename: 'huge.json', samples });
@@ -80,7 +74,7 @@ describe('import validation', { skip: skipUnlessStack() }, () => {
     const samples = [ok(1), { method: 'HACK', path: '/', headers: {}, body: null }, { method: 'GET', path: 'relative', headers: {}, body: null },
       { method: 'GET', path: '/', headers: { 'bad name!': 'x' }, body: null }, null, 'string', ok(2)];
     const r = await op.post('/api/import', { filename: 'mixed.json', samples });
-    if (r.status === 400) return; // all-or-nothing validation is also acceptable
+    if (r.status === 400) return; // all or nothing validation is also acceptable
     assert.equal(r.status, 201, r.text);
     assert.equal(r.body.imported, 2);
     const idx = r.body.rejected.map((x) => x.index).sort();

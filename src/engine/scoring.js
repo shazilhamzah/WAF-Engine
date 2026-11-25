@@ -1,13 +1,4 @@
 'use strict';
-/**
- * Anomaly scoring (FR-3, pipeline step 3).
- *
- *   total = Σ points of unsuppressed rule matches (each rule counts once per request)
- *         + Σ points of parser anomalies (each anomaly code counts once per request)
- *   verdict = 'block' if total >= thresholds.block, 'flag' if total >= thresholds.flag, else 'allow'
- *
- * byCategory groups points by rule category; parser anomalies are grouped under 'anomaly'.
- */
 
 const ANOMALY_CATEGORY = 'anomaly';
 
@@ -17,12 +8,6 @@ function verdictFor(total, thresholds) {
   return 'allow';
 }
 
-/**
- * @param {object[]} matches Decision matches (unsuppressed)
- * @param {{code: string, message: string, points: number}[]} anomalies
- * @param {{flag: number, block: number}} thresholds
- * @returns {{ score: object, verdict: 'allow'|'flag'|'block' }}
- */
 function computeScore(matches, anomalies, thresholds) {
   const byCategory = {};
   const contributions = [];

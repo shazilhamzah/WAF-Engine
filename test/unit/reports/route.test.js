@@ -1,5 +1,4 @@
 'use strict';
-// Unit tests for src/api/routes/reports.js: role check, query validation, headers, audit, repository paging.
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const express = require('express');
@@ -15,7 +14,6 @@ function sampleEvent(i, extra = {}) {
   };
 }
 
-/** Starts an app on an ephemeral port with a fake session user and records audit calls. */
 async function startApp({ user, options = {} }) {
   const audits = [];
   const audit = (req, action, opts) => audits.push({ action, ...opts, actor: req.auth && req.auth.user && req.auth.user.username });
@@ -31,7 +29,6 @@ async function startApp({ user, options = {} }) {
     now: () => Date.UTC(2026, 9, 19, 12, 0, 0),
     ...options,
   }));
-  // Minimal contract-shaped error handler (the real one lives in src/api/middleware.js).
   // eslint-disable-next-line no-unused-vars
   app.use((err, req, res, next) => {
     res.status(err.status || 500).json({ error: { code: err.code || 'INTERNAL_ERROR', message: 'x', details: err.details } });

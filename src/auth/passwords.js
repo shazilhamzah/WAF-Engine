@@ -1,10 +1,4 @@
 'use strict';
-/**
- * Password hashing (contract §4.2): scrypt N=16384, r=8, p=1, 64-byte key, 16-byte per-user salt,
- * compared with crypto.timingSafeEqual. Stored format (self-describing so parameters can be raised later):
- *
- *   scrypt$16384$8$1$<salt base64>$<key base64>
- */
 const crypto = require('node:crypto');
 const { promisify } = require('node:util');
 
@@ -12,14 +6,13 @@ const scrypt = promisify(crypto.scrypt);
 
 const PARAMS = Object.freeze({ N: 16384, r: 8, p: 1, keyLen: 64, saltLen: 16 });
 const MIN_LENGTH = 12;
-const MAX_LENGTH = 256; // bounds the work an attacker can force per login attempt
+const MAX_LENGTH = 256;
 const MAXMEM = 64 * 1024 * 1024;
 
 async function derive(password, salt, { N, r, p, keyLen }) {
   return scrypt(String(password).normalize('NFKC'), salt, keyLen, { N, r, p, maxmem: MAXMEM });
 }
 
-/** @returns {Promise<string>} encoded hash */
 async function hashPassword(password) {
   if (typeof password !== 'string' || password.length === 0) throw new TypeError('password must be a non-empty string');
   const salt = crypto.randomBytes(PARAMS.saltLen);
@@ -32,7 +25,7 @@ function parseHash(encoded) {
   const parts = encoded.split('$');
   if (parts.length !== 6 || parts[0] !== 'scrypt') return null;
   const [N, r, p] = parts.slice(1, 4).map(Number);
-  // Refuse absurd parameters from a tampered row instead of burning CPU/memory.
+  // refuse absurd parameters from a tampered row
   if (!Number.isInteger(N) || N < 1024 || N > 1 << 20 || (N & (N - 1)) !== 0) return null;
   if (!Number.isInteger(r) || r < 1 || r > 32 || !Number.isInteger(p) || p < 1 || p > 16) return null;
   const salt = Buffer.from(parts[4], 'base64');
@@ -41,7 +34,6 @@ function parseHash(encoded) {
   return { N, r, p, salt, key };
 }
 
-/** Constant-time verification. Returns false (never throws) for malformed hashes. */
 async function verifyPassword(password, encoded) {
   if (typeof password !== 'string' || password.length === 0 || password.length > MAX_LENGTH) return false;
   const parsed = parseHash(encoded);
@@ -51,20 +43,13 @@ async function verifyPassword(password, encoded) {
 }
 
 let dummyHashPromise = null;
-/**
- * Performs a full scrypt verification against a fixed dummy hash so that "unknown user" takes as long as
- * "wrong password" (prevents username enumeration by timing). Always resolves to false.
- */
 async function dummyVerify(password) {
+  // same cost as a real check so unknown users cannot be told apart by timing
   if (!dummyHashPromise) dummyHashPromise = hashPassword(crypto.randomBytes(16).toString('hex'));
   await verifyPassword(typeof password === 'string' && password ? password.slice(0, MAX_LENGTH) : 'x', await dummyHashPromise);
   return false;
 }
 
-/**
- * Password policy: 12–256 characters and not equal to the username (case-insensitive).
- * @returns {string[]} list of problems (empty when acceptable)
- */
 function checkPasswordPolicy(password, username) {
   const problems = [];
   if (typeof password !== 'string') return ['must be a string'];
@@ -77,7 +62,6 @@ function checkPasswordPolicy(password, username) {
   return problems;
 }
 
-/** Random password for seeding (24 chars, URL-safe). */
 function generatePassword() {
   return crypto.randomBytes(18).toString('base64url');
 }

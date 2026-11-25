@@ -1,12 +1,4 @@
 'use strict';
-/**
- * The proposal's "Illustrative working example" (page 3), end to end through the real Studio API:
- *  operator signs in → analyzes a safe sample (completed, evidence, no critical warning) → analyzes a
- *  suspicious variant (specific indicator: rule id + location, not just "unsafe") → history shows both →
- *  compare → export sanitized report → admin changes a threshold (with confirmation) → replay →
- *  new result AND the config change are both traceable (events + audit + config history).
- * Traceability: OBJ-1, OBJ-2, FR-3, FR-6, FR-7, NFR-8.
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startStack, skipUnlessStack } = require('../helpers/stack');

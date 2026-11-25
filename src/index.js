@@ -1,15 +1,4 @@
 'use strict';
-/**
- * WAF Studio bootstrap (contract §1, §10).
- *
- *   const { startAll } = require('./src');
- *   const stack = await startAll({ studioPort: 0, proxyPort: 0, targetPort: 0, dbPath, dataDir, quiet: true });
- *   // stack.studio / stack.proxy / stack.target are listening http.Server instances (port 0 → ephemeral)
- *   await stack.close();
- *
- * `npm start` runs this file directly: it starts the Studio console, the WAF reverse proxy and the
- * deliberately vulnerable lab target, all bound to 127.0.0.1, and prints the three URLs.
- */
 const http = require('node:http');
 const path = require('node:path');
 const { loadConfig, loadSecret, HOST } = require('./config');
@@ -46,7 +35,7 @@ function loadTargetApp() {
 }
 
 function hardenServer(server) {
-  server.headersTimeout = 20000;   // slow-header (slowloris) protection
+  server.headersTimeout = 20000;
   server.requestTimeout = 60000;
   server.keepAliveTimeout = 5000;
   server.maxHeadersCount = 200;
@@ -74,14 +63,6 @@ function closeServer(server) {
   });
 }
 
-/**
- * Starts the Studio console, the WAF proxy and (optionally) the vulnerable target.
- * @param {{ studioPort?: number, proxyPort?: number, targetPort?: number, dbPath?: string, dataDir?: string,
- *           startTarget?: boolean, targetUrl?: string, quiet?: boolean, logger?: object, engine?: object,
- *           env?: NodeJS.ProcessEnv, studioOptions?: object }} [options]
- * @returns {Promise<{ studio: http.Server, proxy: http.Server, target: http.Server|null, db, engineState,
- *                     ports: {studio:number, proxy:number, target:number|null}, urls: object, close(): Promise<void> }>}
- */
 async function startAll(options = {}) {
   const env = options.env || process.env;
   const cfg = loadConfig(env);

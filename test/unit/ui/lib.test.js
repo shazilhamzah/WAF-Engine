@@ -1,5 +1,4 @@
 'use strict';
-// Unit tests for the console's pure ES-module helpers (public/js/lib/*.js), loaded with dynamic import().
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const path = require('node:path');
@@ -17,7 +16,7 @@ test('errors: stable codes map to friendly messages; 403 and login failures stay
   assert.equal(messageFor('AUTH_INVALID'), 'Invalid username or password.');
   assert.equal(messageFor(undefined, 500), ERROR_MESSAGES.INTERNAL_ERROR);
   assert.equal(messageFor('SOMETHING_NEW', 404), ERROR_MESSAGES.NOT_FOUND);
-  // 403 never echoes server text (could reveal record content).
+  // a 403 never echoes server text (could reveal record content)
   assert.equal(describeError({ status: 403, code: 'FORBIDDEN', serverMessage: 'secret record 42' }), ERROR_MESSAGES.FORBIDDEN);
   assert.equal(describeError({ status: 429, code: 'RATE_LIMITED', retryAfter: 7.2 }), 'Too many requests. Try again in 8 seconds.');
   assert.match(describeError({ status: 400, code: 'VALIDATION_FAILED', details: [{ field: 'path', message: "must start with '/'" }] }), /path: must start with/);

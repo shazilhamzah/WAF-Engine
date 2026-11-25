@@ -1,5 +1,4 @@
 'use strict';
-/** /api/rules (contract §5.2). Reads: admin+operator. Changes: admin. Every change reloads engine state. */
 const express = require('express');
 const { ApiError, notFound, conflict, confirmationRequired } = require('../errors');
 const { v, validate } = require('../validation');
@@ -36,7 +35,6 @@ function createRulesRouter({ db, engineState, audit, auth }) {
   const AO = auth.requireRole('admin', 'operator');
   const ADMIN = auth.requireRole('admin');
 
-  /** Validates DSL source with the engine; returns RuleMeta or throws VALIDATION_FAILED. */
   function checkSource(source) {
     const r = engine.validateRuleSource(source) || {};
     if (!r.ok || !r.rule) throw new ApiError('VALIDATION_FAILED', 'The rule does not compile.', { details: dslErrorDetails(r.errors) });

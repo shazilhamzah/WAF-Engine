@@ -1,5 +1,4 @@
 'use strict';
-/** Engine configuration versions. The row with the highest version is the active configuration. */
 const { nowIso, parseJson } = require('../util');
 
 function mapConfig(row) {
@@ -26,7 +25,6 @@ function createConfigRepository({ raw, clock, transaction }) {
     latest() { return mapConfig(stmts.latest.get()); },
     get(version) { return mapConfig(stmts.get.get(Number(version))); },
     history(limit = 100) { return stmts.history.all(Math.min(Math.max(Number(limit) || 100, 1), 1000)).map(mapConfig); },
-    /** Appends a new version; returns the stored record. */
     append(config, userId = null, reason = '') {
       return transaction(() => {
         const version = (stmts.maxVersion.get().v || 0) + 1;

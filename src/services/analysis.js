@@ -1,12 +1,6 @@
 'use strict';
-/**
- * Console analysis (contract §5.2 analyze/import/replay): turns a validated Sample into the engine's raw
- * request, inspects it with the current shared state (rate limiter skipped), and stores the event with the
- * redacted sample so it can be replayed later.
- */
 const { redactSample } = require('./redact');
 
-/** Sample -> raw request (contract §3.1). */
 function sampleToRaw(sample, remoteAddress = '127.0.0.1') {
   const headers = {};
   for (const [k, v] of Object.entries(sample.headers || {})) headers[String(k).toLowerCase()] = String(v);
@@ -16,10 +10,6 @@ function sampleToRaw(sample, remoteAddress = '127.0.0.1') {
   return { method: sample.method, url: sample.path, headers, body: body === null ? null : Buffer.from(body, 'utf8'), bodyBytes, remoteAddress };
 }
 
-/**
- * @param {{ db, engineState, sample, label?, source: 'console'|'import'|'replay', user?, clientId?, replayOf? }} p
- * @returns stored Event
- */
 function analyzeSample({ db, engineState, sample, label = null, source = 'console', user = null, clientId = null, replayOf = null }) {
   const engine = engineState.engine;
   const raw = sampleToRaw(sample);

@@ -1,11 +1,7 @@
 'use strict';
-/**
- * In-memory sliding-window limiter used for API-side abuse controls (login attempts per client, analysis
- * submissions per user). The proxy uses the engine's own limiter (contract §3); this one is for the console.
- */
 
 function createSlidingWindowLimiter({ windowMs, max, clock = () => Date.now(), maxKeys = 10000 }) {
-  const hits = new Map(); // key -> number[] (timestamps, ascending)
+  const hits = new Map();
 
   function prune(list, now) {
     while (list.length && list[0] <= now - windowMs) list.shift();
@@ -13,13 +9,12 @@ function createSlidingWindowLimiter({ windowMs, max, clock = () => Date.now(), m
 
   return {
     windowMs, max,
-    /** Records a hit for key. Returns { limited, count, retryAfterSeconds }. A limited hit is not recorded. */
     hit(key) {
       const now = clock();
       let list = hits.get(key);
       if (!list) {
         if (hits.size >= maxKeys) {
-          // Bounded memory: drop entries whose windows have fully elapsed, then the oldest key.
+          // bound memory by dropping idle keys first then the oldest
           for (const [k, l] of hits) { prune(l, now); if (!l.length) hits.delete(k); }
           if (hits.size >= maxKeys) hits.delete(hits.keys().next().value);
         }
@@ -37,25 +32,18 @@ function createSlidingWindowLimiter({ windowMs, max, clock = () => Date.now(), m
   };
 }
 
-/**
- * Login throttle (FR-5, NFR-7):
- *  - per username: `maxFailures` failures within `windowMs` -> locked for `lockMs` (applies identically to
- *    unknown usernames, so lockout behaviour does not reveal which accounts exist)
- *  - per client: `perClientMax` attempts per `perClientWindowMs`
- */
 function createLoginThrottle({
   clock = () => Date.now(), maxFailures = 5, windowMs = 15 * 60 * 1000, lockMs = 15 * 60 * 1000,
   perClientMax = 20, perClientWindowMs = 60 * 1000,
 } = {}) {
-  const failures = new Map(); // usernameKey -> number[]
-  const locks = new Map(); // usernameKey -> lockedUntil ms
+  const failures = new Map();
+  const locks = new Map();
   const clientLimiter = createSlidingWindowLimiter({ windowMs: perClientWindowMs, max: perClientMax, clock });
   const keyOf = (username) => String(username || '').trim().toLowerCase().slice(0, 64);
 
   return {
     maxFailures, windowMs, lockMs,
     checkClient(clientId) { return clientLimiter.hit(clientId || 'unknown'); },
-    /** @param {string|null} persistedLockedUntil ISO from the users table (survives restarts) */
     lockStatus(username, persistedLockedUntil = null) {
       const now = clock();
       const key = keyOf(username);
@@ -66,7 +54,6 @@ function createLoginThrottle({
       if (locks.has(key)) locks.delete(key);
       return { locked: false, lockedUntil: null, retryAfterSeconds: 0 };
     },
-    /** Returns { failures, lockedNow, lockedUntil } */
     recordFailure(username) {
       const now = clock();
       const key = keyOf(username);

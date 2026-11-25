@@ -1,12 +1,4 @@
 'use strict';
-/**
- * Authorization matrix (contract §2 / §5.2): every endpoint × { anonymous, viewer, operator, admin }.
- *  - anonymous → 401 AUTH_REQUIRED on every non-public endpoint
- *  - role not allowed → generic 403 FORBIDDEN that leaks no record data, and an `auth.denied` audit event
- *  - role allowed → anything except 401/403 (bodies are chosen so destructive calls stop at 400/428)
- * Also: viewers only ever receive EventSummary objects.
- * Traceability: NFR-2 (least privilege), proposal "unauthorized viewer receives a generic denial … logged".
- */
 const { describe, it, before, after } = require('node:test');
 const assert = require('node:assert/strict');
 const { startStack, skipUnlessStack } = require('../helpers/stack');
@@ -29,7 +21,7 @@ describe('authorization matrix', { skip: skipUnlessStack() }, () => {
     ids.event = ev.id;
     ids.event2 = (await analyze(clients.operator, { path: '/search?q=hello' }, 'matrix benign')).id;
     const rules = await clients.admin.get('/api/rules');
-    ids.rule = (rules.body && rules.body.items && rules.body.items[0] && rules.body.items[0].id) || 942100; // placeholder if no rules loaded
+    ids.rule = (rules.body && rules.body.items && rules.body.items[0] && rules.body.items[0].id) || 942100;
     const ex = await clients.operator.post('/api/exceptions', { ruleId: Number((ev.decision.matches[0] && ev.decision.matches[0].ruleId) || ids.rule), scope: { pathPrefix: '/matrix', location: null, method: null }, reason: 'matrix' });
     ids.exception = ex.body && ex.body.exception && ex.body.exception.id;
     const users = await clients.admin.get('/api/users');
@@ -37,7 +29,7 @@ describe('authorization matrix', { skip: skipUnlessStack() }, () => {
   });
   after(async () => { if (stack) await stack.stop(); });
 
-  // [method, path(fn), allowedRoles, body(fn)]
+  // each row is method then path then allowed roles then body
   const endpoints = [
     ['GET', () => '/api/auth/me', ALL],
     ['GET', () => '/api/stats', ALL],

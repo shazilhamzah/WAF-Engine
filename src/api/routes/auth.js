@@ -1,7 +1,4 @@
 'use strict';
-/**
- * /api/auth/* and /api/health (contract §5.2).
- */
 const express = require('express');
 const { ApiError, rateLimited } = require('../errors');
 const { v, validate } = require('../validation');
@@ -25,7 +22,6 @@ function sessionUser(u) { return { id: u.id, username: u.username, role: u.role 
 
 function createAuthRouter({ db, sessions, throttle, audit, auth, version, clock }) {
   const router = express.Router();
-  // Wrong current-password attempts on the password-change endpoint (per user).
   const passwordChangeLimiter = createSlidingWindowLimiter({ windowMs: 15 * 60 * 1000, max: 5, clock });
 
   router.get('/health', (req, res) => {
@@ -36,7 +32,6 @@ function createAuthRouter({ db, sessions, throttle, audit, auth, version, clock 
     const { username, password } = validate(loginSchema, req.body);
     const attempted = username.trim().slice(0, 64);
 
-    // 1. per-client attempt limit (20/min)
     const client = throttle.checkClient(req.clientId);
     if (client.limited) {
       audit(req, 'auth.login.failure', { outcome: 'failure', targetType: 'user', details: { username: attempted, reason: 'client_rate_limited' }, actor: null });
@@ -44,14 +39,14 @@ function createAuthRouter({ db, sessions, throttle, audit, auth, version, clock 
     }
 
     const creds = db.users.findCredentials(attempted);
-    // 2. per-username lockout (5 failures / 15 min -> 15 min); unknown names are tracked identically
+    // unknown names are tracked the same way as real ones
     const lock = throttle.lockStatus(attempted, creds ? creds.user.lockedUntil : null);
     if (lock.locked) {
       audit(req, 'auth.login.failure', { outcome: 'failure', targetType: 'user', targetId: creds ? creds.user.id : null, details: { username: attempted, reason: 'locked' }, actor: null });
       throw rateLimited(lock.retryAfterSeconds, 'Too many failed attempts for this account. Please wait and try again.');
     }
 
-    // 3. credential check — same work and same answer for unknown user / wrong password / disabled
+    // same work and same answer for unknown user or wrong password
     let ok = false;
     if (creds && password.length <= MAX_LENGTH) ok = await verifyPassword(password, creds.passwordHash);
     else await dummyVerify(password);
@@ -68,7 +63,6 @@ function createAuthRouter({ db, sessions, throttle, audit, auth, version, clock 
       throw new ApiError('AUTH_INVALID');
     }
 
-    // 4. success: rotate (drop any session presented with the request), reset counters, new session
     if (req.sessionToken) sessions.destroy(req.sessionToken);
     sessions.purgeExpired();
     throttle.recordSuccess(attempted);
@@ -79,7 +73,7 @@ function createAuthRouter({ db, sessions, throttle, audit, auth, version, clock 
     res.status(200).json({ user: sessionUser(user), csrfToken: s.csrfToken, expiresAt: s.expiresAt });
   }));
 
-  // Logout is idempotent: 204 even without a valid session (CSRF still enforced when a session exists).
+  // logout works even without a valid session
   router.post('/auth/logout', (req, res) => {
     if (req.auth) {
       sessions.destroyByHash(req.auth.tokenHash);
@@ -110,7 +104,6 @@ function createAuthRouter({ db, sessions, throttle, audit, auth, version, clock 
     }
     passwordChangeLimiter.reset(user.id);
     db.users.setPasswordHash(user.id, await hashPassword(newPassword));
-    // Every session of this user (including this one) is invalidated; the client must sign in again.
     const revoked = sessions.destroyAllForUser(user.id);
     audit(req, 'auth.password.change', { targetType: 'user', targetId: user.id, details: { sessionsRevoked: revoked } });
     res.setHeader('Set-Cookie', serializeCookie('', { clear: true, secure: req.secure }));

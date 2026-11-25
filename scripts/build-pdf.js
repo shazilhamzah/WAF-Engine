@@ -1,26 +1,6 @@
 #!/usr/bin/env node
 'use strict';
-/**
- * Markdown → print-styled HTML → PDF (owner: Nufil). No new dependencies: `marked` (dev) + a locally
- * installed Chromium browser (Microsoft Edge or Google Chrome) in headless mode.
- *
- *   npm run docs:pdf                                   docs/final-report.md → docs/final-report.pdf
- *   node scripts/build-pdf.js docs/01-requirements.md  → docs/01-requirements.pdf (next to the source)
- *   node scripts/build-pdf.js a.md b.md --out-dir docs/pdf
- *   node scripts/build-pdf.js --all                    every docs/**.md → docs/pdf/<name>.pdf (+ the default)
- *   options: --out <file.pdf> (single input) · --browser <path> · --html-only · --no-toc · --keep-html
- *
- * What it does
- *  - renders Markdown with `marked` (GFM tables, fenced code), gives every heading a stable id and builds
- *    a linked table of contents from the H2/H3 headings;
- *  - inlines LOCAL images (SVG diagrams, PNG, JPG, GIF, WebP) as data: URIs so the PDF is self-contained;
- *  - applies a print stylesheet: A4, running header with the document title, "Page X of Y" footer
- *    (CSS @page margin boxes), no page breaks inside table rows / code blocks / figures;
- *  - writes the HTML to .tmp/pdf/ and prints it with
- *      <browser> --headless=new --disable-gpu --no-pdf-header-footer --print-to-pdf=<out> <file-url>
- *    using a throw-away profile in .tmp/ so an already-open browser is never touched.
- *  - The HTML has a CSP of default-src 'none' so the browser fetches nothing from the network.
- */
+
 const fs = require('node:fs');
 const path = require('node:path');
 const { pathToFileURL } = require('node:url');
@@ -50,7 +30,6 @@ function parseArgs(argv) {
   return a;
 }
 
-/** Finds Edge/Chrome/Chromium. */
 function findBrowser(explicit) {
   const candidates = [];
   if (explicit) candidates.push(explicit);
@@ -77,7 +56,7 @@ function escapeHtml(s) {
 }
 
 function cssString(s) {
-  // Value for a CSS string literal in @page margin boxes (Chrome does not support string-set/attr() there).
+  // page margin boxes need a css string literal because chrome lacks string set there
   return String(s).replace(/[\\"]/g, (c) => '\\' + c).replace(/[\r\n]/g, ' ').slice(0, 90);
 }
 
@@ -90,11 +69,10 @@ function slugify(text, used) {
   return slug;
 }
 
-/** Inlines local images referenced from the generated HTML as data URIs. */
 function inlineImages(html, baseDir) {
   return html.replace(/(<img\b[^>]*?\bsrc=")([^"]+)(")/gi, (all, pre, src, post) => {
     if (/^(data:|https?:|file:)/i.test(src)) {
-      if (/^https?:/i.test(src)) return `${pre}data:,${post} data-external="${escapeHtml(src)}"`; // never fetched
+      if (/^https?:/i.test(src)) return `${pre}data:,${post} data-external="${escapeHtml(src)}"`;
       return all;
     }
     const clean = decodeURIComponent(src.split('#')[0].split('?')[0]);
@@ -122,7 +100,7 @@ function renderMarkdown(md, baseDir) {
       link(token) {
         const text = this.parser.parseInline(token.tokens);
         let href = token.href || '';
-        // Links to other local Markdown docs cannot be followed inside a PDF: keep the text, show the target.
+        // links to other local markdown files cannot be followed in a pdf so show the target as text
         if (/^(?!https?:|mailto:|#)[^:]+\.md(#.*)?$/i.test(href)) return `<span class="xref">${text} <span class="xref-target">(${escapeHtml(href)})</span></span>`;
         if (href.startsWith('#')) href = '#' + slugify(href.slice(1).replace(/-/g, ' '), new Set());
         const title = token.title ? ` title="${escapeHtml(token.title)}"` : '';
@@ -132,11 +110,9 @@ function renderMarkdown(md, baseDir) {
   });
   let body = marked.parse(md);
   body = inlineImages(body, baseDir);
-  // Wide tables (7+ columns, e.g. the STRIDE table) get a compact style.
   body = body.replace(/<table>\s*<thead>\s*<tr>([\s\S]*?)<\/tr>/g, (m, head) => ((head.match(/<th[\s>]/g) || []).length >= 7 ? m.replace('<table>', '<table class="wide">') : m));
-  // Let long paths inside table cells break after "/" and before "." instead of mid-word.
+  // let long paths in table cells break after slashes and before dots
   body = body.replace(/<td>([\s\S]*?)<\/td>/g, (cell) => cell.replace(/<code>([^<]{14,})<\/code>/g, (c, inner) => '<code>' + inner.replace(/\//g, '/<wbr>').replace(/\.(?=[a-z])/g, '<wbr>.') + '</code>'));
-  // Keep short identifiers such as FR-1, NFR-10, T-final, TB2 on one line in narrow table columns.
   body = body.replace(/(<td>)([A-Z]{1,5}-[A-Za-z0-9]{1,6})(<\/td>)/g, (m, a, id, b) => a + id.replace('-', '&#8209;') + b);
   return { body, headings };
 }
@@ -218,8 +194,7 @@ ${body}
 }
 
 function printPdf(browser, htmlFile, pdfFile) {
-  // A reused profile can hand printing to an older Edge process and return before the file exists.
-  // Isolate each invocation from both previous builds and the user's browser session.
+  // a reused profile can hand printing to an older browser process and return before the file exists
   const profile = fs.mkdtempSync(path.join(ROOT, '.tmp', 'pdf-profile-'));
   fs.mkdirSync(path.dirname(pdfFile), { recursive: true });
   if (fs.existsSync(pdfFile)) fs.rmSync(pdfFile);
@@ -228,8 +203,7 @@ function printPdf(browser, htmlFile, pdfFile) {
     '--disable-background-networking', '--disable-sync', '--disable-component-update', '--run-all-compositor-stages-before-draw',
     pathToFileURL(htmlFile).href];
   const r = spawnSync(browser, args, { encoding: 'utf8', timeout: 180000, windowsHide: true });
-  // Some Windows browser launchers exit before their renderer finishes writing. Only accept a
-  // completed PDF, and allow a bounded grace period rather than reporting a false build failure.
+  // some windows launchers exit before the renderer finishes writing so wait for a complete pdf
   let complete = false;
   const deadline = Date.now() + 10000;
   do {
@@ -237,7 +211,7 @@ function printPdf(browser, htmlFile, pdfFile) {
       try {
         const bytes = fs.readFileSync(pdfFile);
         complete = bytes.subarray(0, 5).toString() === '%PDF-' && bytes.subarray(-1024).toString().includes('%%EOF');
-      } catch { /* renderer may still hold its output file */ }
+      } catch { }
     }
     if (!complete) Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, 100);
   } while (!complete && Date.now() < deadline);
@@ -254,7 +228,7 @@ function convert(input, outPdf, opts) {
   const md = fs.readFileSync(input, 'utf8');
   const h1 = /^#\s+(.+)$/m.exec(md);
   const title = h1 ? h1[1].replace(/[`*_]/g, '').trim() : path.basename(input, '.md');
-  // The cover page shows the title, so drop the first H1 from the body to avoid repeating it.
+  // drop the first heading from the body since the cover page shows the title
   const bodyMd = h1 ? md.replace(h1[0], '') : md;
   const { body, headings } = renderMarkdown(bodyMd, path.dirname(input));
   const generated = new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';

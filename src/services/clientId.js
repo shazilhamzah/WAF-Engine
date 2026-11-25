@@ -1,14 +1,10 @@
 'use strict';
-/**
- * Pseudonymous client identifier (contract §4.2): raw IPs are never stored.
- * clientId = 'c_' + HMAC-SHA256(secret, ip).hex.slice(0, 16)
- */
 const crypto = require('node:crypto');
 
 function normalizeIp(ip) {
   if (!ip) return 'unknown';
   const s = String(ip);
-  // Treat IPv4-mapped IPv6 addresses (::ffff:127.0.0.1) as their IPv4 form.
+  // treat ipv4 mapped ipv6 addresses as plain ipv4
   return s.startsWith('::ffff:') ? s.slice(7) : s;
 }
 
@@ -17,7 +13,6 @@ function clientIdFor(secret, ip) {
   return 'c_' + crypto.createHmac('sha256', String(secret)).update(normalizeIp(ip)).digest('hex').slice(0, 16);
 }
 
-/** Returns a memoising function ip -> clientId (bounded cache). */
 function createClientIdentifier(secret) {
   const cache = new Map();
   return function identify(ip) {

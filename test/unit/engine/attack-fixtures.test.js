@@ -1,5 +1,4 @@
 'use strict';
-// Protection expectations stay adverse even for known misses; evaluation must report those failures.
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const fs = require('node:fs');
@@ -45,7 +44,7 @@ test('bypass attempts preserve known limitations and never hide a new unlabelled
     const d = engine.inspect(fromSample(s.request), ctx());
     assert.ok(d.explanation.length > 0);
     if (d.verdict !== 'block') assert.ok(s.knownLimitation, `untriaged miss ${s.id}`);
-    // A later engine improvement may block a documented limitation; that is welcome.
+    // a later engine improvement may block a documented limitation and that is welcome
     assert.equal(s.expected.verdict, 'block');
   }
 });

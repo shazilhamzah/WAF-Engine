@@ -1,13 +1,4 @@
 'use strict';
-/**
- * Small declarative validator for request bodies and query strings (NFR-4: type, size, structure, fields).
- *
- *   const schema = v.object({ username: v.string({ min: 1, max: 64 }), role: v.enumOf(['admin', 'viewer']) });
- *   const body = validate(schema, req.body);           // throws ApiError VALIDATION_FAILED with details
- *
- * Objects are strict by default: unknown fields are rejected. Absent optional fields are omitted from the
- * result. Every schema returns a cleaned copy; the caller never touches the raw input again.
- */
 const { ApiError } = require('./errors');
 
 const ISO_RE = /^\d{4}-\d{2}-\d{2}(T\d{2}:\d{2}(:\d{2}(\.\d{1,3})?)?(Z|[+-]\d{2}:\d{2})?)?$/;
@@ -62,7 +53,6 @@ const v = {
       return value;
     }, opts);
   },
-  /** Integer; `coerce: true` accepts decimal strings (query parameters). */
   integer({ min = Number.MIN_SAFE_INTEGER, max = Number.MAX_SAFE_INTEGER, coerce = false, clamp = false, ...opts } = {}) {
     return make((value, path, errors) => {
       let n = value;
@@ -80,7 +70,6 @@ const v = {
       return value;
     }, opts);
   },
-  /** ISO-8601 date/time string; returns the normalized ISO string (UTC). */
   isoDate({ future = false, ...opts } = {}) {
     return make((value, path, errors) => {
       if (typeof value !== 'string' || value.length > 40 || !ISO_RE.test(value) || Number.isNaN(Date.parse(value))) {
@@ -99,7 +88,7 @@ const v = {
       for (const key of Object.keys(value)) {
         if (Object.prototype.hasOwnProperty.call(shape, key)) continue;
         if (allowUnknown) {
-          // Passed through untouched for a downstream validator (e.g. engine.validateConfig); block prototype keys.
+          // passed through untouched but prototype keys are blocked
           if (key !== '__proto__' && key !== 'constructor' && key !== 'prototype') out[key] = value[key];
         } else {
           errors.push({ field: path ? `${path}.${key}` : key, message: 'is not an allowed field' });
@@ -122,7 +111,6 @@ const v = {
       return out;
     }, opts);
   },
-  /** Map of string keys to values (e.g. headers). */
   record(valueSchema, { maxKeys = 50, keyPattern, keyMessage, lowerCaseKeys = false, ...opts } = {}) {
     return make((value, path, errors) => {
       if (typeof value !== 'object' || Array.isArray(value)) { errors.push({ field: path, message: `must be an object (got ${typeName(value)})` }); return SKIP; }
@@ -137,14 +125,9 @@ const v = {
       return out;
     }, opts);
   },
-  /** Accepts anything JSON (used only where a downstream validator — e.g. engine.validateConfig — checks it). */
   any(opts = {}) { return make((value) => value, opts); },
 };
 
-/**
- * Validates `input` against `schema`. Returns the cleaned value; throws ApiError(VALIDATION_FAILED).
- * @param {string} [root] field-name prefix ('' for bodies, 'query' for query strings)
- */
 function validate(schema, input, root = '') {
   const errors = [];
   const out = schema.run(input === undefined ? undefined : input, root, errors);
@@ -154,17 +137,13 @@ function validate(schema, input, root = '') {
   return out === SKIP ? undefined : out;
 }
 
-// ---------------------------------------------------------------------------------------------------------
-// Shared schemas (contract §5.2)
-// ---------------------------------------------------------------------------------------------------------
-
 const METHODS = Object.freeze(['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'HEAD', 'OPTIONS']);
 const ROLES = Object.freeze(['admin', 'operator', 'viewer']);
 const USERNAME_RE = /^[A-Za-z0-9_.-]{3,32}$/;
 const HEADER_NAME_RE = /^[A-Za-z0-9-]{1,64}$/;
 // eslint-disable-next-line no-control-regex
 const SAFE_PATH_RE = /^\/[^\u0000-\u001f\u007f\s]*$/;
-const SAMPLE_BODY_MAX = 1024 * 1024; // 1 MiB (characters; UTF-8 bytes are checked separately)
+const SAMPLE_BODY_MAX = 1024 * 1024;
 
 const sampleSchema = v.object({
   method: v.enumOf(METHODS),
@@ -173,7 +152,6 @@ const sampleSchema = v.object({
   body: v.string({ max: SAMPLE_BODY_MAX, nullable: true, default: null }),
 });
 
-/** Byte-size check for a sample body (≤ 1 MiB UTF-8). Returns problems as details. */
 function sampleSizeProblems(sample, prefix = 'sample') {
   if (typeof sample.body === 'string' && Buffer.byteLength(sample.body, 'utf8') > SAMPLE_BODY_MAX) {
     return [{ field: `${prefix}.body`, message: 'must be at most 1 MiB' }];

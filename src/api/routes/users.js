@@ -1,5 +1,4 @@
 'use strict';
-/** /api/users (admin only, contract §5.2). */
 const express = require('express');
 const { ApiError, notFound, conflict, confirmationRequired } = require('../errors');
 const { v, validate, ROLES, USERNAME_RE } = require('../validation');
@@ -64,10 +63,9 @@ function createUsersRouter({ db, sessions, throttle, audit, auth }) {
       const problems = checkPasswordPolicy(body.password, target.username);
       if (problems.length) throw policyError(problems);
     }
-    // Never leave the system without an active administrator.
     const losesAdmin = target.role === 'admin' && !target.disabled && ((changes.includes('role') && body.role !== 'admin') || changes.includes('disable'));
     if (losesAdmin && db.users.countActiveAdmins() <= 1) throw conflict('At least one active administrator must remain.');
-    // High-impact: role change or disabling requires confirmation (contract §2).
+    // role changes and disabling need confirmation
     if ((changes.includes('role') || changes.includes('disable')) && body.confirm !== true) throw confirmationRequired();
 
     const passwordHash = body.password !== undefined ? await hashPassword(body.password) : null;
@@ -77,8 +75,7 @@ function createUsersRouter({ db, sessions, throttle, audit, auth }) {
       if (passwordHash) db.users.setPasswordHash(target.id, passwordHash); // also clears lockout state
     });
     if (passwordHash || changes.includes('enable')) throttle.unlock(target.username);
-    // Disabling or resetting a password ends the user's sessions immediately; role changes apply on the next
-    // request anyway because roles are read from the users table for every request.
+    // role changes apply on the next request since roles are read every time
     let sessionsRevoked = 0;
     if (changes.includes('disable') || passwordHash) sessionsRevoked = sessions.destroyAllForUser(target.id);
     const updated = db.users.findById(target.id);

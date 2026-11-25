@@ -1,20 +1,4 @@
 'use strict';
-/**
- * Per-client sliding-window rate limiter (FR-5, pipeline step 5).
- *
- * Algorithm: a sliding *log* per client key. Each check prunes timestamps older than `windowMs`,
- * appends the current time and compares the count with `maxRequests` (the current request counts,
- * so request number maxRequests + 1 inside any window is limited). Limited requests are also
- * recorded, so a client that keeps flooding stays limited.
- *
- * Memory is bounded:
- *  - per key at most maxRequests + 1 timestamps are kept (older ones cannot change the outcome);
- *  - at most `maxKeys` keys are tracked; stale keys (no request inside the window) are swept at most
- *    once per window and whenever the table is full; if it is still full the least-recently-seen key
- *    is evicted (Map insertion order is refreshed on every access).
- *
- * The clock is injectable: check(key, now) uses `now` when it is a finite number.
- */
 
 const LIMITS = Object.freeze({ windowMs: [1000, 3600000], maxRequests: [1, 100000], maxKeys: [1, 1000000] });
 const DEFAULTS = Object.freeze({ windowMs: 60000, maxRequests: 300, maxKeys: 10000 });
@@ -56,16 +40,13 @@ function createRateLimiter(opts = {}) {
     return { windowMs, maxRequests, maxKeys };
   }
 
-  /**
-   * @returns {{ checked: true, limited: boolean, count: number, limit: number, windowMs: number, retryAfterSeconds: number }}
-   */
   function check(key, now) {
     const t = Number.isFinite(now) ? now : Date.now();
     const k = String(key === undefined || key === null || key === '' ? 'anonymous' : key).slice(0, 256);
     if (t - lastSweep >= windowMs || t < lastSweep) sweep(t);
     let b = buckets.get(k);
     if (b) {
-      buckets.delete(k); // refresh LRU position
+      buckets.delete(k); // refresh position so the oldest key is evicted first
     } else {
       b = { ts: [], head: 0 };
       if (buckets.size >= maxKeys) {

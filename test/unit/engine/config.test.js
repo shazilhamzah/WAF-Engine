@@ -1,5 +1,4 @@
 'use strict';
-// EngineConfig defaults and validation (contract §3.2).
 const { test } = require('node:test');
 const assert = require('node:assert/strict');
 const { engine } = require('./helpers');

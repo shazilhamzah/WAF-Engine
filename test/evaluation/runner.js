@@ -1,14 +1,4 @@
 'use strict';
-/**
- * Sends fixture samples THROUGH THE REAL WAF PROXY and turns each into an evaluation record:
- *   { id, description, input, expected, actual, evidence, pass, notes }
- *
- * Expected-verdict mapping (docs/test-plan.md §4):
- *   block → proxy answered with X-WAF-Action: blocked (HTTP 403; 400/413/429 accepted for parser/size/rate
- *           rejections and noted)
- *   allow → passed through to the target (X-WAF-Action: allowed) and the event verdict is `allow`
- *   flag  → passed through (not blocked) and the event verdict is `flag` (checked via the events API)
- */
 const fs = require('node:fs');
 const path = require('node:path');
 const { sanitize } = require('./stats');
@@ -17,7 +7,6 @@ const { waitFor } = require('../helpers/stack');
 const ROOT = path.resolve(__dirname, '..', '..');
 const FIXTURES = path.join(ROOT, 'fixtures');
 
-/** Loads a fixture file; returns null if missing (case reported as not-run). */
 function loadFixture(name) {
   const f = path.join(FIXTURES, name);
   if (!fs.existsSync(f)) return null;
@@ -27,7 +16,6 @@ function loadFixture(name) {
   return data;
 }
 
-/** Converts a fixture request into raw-request options (body objects → JSON). */
 function toRaw(request) {
   const headers = {};
   for (const [k, v] of Object.entries(request.headers || {})) headers[k.toLowerCase()] = String(v);
@@ -52,7 +40,6 @@ function describeInput(raw) {
   };
 }
 
-/** Fetches the stored event for evidence (admin client). */
 async function fetchEvent(admin, eventId) {
   if (!eventId) return null;
   return waitFor(async () => {
@@ -83,7 +70,6 @@ function evidenceOf(event) {
   };
 }
 
-/** Decides pass/fail for one sample. */
 function judge(expected, actual, evidence) {
   const exp = (expected && expected.verdict) || 'allow';
   const notes = [];
@@ -106,7 +92,6 @@ function judge(expected, actual, evidence) {
   return { pass, categoryHit, notes };
 }
 
-/** Runs one fixture sample through the proxy and returns the evaluation record. */
 async function runSample(stack, admin, sample) {
   const raw = toRaw(sample.request || sample);
   const res = await stack.proxy({ ...raw, headers: { 'user-agent': 'waf-studio-evaluate/1.0', ...raw.headers } });
