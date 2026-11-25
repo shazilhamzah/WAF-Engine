@@ -1,6 +1,6 @@
 # Fixtures — safe sample inputs (layer 5)
 
-Owner: Saad. Full description: [`docs/fixtures.md`](../docs/fixtures.md).
+Owner: Nufil. Full description: [`docs/fixtures.md`](../docs/fixtures.md).
 
 All fixtures are **synthetic**. Names, e-mail addresses (only `example.com/.net/.org`), passwords,
 tokens and session ids are invented for the lab and never belonged to a real person or system.

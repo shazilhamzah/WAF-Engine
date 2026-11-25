@@ -42,13 +42,13 @@ Other env vars: `TARGET_URL` (default `http://127.0.0.1:3001`), `WAF_DATA_DIR` (
 |---|---|---|---|
 | 1 | Browser interface (validated input, explainable output) | `public/` | Wahaj |
 | 2 | API / service layer (authn, authz, business rules, safe errors) | `src/api/`, `src/auth/`, `src/services/` | Shazil |
-| 3 | Security engine (detection + policy logic) | `src/engine/`, `src/rules/` | Saad |
+| 3 | Security engine (detection + policy logic) | `src/engine/`, `src/rules/` | Nufil |
 | 4 | Repository (records + append-only audit) | `src/db/` | Shazil |
-| 5 | Test fixtures (safe sample inputs) | `fixtures/` | Saad |
+| 5 | Test fixtures (safe sample inputs) | `fixtures/` | Nufil |
 | — | Reverse proxy data plane + bootstrap | `src/proxy/`, `src/index.js` | Shazil |
 | — | Reports (export) | `src/reports/` | Wahaj |
-| — | Vulnerable lab target | `target/` | Nufil |
-| — | Tests, evaluation, packaging | `test/`, `scripts/` | Nufil (+ each owner writes unit tests for own code) |
+| — | Vulnerable lab target | `target/` | Saad |
+| — | Tests, evaluation, packaging | `test/`, `scripts/` | Saad (+ each owner writes unit tests for own code) |
 
 Security logic never lives only in presentation code: the browser validates for usability, the server
 re-validates everything, and every decision is made by `src/engine`.
@@ -90,7 +90,7 @@ High-impact actions (mode change, threshold change, disabling/deleting a rule, a
 exception, disabling a user, changing a role) require `"confirm": true` in the body; otherwise
 `428 CONFIRMATION_REQUIRED`.
 
-## 3. Engine module interface (`src/engine/index.js`, owner Saad)
+## 3. Engine module interface (`src/engine/index.js`, owner Nufil)
 
 All functions are synchronous, pure where possible, have no DB or network access, and are independently testable.
 
@@ -207,7 +207,7 @@ A match is suppressed when `ruleId` equals the match rule id AND every non-null 
 }
 ```
 
-### 3.7 Rule DSL (summary — full grammar in `docs/rule-dsl.md`, owner Saad)
+### 3.7 Rule DSL (summary — full grammar in `docs/rule-dsl.md`, owner Nufil)
 
 One rule per record; a `.rules` file may hold many.
 
@@ -224,7 +224,7 @@ rule 942100 "SQLi boolean tautology" {
 
 Rule ids are integers 1000–999999. Targets, operators (`matches`, `contains`, `equals`, `startswith`,
 `endswith`, `in`, `gt`, `lt`, …), `and`/`or`/`not` combinators and validation rules (including ReDoS
-guarding of regexes) are defined by Saad in `docs/rule-dsl.md`.
+guarding of regexes) are defined by Nufil in `docs/rule-dsl.md`.
 
 ## 4. Data model (SQLite via built-in `node:sqlite`, owner Shazil)
 
@@ -364,7 +364,7 @@ Viewers only ever receive EventSummary objects.
 5. Target unavailable → `502` safe page, `system.error` audit event.
 6. Proxy-level rules, config and exceptions are reloaded immediately after any change made through the API (`services/engineState.js`).
 
-## 7. Vulnerable target (owner Nufil)
+## 7. Vulnerable target (owner Saad)
 
 `target/app.js` exports `createTargetApp()` (Express app); `target/server.js` starts it standalone.
 Deliberately vulnerable **only within its own sandbox**: reflected/stored XSS, SQL injection against an
@@ -383,22 +383,22 @@ Route `src/api/routes/reports.js` is owned by Wahaj and mounted by Shazil's rout
 
 ```
 package.json, package-lock.json, .gitignore ............ master (do not edit; ask master for deps)
-README.md ............................................... Nufil
+README.md ............................................... Saad
 src/index.js, src/config.js ............................. Shazil
 src/db/**, src/auth/**, src/services/**, src/proxy/** .... Shazil
 src/api/** (except routes/reports.js) ................... Shazil
 src/api/routes/reports.js, src/reports/** ............... Wahaj
-src/engine/**, src/rules/** ............................. Saad
-fixtures/** ............................................. Saad
+src/engine/**, src/rules/** ............................. Nufil
+fixtures/** ............................................. Nufil
 public/** ............................................... Wahaj
-target/** ............................................... Nufil
+target/** ............................................... Saad
 scripts/setup.js, scripts/reset.js ...................... Shazil (seeding users, default rules, default config)
-scripts/** (all other scripts) .......................... Nufil
-docs/diagrams/** ........................................ Nufil (DFD) and master (architecture)
-test/unit/engine/** ..................................... Saad
+scripts/** (all other scripts) .......................... Saad
+docs/diagrams/** ........................................ Saad (DFD) and master (architecture)
+test/unit/engine/** ..................................... Nufil
 test/unit/{db,auth,api}/** .............................. Shazil
 test/unit/reports/**, test/unit/ui/** ................... Wahaj
-test/integration/**, test/security/**, test/evaluation/** Nufil
+test/integration/**, test/security/**, test/evaluation/** Saad
 docs/progress/<member>.md ............................... each member
 ```
 

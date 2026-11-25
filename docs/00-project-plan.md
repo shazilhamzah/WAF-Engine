@@ -14,9 +14,9 @@ test application. It must be a working, locally demonstrable security system wit
 | Member | Proposal role | Owns |
 |---|---|---|
 | **Shazil** | A — backend / data / authentication | SQLite repository layer, append-only audit store, auth (password hashing, sessions, CSRF, lockout), API/service layer, WAF reverse proxy, process bootstrap, data model + API docs |
-| **Saad** | B — security engine / evaluation fixtures | Request parser, Rule DSL (lexer/parser/validator/compiler), scoring, block/monitor modes, rate limiter, exception matching, redaction, default rule set, safe sample fixtures, engine unit tests, DSL + engine docs |
+| **Nufil** | B — security engine / evaluation fixtures | Request parser, Rule DSL (lexer/parser/validator/compiler), scoring, block/monitor modes, rate limiter, exception matching, redaction, default rule set, safe sample fixtures, engine unit tests, DSL + engine docs |
 | **Wahaj** | C — frontend / reporting / integration | Responsive accessible web console (dashboard, analyze, history/compare, evidence view, rules editor, config, exceptions workflow, audit console, users), report export (JSON/CSV/HTML), wireframes, user + admin guides |
-| **Nufil** | D — automation / security testing / packaging / QA | Deliberately vulnerable target app, integration + security tests, evaluation harness (T1–T6, T-final), latency benchmark, setup/reset/check scripts, PDF build, threat model, test plan/results, limitations & ethics, setup guide |
+| **Saad** | D — automation / security testing / packaging / QA | Deliberately vulnerable target app, integration + security tests, evaluation harness (T1–T6, T-final), latency benchmark, setup/reset/check scripts, PDF build, threat model, test plan/results, limitations & ethics, setup guide |
 | **Master** (integration lead) | — | Contracts, integration, traceability matrix, final report, progress tracking |
 
 Everyone must understand the full system; each member's docs explain their part for the others.
@@ -52,6 +52,6 @@ Everyone must understand the full system; each member's docs explain their part 
    requires ("define … before building screens").
 2. The four members built their areas in parallel against that contract, committing in small steps.
 3. The master integrated, ran the full test suite, and resolved cross-module defects.
-4. Nufil supplied the phase-1 harness and handover; integration continued with the missing adverse fixtures, final measured evaluation, final report and traceability matrix. See `docs/PROGRESS.md` for the handover boundary.
+4. Saad supplied the phase-1 harness and handover; integration continued with the missing adverse fixtures, final measured evaluation, final report and traceability matrix. See `docs/PROGRESS.md` for the handover boundary.
 
 Progress is tracked in `docs/PROGRESS.md` (master) and `docs/progress/<member>.md` (per member).

@@ -1,13 +1,13 @@
 # Progress Log (master)
 
-Per-member detail: `docs/progress/shazil.md`, `docs/progress/saad.md`, `docs/progress/wahaj.md`, `docs/progress/nufil.md`.
+Per-member detail: `docs/progress/shazil.md`, `docs/progress/nufil.md`, `docs/progress/wahaj.md`, `docs/progress/saad.md`.
 
 | Date | Who | Entry |
 |---|---|---|
-| 2026-10-19 | Master | Read Proposal 44; fixed role allocation (Shazil=A, Saad=B, Wahaj=C, Nufil=D) |
+| 2026-10-19 | Master | Read Proposal 44; fixed role allocation (Shazil=A, Nufil=B, Wahaj=C, Saad=D) |
 | 2026-10-19 | Master | Scaffolded project: `package.json` (express 4.22.3, http-proxy 1.18.1; marked for PDF build), `.gitignore`; `npm audit` = 0 vulnerabilities |
 | 2026-10-19 | Master | Wrote `docs/00-project-plan.md`, `docs/01-requirements.md`, `docs/02-architecture.md` (integration contract) |
-| 2026-10-19 | Claude workstreams | Backend (Shazil), console/reports (Wahaj), and target/testing phase 1 (Nufil) handed back. The first Saad task stopped without implementation; the replacement built the engine/rules/tests/docs before hitting the session limit at 23:34 local time. Logs are the evidence for this handover boundary; old per-member notes remain historical. |
+| 2026-10-19 | Claude workstreams | Backend (Shazil), console/reports (Wahaj), and target/testing phase 1 (Saad) handed back. The engine workstream (Nufil, B) was also done with Claude's help: the first attempt stopped without implementation, and a second attempt built the engine/rules/tests/docs before hitting the session limit at 23:34 local time. Logs are the evidence for this handover boundary; old per-member notes remain historical. |
 | 2026-10-20 | Integration continuation | Verified current tree before finishing: 728/728 tests pass. Claude's last 559/560 summary was stale; rule 930105 and the parser variant test were already fixed. |
 | 2026-10-20 | Integration continuation | Added deterministic T1 (28), T2 (20), T5 (18), adverse corpus (80), generator and 51 fixture regression tests. Preserved the expected block verdict for all bypass misses. No engine, proxy, authentication or UI runtime rewrite. |
 | 2026-10-20 | Integration continuation | Final full evaluation: T1 28/28, T2 20/20, T3 38/38, T4 6/6, T5 12/18, T6 2/2, T-final 11/11; total 117/123. Corpus: TP76/TN68/FP0/FN4, recall 95%, engine decision p95 0.476 ms. Six failed T5 expectations explicitly documented. |

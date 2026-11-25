@@ -1,6 +1,6 @@
 # WAF Studio — Test Plan
 
-> Owner: Nufil (member D: automation, security testing, packaging, QA).
+> Owner: Saad (member D: automation, security testing, packaging, QA).
 > Objective OBJ-4: "Measure effectiveness with repeatable positive, negative, edge-case, and misuse tests."
 > Results: [`test-results.md`](test-results.md) and the generated [`evaluation/results.md`](evaluation/results.md).
 
@@ -27,14 +27,14 @@
 
 | Level | Location | Owner | What it covers | Runner |
 |---|---|---|---|---|
-| Unit — engine | `test/unit/engine/` | Saad | Parser/normalisation, DSL compile + validation (line/col errors, ReDoS guard), scoring, modes, rate limiter, exceptions, redaction | `npm run test:unit` |
+| Unit — engine | `test/unit/engine/` | Nufil | Parser/normalisation, DSL compile + validation (line/col errors, ReDoS guard), scoring, modes, rate limiter, exceptions, redaction | `npm run test:unit` |
 | Unit — backend | `test/unit/{db,auth,api}/` | Shazil | Repositories, audit chain, password hashing, sessions, CSRF/role middleware, API validation | `npm run test:unit` |
 | Unit — UI / reports | `test/unit/{ui,reports}/` | Wahaj | DOM helpers (no `innerHTML`), formatting, export sanitisation | `npm run test:unit` |
-| Integration | `test/integration/` | Nufil | Proposal workflow end to end, reverse proxy behaviour, exception workflow, vulnerable target | `npm run test:integration` |
-| Security | `test/security/` | Nufil | Authorization matrix, CSRF/sessions, lockout, injection/XSS/CSV, safe errors + headers, secrets, audit integrity, import validation | `npm run test:security` |
-| Evaluation | `scripts/evaluate.js` (+ `test/evaluation/`) | Nufil | Mandatory cases T1–T6, T-final, corpus coverage/FP/FN/precision/recall/latency | `npm run evaluate` |
-| Performance | `scripts/bench-latency.js` | Nufil | T6 latency overhead stand-alone | `npm run bench` |
-| Acceptance gate | `scripts/check.js` | Nufil | All tests, pass-rate ≥ 80 %, `npm audit --omit=dev` | `npm run check` |
+| Integration | `test/integration/` | Saad | Proposal workflow end to end, reverse proxy behaviour, exception workflow, vulnerable target | `npm run test:integration` |
+| Security | `test/security/` | Saad | Authorization matrix, CSRF/sessions, lockout, injection/XSS/CSV, safe errors + headers, secrets, audit integrity, import validation | `npm run test:security` |
+| Evaluation | `scripts/evaluate.js` (+ `test/evaluation/`) | Saad | Mandatory cases T1–T6, T-final, corpus coverage/FP/FN/precision/recall/latency | `npm run evaluate` |
+| Performance | `scripts/bench-latency.js` | Saad | T6 latency overhead stand-alone | `npm run bench` |
+| Acceptance gate | `scripts/check.js` | Saad | All tests, pass-rate ≥ 80 %, `npm audit --omit=dev` | `npm run check` |
 
 ## 3. Environments
 
@@ -63,7 +63,7 @@ Expected-verdict mapping used by the harness (`test/evaluation/runner.js`):
 | **T2** Encoding variants | `fixtures/t2-encoding.json` — URL, double and triple URL encoding, `%u` / overlong UTF-8, HTML entities, Unicode full-width, mixed case, null bytes | Decoded and detected (`block`/`flag`), or anomaly recorded | As T1 plus `decodedVia` normalisation chain and anomalies (e.g. `DOUBLE_ENCODING`) | Expected verdict met; evidence shows which decoding revealed the payload |
 | **T3** Benign false positives | `fixtures/t3-benign.json` — legitimate inputs that *look* suspicious (names like O'Brien, "select a size", SQL tutorials in comments, `<3`, file names with dots) | `allow` | Verdict, score, any matched rules | Every benign sample allowed; flags reported as soft FPs |
 | **T4** Large bodies | Generated with `fixtures/large-body.js` `makeLargeBody(bytes, {payload, position})`: 10 KB benign, 60 KB benign, 200 KB with payload **beyond** the 64 KB inspection window, 200 KB with payload at the start, 2 MB, exactly `maxBodyBytes` | 10/60 KB forwarded intact; 200 KB-late → forwarded with `BODY_PARTIALLY_INSPECTED` anomaly (documented limitation); 200 KB-early → 403; 2 MB → 413 `BODY_TOO_LARGE` before rules; boundary not rejected for size | Target echo byte count, `request.truncated`, anomalies, blockReason | Each sub-case as stated |
-| **T5** Bypass attempts | `fixtures/t5-bypass.json` — comment-splitting (`UN/**/ION`), whitespace alternatives, case games, concatenation, HTTP parameter pollution, JSON-body smuggling, uncommon methods/headers | `block`/`flag` as labelled by Saad; known misses labelled honestly | As T1 | Expected verdict met; misses become documented limitations |
+| **T5** Bypass attempts | `fixtures/t5-bypass.json` — comment-splitting (`UN/**/ION`), whitespace alternatives, case games, concatenation, HTTP parameter pollution, JSON-body smuggling, uncommon methods/headers | `block`/`flag` as labelled by Nufil; known misses labelled honestly | As T1 | Expected verdict met; misses become documented limitations |
 | **T6** Latency overhead | N ≥ 300 interleaved request pairs (direct to target vs. via WAF) per scenario after 30 warm-up pairs: `GET /search?q=mug`, `POST /api/echo` 2 KB form; keep-alive, one socket per side | Overhead small enough for interactive use | mean / p50 / p95 / p99 for both sides and the difference | **p95 overhead < 25 ms** on localhost and zero proxy errors |
 | **T-final** | TF-01 5000-char URL via proxy · TF-02 malformed percent-encoding · TF-03 malformed JSON to API · TF-04 2.5 MB JSON to API · TF-05 anonymous record request · TF-06 viewer requests evidence · TF-07 viewer config change · TF-08 15 rapid requests with limit 10/min · TF-09 7 wrong passwords then the right one · TF-10 target stopped · TF-11 stop whole stack, restart on the same DB | 400 MALFORMED_REQUEST · safe non-5xx · 400 MALFORMED_JSON · 413 · 401 · generic 403 + `auth.denied` · 403 · 10 × 200 then 429 `RATE_LIMITED` · 401 × 5 then 429 (even correct password) + `auth.lockout` · safe 502 + studio healthy + `system.error` · rules/config/events/audit persisted, chain verifies, WAF enforcing | Status codes, error codes, audit entries, event evidence, before/after counts, `/api/audit/verify` | Each check as stated |
 
