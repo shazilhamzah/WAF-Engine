@@ -2,6 +2,7 @@ import { h, s, mount, clear, uid, code } from './dom.js';
 import { verdictInfo, actionInfo, severityInfo, statusInfo, modeInfo, formatNumber } from './lib/format.js';
 import { eventOutcome } from './lib/dashboard.js';
 import { rolesForRoute } from './lib/roles.js';
+import { pageInfo } from './lib/query.js';
 import { icon } from './icons.js';
 
 export function badge(text, tone, extraClass) {
@@ -209,14 +210,14 @@ export function table({ caption, columns, rows, empty = 'No records.', className
 }
 
 export function pagination({ total, limit, offset, onPage }) {
-  const pages = Math.max(1, Math.ceil((total || 0) / limit));
-  const page = Math.floor(offset / limit) + 1;
-  const from = total ? offset + 1 : 0;
-  const to = Math.min(offset + limit, total || 0);
+  const p = pageInfo(total, limit, offset);
+  const info = p.beyond
+    ? `Past the last page · ${formatNumber(p.total)} in total`
+    : `${formatNumber(p.from)}–${formatNumber(p.to)} of ${formatNumber(p.total)} · page ${p.page} / ${p.pages}`;
   return h('nav', { class: 'pager', 'aria-label': 'Pagination' },
-    h('button', { type: 'button', class: 'btn btn-small', disabled: page <= 1, on: { click: () => onPage(Math.max(0, offset - limit)) } }, icon('chevron-left'), 'Previous'),
-    h('span', { class: 'pager-info' }, `${formatNumber(from)}–${formatNumber(to)} of ${formatNumber(total || 0)} · page ${page} / ${pages}`),
-    h('button', { type: 'button', class: 'btn btn-small', disabled: page >= pages, on: { click: () => onPage(offset + limit) } }, 'Next', icon('chevron-right')));
+    h('button', { type: 'button', class: 'btn btn-small', disabled: !p.hasPrev, on: { click: () => onPage(p.prevOffset) } }, icon('chevron-left'), p.beyond ? 'Last page' : 'Previous'),
+    h('span', { class: 'pager-info' }, info),
+    h('button', { type: 'button', class: 'btn btn-small', disabled: !p.hasNext, on: { click: () => onPage(p.nextOffset) } }, 'Next', icon('chevron-right')));
 }
 
 export function field(label, control, hint) {

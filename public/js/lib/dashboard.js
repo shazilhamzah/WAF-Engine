@@ -26,3 +26,14 @@ export const CATEGORY_NAMES = {
 };
 
 export const SOURCE_NAMES = { proxy: 'Proxy traffic', console: 'Manual analysis', import: 'Imported sample', replay: 'Replay' };
+
+const REPLAYABLE_SOURCES = new Set(['console', 'import', 'replay']);
+
+// why an event cannot be replayed, or null when it can; shown as text because a disabled button hides its tooltip from keyboard and touch users
+export function replayUnavailableReason(event) {
+  if (!event) return 'This event cannot be replayed.';
+  if (event.source === 'proxy') return 'Proxy events cannot be replayed because their request bodies are not stored.';
+  if (!REPLAYABLE_SOURCES.has(event.source)) return 'This event cannot be replayed.';
+  if (event.sample === null) return 'This event has no stored sample to replay.';
+  return null;
+}

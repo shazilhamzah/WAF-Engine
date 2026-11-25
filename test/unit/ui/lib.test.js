@@ -120,6 +120,46 @@ test('query: hash parsing and query building', async () => {
   assert.deepEqual(q.parseIdList('evt_1, evt_2  evt_1;evt_3'), ['evt_1', 'evt_2', 'evt_3']);
 });
 
+test('query: paging info stays sensible for empty lists and offsets past the end', async () => {
+  const { pageInfo } = await load('query');
+  assert.deepEqual(pageInfo(0, 50, 0), {
+    pages: 1, page: 1, from: 0, to: 0, total: 0, beyond: false, hasPrev: false, prevOffset: 0, hasNext: false, nextOffset: 50,
+  });
+  const first = pageInfo(120, 50, 0);
+  assert.equal(first.from, 1); assert.equal(first.to, 50); assert.equal(first.page, 1); assert.equal(first.pages, 3);
+  assert.equal(first.hasPrev, false); assert.equal(first.hasNext, true); assert.equal(first.nextOffset, 50);
+  const last = pageInfo(120, 50, 100);
+  assert.equal(last.from, 101); assert.equal(last.to, 120); assert.equal(last.page, 3);
+  assert.equal(last.hasNext, false); assert.equal(last.prevOffset, 50);
+  // a stale bookmark (#/events?offset=999 after a reset) used to read "1,000–23 of 23 · page 20 / 1"
+  const past = pageInfo(23, 50, 999);
+  assert.equal(past.beyond, true);
+  assert.equal(past.page, null);
+  assert.equal(past.from, 0); assert.equal(past.to, 0);
+  assert.equal(past.hasNext, false);
+  assert.equal(past.hasPrev, true);
+  assert.equal(past.prevOffset, 0, 'Previous jumps back to the last real page');
+  assert.equal(pageInfo(230, 50, 400).prevOffset, 200);
+  assert.equal(pageInfo(0, 50, 100).beyond, true, 'an empty result with an offset is also past the end');
+  // an unaligned offset can still go back to the start
+  const odd = pageInfo(120, 50, 10);
+  assert.equal(odd.hasPrev, true); assert.equal(odd.prevOffset, 0); assert.equal(odd.from, 11);
+  // junk input from the address bar never yields NaN
+  const junk = pageInfo('x', 0, -5);
+  assert.equal(junk.pages, 1); assert.equal(junk.from, 0); assert.equal(junk.beyond, false);
+});
+
+test('dashboard: replay availability is explained in words', async () => {
+  const { replayUnavailableReason } = await load('dashboard');
+  assert.equal(replayUnavailableReason({ source: 'console', sample: { method: 'GET', path: '/' } }), null);
+  assert.equal(replayUnavailableReason({ source: 'import', sample: { method: 'GET', path: '/' } }), null);
+  assert.equal(replayUnavailableReason({ source: 'replay', sample: { method: 'GET', path: '/' } }), null);
+  assert.match(replayUnavailableReason({ source: 'proxy', sample: null }), /request bodies are not stored/);
+  assert.match(replayUnavailableReason({ source: 'console', sample: null }), /no stored sample/);
+  assert.match(replayUnavailableReason({ source: 'other', sample: {} }), /cannot be replayed/);
+  assert.match(replayUnavailableReason(null), /cannot be replayed/);
+});
+
 test('samples: built-in examples are valid; validation mirrors the server Sample schema', async () => {
   const s = await load('samples');
   for (const ex of s.EXAMPLES) assert.deepEqual(s.validateSample(ex.sample), [], ex.key);

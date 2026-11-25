@@ -44,3 +44,25 @@ export function parseIdList(text) {
   }
   return out;
 }
+
+// paging state for a list; an offset past the end (stale bookmark, data reset) points back to the last real page
+export function pageInfo(total, limit, offset) {
+  const count = Math.max(0, Math.floor(Number(total)) || 0);
+  const size = Math.max(1, Math.floor(Number(limit)) || 1);
+  const start = Math.max(0, Math.floor(Number(offset)) || 0);
+  const pages = Math.max(1, Math.ceil(count / size));
+  const lastOffset = (pages - 1) * size;
+  const beyond = start > 0 && start >= count;
+  return {
+    pages,
+    page: beyond ? null : Math.floor(start / size) + 1,
+    from: beyond || !count ? 0 : start + 1,
+    to: beyond ? 0 : Math.min(start + size, count),
+    total: count,
+    beyond,
+    hasPrev: start > 0,
+    prevOffset: beyond ? lastOffset : Math.max(0, start - size),
+    hasNext: !beyond && start + size < count,
+    nextOffset: start + size,
+  };
+}

@@ -1,6 +1,6 @@
 import { h, mount, code } from '../dom.js';
 import { api } from '../api.js';
-import { hashFor, buildQuery } from '../lib/query.js';
+import { hashFor, buildQuery, pageInfo } from '../lib/query.js';
 import { swr } from '../cache.js';
 import { formatTs, formatNumber, truncate, prettyJson, dateInputToIso } from '../lib/format.js';
 import { pageHeader, card, field, select, table, pagination, statusBadge, skeletonTable, errorPanel, busy, message, staleWarning } from '../ui.js';
@@ -83,7 +83,7 @@ function paintAudit(results, res, ctx, filters, offset) {
       caption: 'Audit records',
       columns: COLUMNS,
       rows: res.items || [],
-      empty: 'No audit records match these filters.',
+      empty: pageInfo(res.total, PAGE, offset).beyond ? 'This page is past the end of the results.' : 'No audit records match these filters.',
     }),
     pagination({ total: res.total || 0, limit: PAGE, offset, onPage: (o) => ctx.navigate(hashFor('/audit', { ...filters(), offset: o || '' })) }));
 }
