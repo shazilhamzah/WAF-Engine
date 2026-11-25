@@ -1,0 +1,632 @@
+{
+  "case": "T3",
+  "title": "Benign false-positive probes",
+  "description": "Ordinary, synthetic inputs that look a little like attacks (apostrophes, ampersands, SQL/HTML words, symbols, markdown, code, non-ASCII). Every sample must be allowed with the default rules and configuration. All names, e-mails and credentials are fictitious.",
+  "samples": [
+    {
+      "id": "T3-01",
+      "description": "Surname with an apostrophe in a search",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=O'Brien",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-02",
+      "description": "Possessive business name with apostrophe and ampersand",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=D'Angelo's%20Pizza%20%26%20Pasta",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-03",
+      "description": "Ampersand between two words (cartoon title)",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=Tom%20%26%20Jerry",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-04",
+      "description": "English phrase containing the SQL keyword \"select\"",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=select%20a%20size",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-05",
+      "description": "Arithmetic with plus and equals signs",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%2B1%3D2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-06",
+      "description": "Heart emoticon with a less-than sign in a comment",
+      "request": {
+        "method": "POST",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "author=Sam&text=I+%3C3+cats"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-07",
+      "description": "Markdown formatting (bold, link, inline code) in a JSON comment",
+      "request": {
+        "method": "POST",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"author\":\"dev_jo\",\"text\":\"**Tip:** run `npm test` before pushing. Docs: [guide](https://example.com/guide)\"}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-08",
+      "description": "E-mail address with a plus tag in a newsletter form",
+      "request": {
+        "method": "POST",
+        "path": "/newsletter",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "email=alice.smith%2Bnews%40example.com"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-09",
+      "description": "Place name containing the SQL keyword \"union\"",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=union%20station%20parking",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-10",
+      "description": "Business term containing the SQL keyword \"drop\"",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=drop%20shipping%20suppliers",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-11",
+      "description": "Hobby phrase containing the word \"script\"",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=script%20writing%20workshop",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-12",
+      "description": "Sentence with apostrophes and a semicolon",
+      "request": {
+        "method": "POST",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "author=Lee&text=It's+5+o'clock%3B+let's+go"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-13",
+      "description": "Shopping list with ampersand, semicolon and the word \"cat\"",
+      "request": {
+        "method": "POST",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "author=Kim&text=fish+%26+chips%3B+cat+food%3B+milk"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-14",
+      "description": "Word \"sleep\" followed by parentheses",
+      "request": {
+        "method": "POST",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "author=Ana&text=Remember+to+sleep+(8+hours)+before+the+exam"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-15",
+      "description": "Book title starting with \"javascript:\"",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=javascript%3A%20the%20good%20parts",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-16",
+      "description": "Phrase \"expression (\" from a regex tutorial",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=regular%20expression%20(regex)%20tutorial",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-17",
+      "description": "Windows file path with backslashes in a form field",
+      "request": {
+        "method": "POST",
+        "path": "/support",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "attachment=C%3A%5CProgram+Files%5CApp%5Creadme.txt&note=see+attached"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-18",
+      "description": "Quoted contraction",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=rock%20'n'%20roll%20classics",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-19",
+      "description": "Percent sign, correctly encoded",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=what%20is%2050%25%20of%2080",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-20",
+      "description": "JSON value containing escaped double quotes",
+      "request": {
+        "method": "POST",
+        "path": "/api/notes",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"title\":\"He said \\\"hello\\\" and left\",\"tags\":[\"quote\",\"story\"]}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-21",
+      "description": "SQL tutorial words in a search box",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=SELECT%20*%20FROM%20menu%20tutorial",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-22",
+      "description": "Q&A heading with question mark",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=Q%26A%3A%20why%20is%20the%20sky%20blue%3F",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-23",
+      "description": "Comparison words and symbols in a price filter",
+      "request": {
+        "method": "GET",
+        "path": "/products?filter=price%20%3C%20100%20and%20%3E%2050",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-24",
+      "description": "Python code snippet with semicolon",
+      "request": {
+        "method": "POST",
+        "path": "/api/snippets",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"language\":\"python\",\"code\":\"x = y + 1; print(x)\"}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-25",
+      "description": "Accented and CJK characters",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=na%C3%AFve%20caf%C3%A9%20r%C3%A9sum%C3%A9%20%E5%8C%97%E4%BA%AC",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-26",
+      "description": "Company name with ampersand and vertical bar",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=Johnson%20%26%20Johnson%20%7C%20Pharma",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-27",
+      "description": "Words \"and\" and \"=\" in a plain sentence",
+      "request": {
+        "method": "POST",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "author=Raj&text=cats+and+dogs+%3D+pets"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-28",
+      "description": "Simple HTML bold markup in a comment",
+      "request": {
+        "method": "POST",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "author=Mia&text=%3Cb%3Ebold%3C%2Fb%3E+text+is+fine"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-29",
+      "description": "Hashtag and mention",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%23hashtag%20%40mention",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-30",
+      "description": "Sort parameters named order/sort",
+      "request": {
+        "method": "GET",
+        "path": "/products?sort=price&order=desc&page=2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-31",
+      "description": "Encoded slashes in a redirect parameter",
+      "request": {
+        "method": "GET",
+        "path": "/login?next=%2Faccount%2Fsettings%3Ftab%3Dprofile",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-32",
+      "description": "Ellipsis and question mark",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=wait...%20what%3F",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-33",
+      "description": "International phone number with plus and parentheses",
+      "request": {
+        "method": "POST",
+        "path": "/contact",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "name=Test+User&phone=%2B1+(555)+010-0100"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-34",
+      "description": "Password with special characters in a login form (fake credentials)",
+      "request": {
+        "method": "POST",
+        "path": "/login",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "username=demo.user&password=Tr0ub4dor%263!%23x"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-35",
+      "description": "UTF-8 encoded accented path segment",
+      "request": {
+        "method": "GET",
+        "path": "/products/caf%C3%A9-latte",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-36",
+      "description": "Ctrl+Alt+Del text with plus signs",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=Ctrl%2BAlt%2BDel%20not%20working",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-37",
+      "description": "A/B testing with vertical bar",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=A%2FB%20testing%20%7C%20results",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "T3-38",
+      "description": "Relative time words \"drop by\" and \"select\"",
+      "request": {
+        "method": "POST",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "author=Zoe&text=Drop+by+later+and+select+your+seat"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    }
+  ]
+}

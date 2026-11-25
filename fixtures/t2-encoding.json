@@ -1,0 +1,367 @@
+{
+  "case": "T2",
+  "title": "Encoding and normalization variants",
+  "description": "URL, repeated URL, %u, entities, case, NFKC, null/invisible characters, SQL comments, backslashes and malformed UTF-8.",
+  "samples": [
+    {
+      "id": "T2-01",
+      "description": "Percent-encoded SQLi",
+      "request": {
+        "method": "GET",
+        "path": "/search?q='%20OR%201%3D1--",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T2-02",
+      "description": "Double URL encoding",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%253Cscript%253Ealert(1)%253C%252Fscript%253E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T2-03",
+      "description": "Triple URL encoding",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%25253Cscript%25253Ealert(1)%25253C%25252Fscript%25253E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T2-04",
+      "description": "IIS-style %u escapes",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%u003cscript%u003ealert(1)%u003c%u002fscript%u003e",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T2-05",
+      "description": "Named HTML entities",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%26lt%3Bscript%26gt%3Balert(1)%26lt%3B%2Fscript%26gt%3B",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T2-06",
+      "description": "Decimal HTML entities",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%26%2360%3Bscript%26%2362%3Balert(1)%26%2360%3B%2Fscript%26%2362%3B",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T2-07",
+      "description": "Hexadecimal HTML entities",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%26%23x3c%3Bscript%26%23x3e%3Balert(1)%26%23x3c%3B%2Fscript%26%23x3e%3B",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T2-08",
+      "description": "Nested HTML entities",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%26amp%3Blt%3Bscript%26amp%3Bgt%3Balert(1)%26amp%3Blt%3B%2Fscript%26amp%3Bgt%3B",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T2-09",
+      "description": "Mixed case SQL keywords",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20uNiOn%20SeLeCt%201%2C2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T2-10",
+      "description": "Fullwidth NFKC script tag",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%EF%BC%9C%EF%BD%93%EF%BD%83%EF%BD%92%EF%BD%89%EF%BD%90%EF%BD%94%EF%BC%9E%EF%BD%81%EF%BD%8C%EF%BD%85%EF%BD%92%EF%BD%94%EF%BC%88%EF%BC%91%EF%BC%89%EF%BC%9C%EF%BC%8F%EF%BD%93%EF%BD%83%EF%BD%92%EF%BD%89%EF%BD%90%EF%BD%94%EF%BC%9E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T2-11",
+      "description": "Null byte inside script token",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Cscr%00ipt%3Ealert(1)%3C%2Fscr%00ipt%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T2-12",
+      "description": "Zero-width character inside token",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%3Cscr%E2%80%8Bipt%3Ealert(1)%3C%2Fscript%3E",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "xss"
+        ]
+      }
+    },
+    {
+      "id": "T2-13",
+      "description": "Tab-separated SQL keywords",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20UNION%09SELECT%201%2C2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T2-14",
+      "description": "Newline-separated SQL keywords",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20UNION%0ASELECT%201%2C2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T2-15",
+      "description": "SQL comments inside keywords",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=1%20UN%2F**%2FION%20SEL%2F**%2FECT%201%2C2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    },
+    {
+      "id": "T2-16",
+      "description": "URL-encoded traversal",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=%2e%2e%2fsecret%2fflag.txt",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "T2-17",
+      "description": "Double URL-encoded traversal",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%252Fsecret%252Fflag.txt",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "T2-18",
+      "description": "Encoded backslashes",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=..%5c..%5cwindows%5cwin.ini",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "T2-19",
+      "description": "Overlong UTF-8 prefix plus traversal (anomaly + path evidence)",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=%c0%af../../etc/passwd",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "traversal"
+        ]
+      }
+    },
+    {
+      "id": "T2-20",
+      "description": "Fully percent-encoded SQL keywords",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%31%20%55%4e%49%4f%4e%20%53%45%4c%45%43%54%20%31%2c%32",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (WAF Studio synthetic fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "block",
+        "categories": [
+          "sqli"
+        ]
+      }
+    }
+  ]
+}

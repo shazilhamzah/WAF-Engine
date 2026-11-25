@@ -1,0 +1,1194 @@
+{
+  "case": "CORPUS-BENIGN",
+  "title": "Realistic benign traffic corpus",
+  "description": "Synthetic everyday traffic for the lab shop: browsing, static assets, searches, logins with fake credentials, form posts, JSON API calls, file names, uploads, cookies and common headers. Used to measure the false-positive rate (target: 0). No real personal data.",
+  "samples": [
+    {
+      "id": "CB-01",
+      "description": "Home page",
+      "request": {
+        "method": "GET",
+        "path": "/",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-02",
+      "description": "Health check",
+      "request": {
+        "method": "GET",
+        "path": "/health",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-03",
+      "description": "Product list",
+      "request": {
+        "method": "GET",
+        "path": "/products",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-04",
+      "description": "Product detail by numeric id",
+      "request": {
+        "method": "GET",
+        "path": "/products?id=3",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-05",
+      "description": "Product detail JSON",
+      "request": {
+        "method": "GET",
+        "path": "/products?id=7",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "accept": "application/json"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-06",
+      "description": "Comments page",
+      "request": {
+        "method": "GET",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-07",
+      "description": "Static stylesheet",
+      "request": {
+        "method": "GET",
+        "path": "/static/css/site.css",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/css,*/*;q=0.1",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-08",
+      "description": "Static script",
+      "request": {
+        "method": "GET",
+        "path": "/static/js/app.min.js",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "*/*",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-09",
+      "description": "Logo image",
+      "request": {
+        "method": "GET",
+        "path": "/images/logo.png",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "image/avif,image/webp,*/*",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-10",
+      "description": "Favicon",
+      "request": {
+        "method": "GET",
+        "path": "/favicon.ico",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-11",
+      "description": "About page with referer",
+      "request": {
+        "method": "GET",
+        "path": "/about",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9",
+          "referer": "http://127.0.0.1:8080/"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-12",
+      "description": "Public catalog file from the lab file viewer",
+      "request": {
+        "method": "GET",
+        "path": "/files?name=public/catalog.txt",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-13",
+      "description": "Search: single word",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=laptop",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-14",
+      "description": "Search: multi-word",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=wireless%20noise%20cancelling%20headphones",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-15",
+      "description": "Search: with quotes for exact phrase",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=%22usb%20c%22%20charger",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-16",
+      "description": "Search: brand with apostrophe",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=Levi's%20jeans",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-17",
+      "description": "Search: size and colour",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=running%20shoes%20size%2042%20blue",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-18",
+      "description": "Search: price phrase",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=gifts%20under%20%2450",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-19",
+      "description": "Search: accented",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=cr%C3%A8me%20br%C3%BBl%C3%A9e%20recipe",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-20",
+      "description": "Search: question",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=how%20do%20I%20return%20an%20item%3F",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-21",
+      "description": "Search: model number",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=XPS-13%209310%20battery",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-22",
+      "description": "Search: with hyphen and slash",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=t-shirt%20s%2Fm",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-23",
+      "description": "Pagination and filters",
+      "request": {
+        "method": "GET",
+        "path": "/products?category=books&page=3&per_page=24&sort=rating",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-24",
+      "description": "Date range filter",
+      "request": {
+        "method": "GET",
+        "path": "/orders?from=2026-01-01&to=2026-03-31&status=shipped",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-25",
+      "description": "Tracking query parameters",
+      "request": {
+        "method": "GET",
+        "path": "/?utm_source=newsletter&utm_medium=email&utm_campaign=autumn-sale",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-26",
+      "description": "Login form (fake credentials)",
+      "request": {
+        "method": "POST",
+        "path": "/login",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "content-type": "application/x-www-form-urlencoded",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": "username=alice&password=correct-horse-battery"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-27",
+      "description": "Login form with e-mail username (fake credentials)",
+      "request": {
+        "method": "POST",
+        "path": "/login",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "username=bob%40example.com&password=S3cure!Passw0rd"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-28",
+      "description": "Login JSON (fake credentials)",
+      "request": {
+        "method": "POST",
+        "path": "/login",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"username\":\"carol\",\"password\":\"lab-only-password-1\"}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-29",
+      "description": "Logout",
+      "request": {
+        "method": "POST",
+        "path": "/logout",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-length": "0"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-30",
+      "description": "Register form (fake data)",
+      "request": {
+        "method": "POST",
+        "path": "/register",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "username=dave_2026&email=dave%40example.net&password=another-fake-pass&confirm=another-fake-pass"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-31",
+      "description": "Password reset request",
+      "request": {
+        "method": "POST",
+        "path": "/password/reset",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "email=erin%40example.org"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-32",
+      "description": "Comment form post",
+      "request": {
+        "method": "POST",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "author=Frank&text=Great+product%2C+arrived+on+time."
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-33",
+      "description": "Comment JSON post",
+      "request": {
+        "method": "POST",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"author\":\"Grace\",\"text\":\"Works as described. Would buy again!\"}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-34",
+      "description": "Comment with line breaks",
+      "request": {
+        "method": "POST",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "author=Heidi&text=Pros%3A+light%2C+fast.%0D%0ACons%3A+short+cable.%0D%0AOverall%3A+4%2F5"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-35",
+      "description": "Contact form",
+      "request": {
+        "method": "POST",
+        "path": "/contact",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "name=Ivan+Petrov&email=ivan%40example.com&subject=Order+question&message=Hi%2C+can+I+change+the+delivery+address+for+order+10234%3F+Thanks."
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-36",
+      "description": "Newsletter signup",
+      "request": {
+        "method": "POST",
+        "path": "/newsletter",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "email=judy%40example.com&consent=yes"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-37",
+      "description": "Address form",
+      "request": {
+        "method": "POST",
+        "path": "/checkout/address",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "line1=12+Example+Street&line2=Flat+3&city=Springfield&postcode=AB1+2CD&country=GB"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-38",
+      "description": "JSON API: create order",
+      "request": {
+        "method": "POST",
+        "path": "/api/orders",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"items\":[{\"sku\":\"BK-1001\",\"qty\":2},{\"sku\":\"MG-2002\",\"qty\":1}],\"coupon\":\"AUTUMN10\",\"notes\":\"Leave at the door\"}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-39",
+      "description": "JSON API: update profile",
+      "request": {
+        "method": "PATCH",
+        "path": "/api/profile",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"displayName\":\"Kate M.\",\"bio\":\"Coffee, hiking & photography.\",\"preferences\":{\"theme\":\"dark\",\"language\":\"en-GB\"}}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-40",
+      "description": "JSON API: replace settings",
+      "request": {
+        "method": "PUT",
+        "path": "/api/settings",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"notifications\":{\"email\":true,\"sms\":false},\"timezone\":\"Europe/London\"}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-41",
+      "description": "JSON API: delete cart item",
+      "request": {
+        "method": "DELETE",
+        "path": "/api/cart/items/42",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "accept": "application/json"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-42",
+      "description": "JSON API: search with structured filters",
+      "request": {
+        "method": "POST",
+        "path": "/api/search",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"query\":\"desk lamp\",\"filters\":{\"priceMax\":80,\"inStock\":true,\"colors\":[\"black\",\"white\"]},\"page\":1}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-43",
+      "description": "JSON API: list of numbers and booleans",
+      "request": {
+        "method": "POST",
+        "path": "/api/metrics",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"cpu\":[12.5,14.1,9.8],\"ok\":true,\"host\":\"lab-01\"}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-44",
+      "description": "JSON API: nested address",
+      "request": {
+        "method": "POST",
+        "path": "/api/addresses",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"label\":\"Work\",\"address\":{\"street\":\"1 Market Square\",\"city\":\"Leeds\",\"geo\":{\"lat\":53.8,\"lng\":-1.55}}}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-45",
+      "description": "JSON API: array at top level",
+      "request": {
+        "method": "POST",
+        "path": "/api/batch",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "[{\"op\":\"add\",\"id\":1},{\"op\":\"remove\",\"id\":2}]"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-46",
+      "description": "JSON API: unicode text",
+      "request": {
+        "method": "POST",
+        "path": "/api/reviews",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"rating\":5,\"text\":\"Excelente producto 👍 — muy recomendable.\"}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-47",
+      "description": "JSON API: echo endpoint with small body",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"hello\":\"world\"}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-48",
+      "description": "Plain text body",
+      "request": {
+        "method": "POST",
+        "path": "/api/echo",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "text/plain"
+        },
+        "body": "Just some plain text notes for the echo endpoint."
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-49",
+      "description": "File name in query (download)",
+      "request": {
+        "method": "GET",
+        "path": "/download?file=report-2026-q3.pdf",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-50",
+      "description": "File name with spaces and parentheses",
+      "request": {
+        "method": "GET",
+        "path": "/download?file=holiday%20photo%20(1).jpg",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-51",
+      "description": "File upload (multipart) with a text file",
+      "request": {
+        "method": "POST",
+        "path": "/upload",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "multipart/form-data; boundary=----fixtureBoundary7MA4"
+        },
+        "body": "------fixtureBoundary7MA4\r\nContent-Disposition: form-data; name=\"title\"\r\n\r\nShopping list\r\n------fixtureBoundary7MA4\r\nContent-Disposition: form-data; name=\"file\"; filename=\"shopping-list.txt\"\r\nContent-Type: text/plain\r\n\r\nmilk\r\neggs\r\nbread\r\n------fixtureBoundary7MA4--\r\n"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-52",
+      "description": "HEAD request",
+      "request": {
+        "method": "HEAD",
+        "path": "/",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-53",
+      "description": "OPTIONS preflight",
+      "request": {
+        "method": "OPTIONS",
+        "path": "/api/orders",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "origin": "http://127.0.0.1:3000",
+          "access-control-request-method": "POST"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-54",
+      "description": "Cookie with preferences and a fake session id",
+      "request": {
+        "method": "GET",
+        "path": "/account",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9",
+          "cookie": "theme=dark; lang=en; sid=fake-session-0123456789abcdef"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-55",
+      "description": "Bearer token API call (fake token)",
+      "request": {
+        "method": "GET",
+        "path": "/api/me",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "authorization": "Bearer fake.lab.token",
+          "accept": "application/json"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-56",
+      "description": "Conditional GET with caching headers",
+      "request": {
+        "method": "GET",
+        "path": "/products",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9",
+          "if-none-match": "W/\"5e-abc123\"",
+          "cache-control": "max-age=0"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-57",
+      "description": "Request through a local reverse proxy header",
+      "request": {
+        "method": "GET",
+        "path": "/",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9",
+          "x-forwarded-for": "127.0.0.1",
+          "x-forwarded-proto": "http"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-58",
+      "description": "Mobile browser user agent",
+      "request": {
+        "method": "GET",
+        "path": "/products?id=2",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.5 Mobile/15E148 Safari/604.1 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-59",
+      "description": "Firefox user agent",
+      "request": {
+        "method": "GET",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0 (fixture)"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-60",
+      "description": "Language and currency switch",
+      "request": {
+        "method": "GET",
+        "path": "/settings?lang=fr-FR&currency=EUR",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-61",
+      "description": "Multiple values for the same parameter",
+      "request": {
+        "method": "GET",
+        "path": "/products?tag=new&tag=sale&tag=eco",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-62",
+      "description": "Empty search",
+      "request": {
+        "method": "GET",
+        "path": "/search?q=",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-63",
+      "description": "Long but harmless text comment",
+      "request": {
+        "method": "POST",
+        "path": "/comments",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "author=Liam&text=This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review.+This+is+a+long+review."
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-64",
+      "description": "Feedback form with rating",
+      "request": {
+        "method": "POST",
+        "path": "/feedback",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "rating=4&comment=Easy+checkout%2C+but+delivery+took+5+days.&recommend=yes"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-65",
+      "description": "Coupon code apply",
+      "request": {
+        "method": "POST",
+        "path": "/cart/coupon",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/x-www-form-urlencoded"
+        },
+        "body": "code=WELCOME-2026"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-66",
+      "description": "GraphQL-style JSON query string",
+      "request": {
+        "method": "POST",
+        "path": "/api/graphql",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (fixture)",
+          "content-type": "application/json",
+          "accept": "application/json"
+        },
+        "body": "{\"query\":\"query { product(id: 3) { name price } }\",\"variables\":{}}"
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-67",
+      "description": "Path with trailing slash and dash",
+      "request": {
+        "method": "GET",
+        "path": "/blog/2026/10/autumn-collection/",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    },
+    {
+      "id": "CB-68",
+      "description": "Encoded space in path",
+      "request": {
+        "method": "GET",
+        "path": "/help/shipping%20and%20returns",
+        "headers": {
+          "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36 (fixture)",
+          "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "accept-language": "en-US,en;q=0.9"
+        },
+        "body": null
+      },
+      "expected": {
+        "verdict": "allow",
+        "categories": []
+      }
+    }
+  ]
+}

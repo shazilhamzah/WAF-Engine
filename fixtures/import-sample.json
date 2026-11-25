@@ -1,0 +1,47 @@
+{
+  "samples": [
+    {
+      "method": "GET",
+      "path": "/search?q=wireless%20mouse",
+      "headers": {
+        "user-agent": "Mozilla/5.0 (fixture)"
+      },
+      "body": null
+    },
+    {
+      "method": "GET",
+      "path": "/products?id=2",
+      "headers": {
+        "user-agent": "Mozilla/5.0 (fixture)",
+        "accept": "application/json"
+      },
+      "body": null
+    },
+    {
+      "method": "POST",
+      "path": "/comments",
+      "headers": {
+        "user-agent": "Mozilla/5.0 (fixture)",
+        "content-type": "application/json"
+      },
+      "body": "{\"author\":\"Nina\",\"text\":\"Fast delivery, thanks!\"}"
+    },
+    {
+      "method": "POST",
+      "path": "/login",
+      "headers": {
+        "user-agent": "Mozilla/5.0 (fixture)",
+        "content-type": "application/x-www-form-urlencoded"
+      },
+      "body": "username=demo&password=not-a-real-password"
+    },
+    {
+      "method": "GET",
+      "path": "/search?q=O'Brien%20%26%20Sons",
+      "headers": {
+        "user-agent": "Mozilla/5.0 (fixture)"
+      },
+      "body": null
+    }
+  ]
+}
