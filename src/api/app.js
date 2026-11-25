@@ -11,6 +11,7 @@ const { createLoginThrottle, createSlidingWindowLimiter } = require('../auth/rat
 const { createAuthMiddleware } = require('../auth/middleware');
 const { ApiError } = require('./errors');
 const mw = require('./middleware');
+const { createIdempotency } = require('./idempotency');
 const { createAuthRouter } = require('./routes/auth');
 const { createUsersRouter } = require('./routes/users');
 const { createEventsRouter } = require('./routes/events');
@@ -54,6 +55,7 @@ function createStudioApp({ db, engineState, secret, logger, clock, publicDir = P
   const throttle = createLoginThrottle({ clock: now, ...(options.loginThrottle || {}) });
   const analysisLimiter = createSlidingWindowLimiter({ windowMs: 60_000, max: options.analysisPerMinute || 60, clock: now });
   const auth = createAuthMiddleware({ sessions, audit });
+  const idempotency = createIdempotency({ clock: now, ...(options.idempotency || {}) });
   const deps = { db, engineState, audit, auth, sessions, throttle, analysisLimiter, logger: log, clock: now, version: PKG_VERSION };
 
   const app = express();
@@ -69,7 +71,7 @@ function createStudioApp({ db, engineState, secret, logger, clock, publicDir = P
   app.use('/api', mw.apiNoStore, mw.requireJsonBody);
   app.use(['/api/analyze', '/api/import'], express.json({ limit: '2mb', strict: true, type: 'application/json' }));
   app.use('/api', express.json({ limit: '256kb', strict: true, type: 'application/json' }), mw.ensureObjectBody);
-  app.use('/api', auth.loadSession, auth.requireCsrf);
+  app.use('/api', auth.loadSession, auth.requireCsrf, idempotency.middleware);
 
   app.use('/api', createAuthRouter(deps));
   app.use('/api', createEventsRouter(deps));
@@ -101,7 +103,7 @@ function createStudioApp({ db, engineState, secret, logger, clock, publicDir = P
 
   app.use(mw.errorHandler({ logger: log, audit }));
 
-  app.locals.waf = { audit, sessions, throttle, analysisLimiter, auth };
+  app.locals.waf = { audit, sessions, throttle, analysisLimiter, auth, idempotency };
   return app;
 }
 
